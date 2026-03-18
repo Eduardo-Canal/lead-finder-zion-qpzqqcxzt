@@ -28,26 +28,26 @@ export function EditUserModal({ userId, onClose }: EditUserModalProps) {
   const { users, profiles, updateUser } = useUserManagementStore()
   const user = users.find((u) => u.id === userId)
 
-  const [name, setName] = useState('')
+  const [nome, setNome] = useState('')
   const [email, setEmail] = useState('')
-  const [profileId, setProfileId] = useState('')
+  const [perfilId, setPerfilId] = useState('')
 
   useEffect(() => {
     if (user) {
-      setName(user.name)
+      setNome(user.nome)
       setEmail(user.email)
-      setProfileId(user.profileId)
+      setPerfilId(user.perfil_id)
     }
   }, [user])
 
   const handleSave = () => {
     if (!user) return
-    if (!name.trim() || !email.trim() || !profileId) {
+    if (!nome.trim() || !email.trim() || !perfilId) {
       toast.error('Preencha todos os campos obrigatórios.')
       return
     }
 
-    updateUser(userId, { name, email, profileId })
+    updateUser(userId, { nome, email, perfil_id: perfilId })
     toast.success('Usuário atualizado com sucesso!')
     onClose()
   }
@@ -60,8 +60,8 @@ export function EditUserModal({ userId, onClose }: EditUserModalProps) {
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label htmlFor="name">Nome</Label>
-            <Input id="name" value={name} onChange={(e) => setName(e.target.value)} />
+            <Label htmlFor="nome">Nome</Label>
+            <Input id="nome" value={nome} onChange={(e) => setNome(e.target.value)} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="email">E-mail</Label>
@@ -74,14 +74,14 @@ export function EditUserModal({ userId, onClose }: EditUserModalProps) {
           </div>
           <div className="space-y-2">
             <Label>Perfil atribuído</Label>
-            <Select value={profileId} onValueChange={setProfileId}>
+            <Select value={perfilId} onValueChange={setPerfilId}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecione um perfil" />
               </SelectTrigger>
               <SelectContent>
                 {profiles.map((p) => (
                   <SelectItem key={p.id} value={p.id}>
-                    {p.name}
+                    {p.nome}
                   </SelectItem>
                 ))}
               </SelectContent>

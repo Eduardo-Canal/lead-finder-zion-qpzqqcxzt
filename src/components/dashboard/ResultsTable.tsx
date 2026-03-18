@@ -11,14 +11,18 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
-import useLeadStore from '@/stores/useLeadStore'
+import useLeadStore, { FilteredLead } from '@/stores/useLeadStore'
+import useAuthStore from '@/stores/useAuthStore'
 import { LeadDetailsModal } from './LeadDetailsModal'
+import { cn } from '@/lib/utils'
 
 export function ResultsTable() {
   const { filteredLeads, toggleContact } = useLeadStore()
+  const { hasPermission } = useAuthStore()
   const [selectedLeadCnpj, setSelectedLeadCnpj] = useState<string | null>(null)
 
   const selectedLead = filteredLeads.find((l) => l.cnpj === selectedLeadCnpj)
+  const canContact = hasPermission('Marcar Contato')
 
   return (
     <>
@@ -45,12 +49,12 @@ export function ResultsTable() {
               </TableRow>
             ) : (
               filteredLeads.map((lead) => (
-                <TableRow key={lead.cnpj} className="animate-fade-in group">
-                  <TableCell className="font-medium">{lead.razaoSocial}</TableCell>
+                <TableRow key={lead.id} className="animate-fade-in group">
+                  <TableCell className="font-medium">{lead.razao_social}</TableCell>
                   <TableCell className="text-muted-foreground whitespace-nowrap">
                     {lead.cnpj}
                   </TableCell>
-                  <TableCell>{lead.cnaePrincipal}</TableCell>
+                  <TableCell>{lead.cnae_principal}</TableCell>
                   <TableCell>
                     {lead.municipio} - {lead.uf}
                   </TableCell>
@@ -68,8 +72,11 @@ export function ResultsTable() {
                   <TableCell>
                     {lead.contatado ? (
                       <Badge
-                        className="bg-emerald-500 hover:bg-emerald-600 text-white flex gap-2 w-max items-center px-3 py-1 animate-in zoom-in-95 cursor-pointer"
-                        onClick={() => toggleContact(lead.cnpj)}
+                        className={cn(
+                          'bg-emerald-500 text-white flex gap-2 w-max items-center px-3 py-1 animate-in zoom-in-95',
+                          canContact && 'hover:bg-emerald-600 cursor-pointer',
+                        )}
+                        onClick={() => canContact && toggleContact(lead.cnpj)}
                       >
                         Contatado por: {lead.contatadoPor} <br className="hidden" /> -{' '}
                         {lead.contatadoEm}
@@ -79,11 +86,17 @@ export function ResultsTable() {
                         <Checkbox
                           id={`contact-${lead.cnpj}`}
                           checked={false}
-                          onCheckedChange={() => toggleContact(lead.cnpj)}
+                          disabled={!canContact}
+                          onCheckedChange={() => canContact && toggleContact(lead.cnpj)}
                         />
                         <label
                           htmlFor={`contact-${lead.cnpj}`}
-                          className="text-sm text-muted-foreground cursor-pointer select-none"
+                          className={cn(
+                            'text-sm select-none',
+                            canContact
+                              ? 'cursor-pointer text-muted-foreground'
+                              : 'text-muted-foreground/50',
+                          )}
                         >
                           Marcar contato
                         </label>

@@ -65,7 +65,7 @@ const BRAZIL_STATES = [
 
 export function AppSidebar() {
   const { filters, setFilter, addCnae, removeCnae, toggleUf } = useLeadStore()
-  const { user } = useAuthStore()
+  const { hasPermission } = useAuthStore()
   const [cnaeInput, setCnaeInput] = useState('')
   const location = useLocation()
 
@@ -103,7 +103,7 @@ export function AppSidebar() {
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-              {user?.role === 'Admin' && (
+              {hasPermission('Acessar Admin') && (
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild isActive={location.pathname === '/gestao-usuarios'}>
                     <Link to="/gestao-usuarios">

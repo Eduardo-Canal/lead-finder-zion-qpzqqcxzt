@@ -25,12 +25,12 @@ import {
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { MessageSquare, Calendar } from 'lucide-react'
-import useMyLeadsStore from '@/stores/useMyLeadsStore'
-import { ContactStatus, MyLead } from '@/data/mock-my-leads'
+import useMyLeadsStore, { LeadSalvo } from '@/stores/useMyLeadsStore'
+import useAuthStore from '@/stores/useAuthStore'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 
-const statusColors: Record<ContactStatus, string> = {
+const statusColors: Record<string, string> = {
   'Não Contatado': 'text-slate-600 bg-slate-100',
   'Em Prospecção': 'text-amber-700 bg-amber-100',
   'Proposta Enviada': 'text-blue-700 bg-blue-100',
@@ -40,12 +40,15 @@ const statusColors: Record<ContactStatus, string> = {
 
 export function MyLeadsTable() {
   const { filteredLeads, updateStatus, updateObservation } = useMyLeadsStore()
-  const [editingLead, setEditingLead] = useState<MyLead | null>(null)
+  const { hasPermission } = useAuthStore()
+  const canEditStatus = hasPermission('Editar Status de Contato')
+
+  const [editingLead, setEditingLead] = useState<LeadSalvo | null>(null)
   const [obsText, setObsText] = useState('')
 
-  const openObservationModal = (lead: MyLead) => {
+  const openObservationModal = (lead: LeadSalvo) => {
     setEditingLead(lead)
-    setObsText(lead.observacoes)
+    setObsText(lead.observacoes || '')
   }
 
   const handleSaveObservation = () => {
@@ -82,9 +85,9 @@ export function MyLeadsTable() {
               filteredLeads.map((lead) => (
                 <TableRow key={lead.id} className="animate-fade-in">
                   <TableCell className="font-medium">
-                    {lead.razaoSocial}
+                    {lead.razao_social}
                     <div className="text-xs text-muted-foreground font-normal mt-0.5">
-                      CNAE: {lead.cnae}
+                      CNAE: {lead.cnae_principal}
                     </div>
                   </TableCell>
                   <TableCell className="text-muted-foreground whitespace-nowrap">
@@ -93,11 +96,12 @@ export function MyLeadsTable() {
                   <TableCell>
                     {lead.municipio} - {lead.uf}
                   </TableCell>
-                  <TableCell className="text-muted-foreground">{lead.executivo}</TableCell>
+                  <TableCell className="text-muted-foreground">{lead.executivo_nome}</TableCell>
                   <TableCell>
                     <Select
-                      value={lead.status}
-                      onValueChange={(v: ContactStatus) => {
+                      value={lead.status_contato}
+                      disabled={!canEditStatus}
+                      onValueChange={(v: string) => {
                         updateStatus(lead.id, v)
                         toast.success('Status atualizado')
                       }}
@@ -105,7 +109,7 @@ export function MyLeadsTable() {
                       <SelectTrigger
                         className={cn(
                           'h-8 text-xs font-medium border-0 ring-1 ring-inset ring-black/5 focus:ring-2 focus:ring-primary',
-                          statusColors[lead.status],
+                          statusColors[lead.status_contato] || statusColors['Não Contatado'],
                         )}
                       >
                         <SelectValue placeholder="Status" />
@@ -122,7 +126,7 @@ export function MyLeadsTable() {
                   <TableCell className="text-muted-foreground">
                     <div className="flex items-center gap-1.5 text-xs">
                       <Calendar className="w-3.5 h-3.5" />
-                      {lead.ultimoContato}
+                      {lead.ultima_data_contato || '-'}
                     </div>
                   </TableCell>
                   <TableCell className="text-center">
@@ -151,7 +155,7 @@ export function MyLeadsTable() {
             <DialogTitle>Editar Observações</DialogTitle>
             <DialogDescription>
               Adicione notas ou histórico de interação para{' '}
-              <strong className="text-foreground">{editingLead?.razaoSocial}</strong>.
+              <strong className="text-foreground">{editingLead?.razao_social}</strong>.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">

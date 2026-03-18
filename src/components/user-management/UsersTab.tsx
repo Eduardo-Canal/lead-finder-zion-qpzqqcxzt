@@ -17,9 +17,9 @@ export function UsersTab() {
   const { users, profiles, toggleUserStatus } = useUserManagementStore()
   const [editingUserId, setEditingUserId] = useState<string | null>(null)
 
-  const handleToggleStatus = (id: string, currentStatus: string) => {
+  const handleToggleStatus = (id: string, currentStatus: boolean) => {
     toggleUserStatus(id)
-    const newStatus = currentStatus === 'Ativo' ? 'desativado' : 'ativado'
+    const newStatus = currentStatus ? 'desativado' : 'ativado'
     toast.success(`Usuário ${newStatus} com sucesso.`)
   }
 
@@ -37,16 +37,16 @@ export function UsersTab() {
         </TableHeader>
         <TableBody>
           {users.map((u) => {
-            const profile = profiles.find((p) => p.id === u.profileId)
-            const isActive = u.status === 'Ativo'
+            const profile = profiles.find((p) => p.id === u.perfil_id)
+            const isActive = u.ativo
 
             return (
               <TableRow key={u.id}>
-                <TableCell className="font-medium">{u.name}</TableCell>
+                <TableCell className="font-medium">{u.nome}</TableCell>
                 <TableCell className="text-muted-foreground">{u.email}</TableCell>
                 <TableCell>
                   <Badge variant="outline" className="bg-slate-50">
-                    {profile?.name || 'Sem perfil'}
+                    {profile?.nome || 'Sem perfil'}
                   </Badge>
                 </TableCell>
                 <TableCell>
@@ -54,7 +54,7 @@ export function UsersTab() {
                     variant={isActive ? 'default' : 'secondary'}
                     className={isActive ? 'bg-emerald-500 hover:bg-emerald-600' : ''}
                   >
-                    {u.status}
+                    {isActive ? 'Ativo' : 'Inativo'}
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right space-x-2">
@@ -64,7 +64,7 @@ export function UsersTab() {
                   <Button
                     variant={isActive ? 'destructive' : 'secondary'}
                     size="sm"
-                    onClick={() => handleToggleStatus(u.id, u.status)}
+                    onClick={() => handleToggleStatus(u.id, u.ativo)}
                   >
                     {isActive ? 'Desativar' : 'Ativar'}
                   </Button>

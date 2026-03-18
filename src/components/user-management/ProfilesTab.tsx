@@ -12,7 +12,7 @@ import { toast } from 'sonner'
 
 export function ProfilesTab() {
   const { profiles, createProfile } = useUserManagementStore()
-  const [name, setName] = useState('')
+  const [nome, setNome] = useState('')
   const [perms, setPerms] = useState<Permission[]>([])
 
   const handleToggle = (p: Permission) => {
@@ -20,15 +20,15 @@ export function ProfilesTab() {
   }
 
   const handleSave = () => {
-    if (!name.trim()) {
+    if (!nome.trim()) {
       return toast.error('O nome do perfil é obrigatório')
     }
     if (perms.length === 0) {
       return toast.error('Selecione ao menos uma permissão para o perfil.')
     }
 
-    createProfile(name.trim(), perms)
-    setName('')
+    createProfile(nome.trim(), perms)
+    setNome('')
     setPerms([])
     toast.success('Perfil criado com sucesso!')
   }
@@ -40,10 +40,10 @@ export function ProfilesTab() {
         {profiles.map((p) => (
           <Card key={p.id} className="shadow-sm">
             <CardHeader className="p-4">
-              <CardTitle className="text-base">{p.name}</CardTitle>
+              <CardTitle className="text-base">{p.nome}</CardTitle>
               <CardDescription>
-                {p.permissions.length}{' '}
-                {p.permissions.length === 1 ? 'permissão ativa' : 'permissões ativas'}
+                {p.permissoes?.length || 0}{' '}
+                {p.permissoes?.length === 1 ? 'permissão ativa' : 'permissões ativas'}
               </CardDescription>
             </CardHeader>
           </Card>
@@ -63,8 +63,8 @@ export function ProfilesTab() {
               <Label htmlFor="profileName">Nome do Perfil</Label>
               <Input
                 id="profileName"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
+                value={nome}
+                onChange={(e) => setNome(e.target.value)}
                 placeholder="Ex: Analista de Vendas"
               />
             </div>

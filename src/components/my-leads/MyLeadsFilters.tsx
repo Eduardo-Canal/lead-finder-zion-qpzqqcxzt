@@ -19,7 +19,7 @@ export function MyLeadsFilters() {
   }, [myLeads])
 
   const availableExecutives = useMemo(() => {
-    const execs = new Set(myLeads.map((l) => l.executivo))
+    const execs = new Set(myLeads.map((l) => l.executivo_nome))
     return Array.from(execs).sort()
   }, [myLeads])
 

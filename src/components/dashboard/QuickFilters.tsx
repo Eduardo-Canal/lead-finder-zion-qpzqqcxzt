@@ -6,12 +6,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Search } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Search, Download } from 'lucide-react'
 import useLeadStore from '@/stores/useLeadStore'
+import useAuthStore from '@/stores/useAuthStore'
 import { useMemo } from 'react'
+import { toast } from 'sonner'
 
 export function QuickFilters() {
   const { filters, setFilter, leads } = useLeadStore()
+  const { hasPermission } = useAuthStore()
 
   const availableCities = useMemo(() => {
     const cities = new Set(leads.map((l) => l.municipio))
@@ -19,7 +23,7 @@ export function QuickFilters() {
   }, [leads])
 
   return (
-    <div className="bg-white p-4 rounded-lg shadow-sm border mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+    <div className="bg-white p-4 rounded-lg shadow-sm border mb-6 grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
       <div className="relative col-span-1 md:col-span-1">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
@@ -57,16 +61,29 @@ export function QuickFilters() {
         </SelectContent>
       </Select>
 
-      <Select value={filters.contactStatus} onValueChange={(v) => setFilter('contactStatus', v)}>
-        <SelectTrigger>
-          <SelectValue placeholder="Status de Contato" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="Todos">Todos os Status</SelectItem>
-          <SelectItem value="Não Contatado">Não Contatado</SelectItem>
-          <SelectItem value="Contatado">Contatado</SelectItem>
-        </SelectContent>
-      </Select>
+      <div className="flex gap-2">
+        <Select value={filters.contactStatus} onValueChange={(v) => setFilter('contactStatus', v)}>
+          <SelectTrigger className="flex-1">
+            <SelectValue placeholder="Status de Contato" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="Todos">Todos os Status</SelectItem>
+            <SelectItem value="Não Contatado">Não Contatado</SelectItem>
+            <SelectItem value="Contatado">Contatado</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Button
+          variant="outline"
+          size="icon"
+          title="Exportar Lista"
+          disabled={!hasPermission('Exportar Lista')}
+          onClick={() => toast.success('Lista exportada com sucesso!')}
+          className="shrink-0"
+        >
+          <Download className="h-4 w-4" />
+        </Button>
+      </div>
     </div>
   )
 }

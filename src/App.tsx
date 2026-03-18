@@ -1,16 +1,33 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { ReactNode } from 'react'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { Toaster } from '@/components/ui/toaster'
 import { Toaster as Sonner } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import Layout from '@/components/Layout'
+import Login from '@/pages/Login'
 import Index from '@/pages/Index'
 import MyLeads from '@/pages/MyLeads'
 import UserManagement from '@/pages/UserManagement'
 import NotFound from '@/pages/NotFound'
-import { AuthProvider } from '@/stores/useAuthStore'
+import useAuthStore, { AuthProvider } from '@/stores/useAuthStore'
 import { LeadStoreProvider } from '@/stores/useLeadStore'
 import { MyLeadsStoreProvider } from '@/stores/useMyLeadsStore'
 import { UserManagementStoreProvider } from '@/stores/useUserManagementStore'
+
+const ProtectedRoute = ({ children }: { children: ReactNode }) => {
+  const { user, loading } = useAuthStore()
+  const location = useLocation()
+
+  if (loading)
+    return (
+      <div className="min-h-screen flex items-center justify-center text-muted-foreground">
+        Carregando...
+      </div>
+    )
+  if (!user) return <Navigate to="/login" state={{ from: location }} replace />
+
+  return <>{children}</>
+}
 
 const App = () => (
   <AuthProvider>
@@ -22,7 +39,14 @@ const App = () => (
               <Toaster />
               <Sonner />
               <Routes>
-                <Route element={<Layout />}>
+                <Route path="/login" element={<Login />} />
+                <Route
+                  element={
+                    <ProtectedRoute>
+                      <Layout />
+                    </ProtectedRoute>
+                  }
+                >
                   <Route path="/" element={<Index />} />
                   <Route path="/meus-leads" element={<MyLeads />} />
                   <Route path="/gestao-usuarios" element={<UserManagement />} />

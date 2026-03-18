@@ -1,4 +1,13 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react'
+import React, {
+  createContext,
+  useContext,
+  useState,
+  ReactNode,
+  useEffect,
+  useCallback,
+} from 'react'
+import { mockDb, generateId } from '@/lib/db'
+import useAuthStore from '@/stores/useAuthStore'
 
 export const PERMISSIONS_LIST = [
   'Buscar Leads',
@@ -11,78 +20,67 @@ export const PERMISSIONS_LIST = [
 
 export type Permission = (typeof PERMISSIONS_LIST)[number]
 
-export type Profile = {
+export type ProfileTable = {
   id: string
-  name: string
-  permissions: Permission[]
-}
-
-export type User = {
-  id: string
-  name: string
+  user_id: string
+  nome: string
   email: string
-  profileId: string
-  status: 'Ativo' | 'Inativo'
+  perfil_id: string
+  ativo: boolean
 }
 
-const mockProfiles: Profile[] = [
-  { id: 'p1', name: 'Administrador', permissions: [...PERMISSIONS_LIST] },
-  { id: 'p2', name: 'Visualizador', permissions: ['Buscar Leads'] },
-]
-
-const mockUsers: User[] = [
-  {
-    id: 'u1',
-    name: 'João Silva',
-    email: 'joao.silva@zion.com',
-    profileId: 'p1',
-    status: 'Ativo',
-  },
-  {
-    id: 'u2',
-    name: 'Maria Santos',
-    email: 'maria.santos@zion.com',
-    profileId: 'p2',
-    status: 'Ativo',
-  },
-  {
-    id: 'u3',
-    name: 'Pedro Costa',
-    email: 'pedro.costa@zion.com',
-    profileId: 'p2',
-    status: 'Inativo',
-  },
-]
+export type PerfilTable = {
+  id: string
+  nome: string
+  permissoes: Permission[]
+}
 
 type UserManagementStoreContextType = {
-  users: User[]
-  profiles: Profile[]
+  users: ProfileTable[]
+  profiles: PerfilTable[]
   toggleUserStatus: (id: string) => void
-  updateUser: (id: string, data: Partial<User>) => void
-  createProfile: (name: string, permissions: Permission[]) => void
+  updateUser: (id: string, data: Partial<ProfileTable>) => void
+  createProfile: (nome: string, permissoes: Permission[]) => void
 }
 
 const UserManagementContext = createContext<UserManagementStoreContextType | null>(null)
 
 export function UserManagementStoreProvider({ children }: { children: ReactNode }) {
-  const [users, setUsers] = useState<User[]>(mockUsers)
-  const [profiles, setProfiles] = useState<Profile[]>(mockProfiles)
+  const [users, setUsers] = useState<ProfileTable[]>([])
+  const [profiles, setProfiles] = useState<PerfilTable[]>([])
+  const { user } = useAuthStore()
 
-  const toggleUserStatus = (id: string) => {
-    setUsers((prev) =>
-      prev.map((u) => {
-        if (u.id === id) return { ...u, status: u.status === 'Ativo' ? 'Inativo' : 'Ativo' }
-        return u
-      }),
-    )
+  const fetchData = useCallback(async () => {
+    const u = await mockDb.getTable('profiles')
+    const p = await mockDb.getTable('perfis_acesso')
+    setUsers(u)
+    setProfiles(p)
+  }, [])
+
+  useEffect(() => {
+    if (user) fetchData()
+  }, [user, fetchData])
+
+  const toggleUserStatus = async (id: string) => {
+    const u = users.find((x) => x.id === id)
+    if (u) {
+      await mockDb.update('profiles', id, { ativo: !u.ativo })
+      await fetchData()
+    }
   }
 
-  const updateUser = (id: string, data: Partial<User>) => {
-    setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, ...data } : u)))
+  const updateUser = async (id: string, data: Partial<ProfileTable>) => {
+    await mockDb.update('profiles', id, data)
+    await fetchData()
   }
 
-  const createProfile = (name: string, permissions: Permission[]) => {
-    setProfiles((prev) => [...prev, { id: `p${Date.now()}`, name, permissions }])
+  const createProfile = async (nome: string, permissoes: Permission[]) => {
+    await mockDb.insert('perfis_acesso', {
+      id: `p_${generateId()}`,
+      nome,
+      permissoes,
+    })
+    await fetchData()
   }
 
   return React.createElement(

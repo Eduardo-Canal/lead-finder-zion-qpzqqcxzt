@@ -1,28 +1,62 @@
-import { Lead } from '@/data/mock-leads'
+import { FilteredLead } from '@/stores/useLeadStore'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { MapPin, Search, Save, Building2, Users, History, Mail, Phone } from 'lucide-react'
 import { toast } from 'sonner'
 import { DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+import useAuthStore from '@/stores/useAuthStore'
+import { mockDb, generateId } from '@/lib/db'
 
-export function LeadDetailsModal({ lead }: { lead: Lead }) {
-  const handleSave = () => {
-    toast.success('Lead salvo com sucesso!')
+export function LeadDetailsModal({ lead }: { lead: FilteredLead }) {
+  const { user, hasPermission } = useAuthStore()
+  const canSave = hasPermission('Salvar Leads')
+
+  const handleSave = async () => {
+    if (!canSave) {
+      return toast.error('Sem permissão para salvar leads.')
+    }
+
+    try {
+      await mockDb.insert('leads_salvos', {
+        id: generateId(),
+        razao_social: lead.razao_social,
+        cnpj: lead.cnpj,
+        cnae_principal: lead.cnae_principal,
+        municipio: lead.municipio,
+        uf: lead.uf,
+        porte: lead.porte,
+        situacao: lead.situacao,
+        capital_social: lead.capital_social,
+        data_abertura: lead.data_abertura,
+        email: lead.email,
+        telefone: lead.telefone,
+        socios: lead.socios,
+        salvo_por: user?.id,
+        status_contato: 'Não Contatado',
+        ultima_data_contato: null,
+        observacoes: '',
+        created_at: new Date().toISOString(),
+      })
+      window.dispatchEvent(new Event('refetch-my-leads'))
+      toast.success('Lead salvo com sucesso!')
+    } catch (err) {
+      toast.error('Erro ao salvar o lead.')
+    }
   }
 
   const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-    `${lead.razaoSocial} ${lead.municipio} ${lead.uf}`,
+    `${lead.razao_social} ${lead.municipio} ${lead.uf}`,
   )}`
 
   const linkedinUrl = `https://www.linkedin.com/search/results/companies/?keywords=${encodeURIComponent(
-    lead.razaoSocial,
+    lead.razao_social,
   )}`
 
   return (
     <>
       <DialogHeader>
-        <DialogTitle className="text-xl flex items-center gap-2">{lead.razaoSocial}</DialogTitle>
+        <DialogTitle className="text-xl flex items-center gap-2">{lead.razao_social}</DialogTitle>
         <DialogDescription>
           Detalhes completos da empresa e histórico de interação.
         </DialogDescription>
@@ -37,7 +71,7 @@ export function LeadDetailsModal({ lead }: { lead: Lead }) {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
             <div>
               <p className="text-muted-foreground">Razão Social</p>
-              <p className="font-medium">{lead.razaoSocial}</p>
+              <p className="font-medium">{lead.razao_social}</p>
             </div>
             <div>
               <p className="text-muted-foreground">CNPJ</p>
@@ -45,7 +79,7 @@ export function LeadDetailsModal({ lead }: { lead: Lead }) {
             </div>
             <div>
               <p className="text-muted-foreground">CNAE Principal</p>
-              <p className="font-medium">{lead.cnaePrincipal}</p>
+              <p className="font-medium">{lead.cnae_principal}</p>
             </div>
             <div>
               <p className="text-muted-foreground">Município</p>
@@ -72,13 +106,13 @@ export function LeadDetailsModal({ lead }: { lead: Lead }) {
               <p className="text-muted-foreground">Capital Social</p>
               <p className="font-medium text-emerald-600">
                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
-                  lead.capitalSocial,
+                  lead.capital_social,
                 )}
               </p>
             </div>
             <div>
               <p className="text-muted-foreground">Data de Abertura</p>
-              <p className="font-medium">{lead.dataAbertura}</p>
+              <p className="font-medium">{lead.data_abertura}</p>
             </div>
             <div>
               <p className="text-muted-foreground">E-mail</p>
@@ -172,7 +206,11 @@ export function LeadDetailsModal({ lead }: { lead: Lead }) {
               Buscar no LinkedIn
             </a>
           </Button>
-          <Button onClick={handleSave} className="flex-1 sm:flex-none sm:ml-auto">
+          <Button
+            onClick={handleSave}
+            disabled={!canSave}
+            className="flex-1 sm:flex-none sm:ml-auto"
+          >
             <Save className="w-4 h-4 mr-2" />
             Salvar Lead
           </Button>

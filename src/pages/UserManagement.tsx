@@ -4,11 +4,11 @@ import { ProfilesTab } from '@/components/user-management/ProfilesTab'
 import useAuthStore from '@/stores/useAuthStore'
 
 export default function UserManagement() {
-  const { user } = useAuthStore()
+  const { hasPermission } = useAuthStore()
 
-  if (user?.role !== 'Admin') {
+  if (!hasPermission('Acessar Admin')) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-4">
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-4 animate-fade-in">
         <h2 className="text-2xl font-bold text-destructive">Acesso Negado</h2>
         <p className="text-muted-foreground">
           Você não tem permissão para acessar a Gestão de Usuários.
