@@ -2,8 +2,11 @@ import { Outlet } from 'react-router-dom'
 import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar'
 import { AppSidebar } from '@/components/sidebar/AppSidebar'
 import { User } from 'lucide-react'
+import useAuthStore from '@/stores/useAuthStore'
 
 export default function Layout() {
+  const { user } = useAuthStore()
+
   return (
     <SidebarProvider>
       <AppSidebar />
@@ -17,7 +20,7 @@ export default function Layout() {
           </div>
           <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground bg-slate-100 py-1.5 px-3 rounded-full">
             <User className="h-4 w-4 text-accent" />
-            <span>Executivo Zion</span>
+            <span>{user?.name || 'Visitante'}</span>
           </div>
         </header>
         <main className="flex-1 p-4 md:p-6 overflow-x-hidden">

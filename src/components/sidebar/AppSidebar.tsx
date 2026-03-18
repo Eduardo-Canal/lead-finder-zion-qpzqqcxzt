@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { X, LayoutDashboard, Users } from 'lucide-react'
+import { X, LayoutDashboard, Users, ShieldCheck } from 'lucide-react'
 import {
   Sidebar,
   SidebarContent,
@@ -31,6 +31,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import useLeadStore from '@/stores/useLeadStore'
+import useAuthStore from '@/stores/useAuthStore'
 
 const BRAZIL_STATES = [
   'AC',
@@ -64,6 +65,7 @@ const BRAZIL_STATES = [
 
 export function AppSidebar() {
   const { filters, setFilter, addCnae, removeCnae, toggleUf } = useLeadStore()
+  const { user } = useAuthStore()
   const [cnaeInput, setCnaeInput] = useState('')
   const location = useLocation()
 
@@ -101,6 +103,16 @@ export function AppSidebar() {
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+              {user?.role === 'Admin' && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={location.pathname === '/gestao-usuarios'}>
+                    <Link to="/gestao-usuarios">
+                      <ShieldCheck />
+                      <span>Gestão de Usuários</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

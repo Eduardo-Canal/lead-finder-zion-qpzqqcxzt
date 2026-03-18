@@ -1032,6 +1032,10 @@ body{
   min-height: 150px;
 }
 
+.min-h-\[60vh\]{
+  min-height: 60vh;
+}
+
 .min-h-\[80px\]{
   min-height: 80px;
 }
@@ -1420,6 +1424,10 @@ body{
   gap: 1rem;
 }
 
+.gap-6{
+  gap: 1.5rem;
+}
+
 .space-x-1 > :not([hidden]) ~ :not([hidden]){
   --tw-space-x-reverse: 0;
   margin-right: calc(0.25rem * var(--tw-space-x-reverse));
@@ -1430,6 +1438,12 @@ body{
   --tw-space-x-reverse: 0;
   margin-right: calc(0.5rem * var(--tw-space-x-reverse));
   margin-left: calc(0.5rem * calc(1 - var(--tw-space-x-reverse)));
+}
+
+.space-x-3 > :not([hidden]) ~ :not([hidden]){
+  --tw-space-x-reverse: 0;
+  margin-right: calc(0.75rem * var(--tw-space-x-reverse));
+  margin-left: calc(0.75rem * calc(1 - var(--tw-space-x-reverse)));
 }
 
 .space-x-4 > :not([hidden]) ~ :not([hidden]){
@@ -2019,6 +2033,10 @@ body{
 
 .leading-none{
   line-height: 1;
+}
+
+.leading-tight{
+  line-height: 1.25;
 }
 
 .tracking-tight{
@@ -3458,6 +3476,14 @@ body{
     display: flex;
   }
 
+  .sm\:w-auto{
+    width: auto;
+  }
+
+  .sm\:max-w-\[425px\]{
+    max-width: 425px;
+  }
+
   .sm\:max-w-\[500px\]{
     max-width: 500px;
   }
@@ -3517,6 +3543,10 @@ body{
 
   .md\:col-span-1{
     grid-column: span 1 / span 1;
+  }
+
+  .md\:col-span-2{
+    grid-column: span 2 / span 2;
   }
 
   .md\:block{
