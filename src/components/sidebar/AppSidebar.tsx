@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { X, LayoutDashboard, Users, ShieldCheck } from 'lucide-react'
+import { X, LayoutDashboard, Users, ShieldCheck, Target } from 'lucide-react'
 import {
   Sidebar,
   SidebarContent,
@@ -69,6 +69,8 @@ export function AppSidebar() {
   const [cnaeInput, setCnaeInput] = useState('')
   const location = useLocation()
 
+  const isProspeccao = location.pathname === '/prospeccao'
+
   const handleAddCnae = (e: React.FormEvent) => {
     e.preventDefault()
     if (cnaeInput.trim()) {
@@ -91,6 +93,14 @@ export function AppSidebar() {
                 <SidebarMenuButton asChild isActive={location.pathname === '/'}>
                   <Link to="/">
                     <LayoutDashboard />
+                    <span>Dashboard</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={location.pathname === '/prospeccao'}>
+                  <Link to="/prospeccao">
+                    <Target />
                     <span>Painel de Prospecção</span>
                   </Link>
                 </SidebarMenuButton>
@@ -117,134 +127,138 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarGroup>
-          <SidebarGroupLabel>Filtros Avançados (Painel)</SidebarGroupLabel>
-          <SidebarGroupContent className="px-2">
-            <form onSubmit={handleAddCnae} className="flex gap-2 mt-2">
-              <Input
-                placeholder="Ex: 6201-5/01"
-                value={cnaeInput}
-                onChange={(e) => setCnaeInput(e.target.value)}
-                className="bg-sidebar-accent text-sidebar-foreground border-sidebar-border"
-              />
-              <Button type="submit" variant="secondary">
-                Adicionar
-              </Button>
-            </form>
-            <div className="flex flex-wrap gap-2 mt-3">
-              {filters.cnaes.map((cnae) => (
-                <Badge
-                  key={cnae}
-                  variant="secondary"
-                  className="bg-sidebar-accent text-sidebar-foreground flex items-center gap-1 animate-in fade-in slide-in-from-left-2"
-                >
-                  {cnae}
-                  <X
-                    className="h-3 w-3 cursor-pointer hover:text-destructive"
-                    onClick={() => removeCnae(cnae)}
+        {isProspeccao && (
+          <>
+            <SidebarGroup className="animate-fade-in-up">
+              <SidebarGroupLabel>Filtros Avançados (Painel)</SidebarGroupLabel>
+              <SidebarGroupContent className="px-2">
+                <form onSubmit={handleAddCnae} className="flex gap-2 mt-2">
+                  <Input
+                    placeholder="Ex: 6201-5/01"
+                    value={cnaeInput}
+                    onChange={(e) => setCnaeInput(e.target.value)}
+                    className="bg-sidebar-accent text-sidebar-foreground border-sidebar-border"
                   />
-                </Badge>
-              ))}
-            </div>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          <SidebarGroupLabel>Localização</SidebarGroupLabel>
-          <SidebarGroupContent className="px-2 space-y-4 mt-2">
-            <div className="space-y-2">
-              <Label className="text-sidebar-foreground/80">UF</Label>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-between bg-sidebar-accent text-sidebar-foreground border-sidebar-border"
-                  >
-                    {filters.ufs.length > 0
-                      ? `${filters.ufs.length} selecionados`
-                      : 'Selecione UFs'}
+                  <Button type="submit" variant="secondary">
+                    Adicionar
                   </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56">
-                  <ScrollArea className="h-72">
-                    {BRAZIL_STATES.map((uf) => (
-                      <DropdownMenuCheckboxItem
-                        key={uf}
-                        checked={filters.ufs.includes(uf)}
-                        onCheckedChange={(c) => toggleUf(uf, c)}
+                </form>
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {filters.cnaes.map((cnae) => (
+                    <Badge
+                      key={cnae}
+                      variant="secondary"
+                      className="bg-sidebar-accent text-sidebar-foreground flex items-center gap-1 animate-in fade-in slide-in-from-left-2"
+                    >
+                      {cnae}
+                      <X
+                        className="h-3 w-3 cursor-pointer hover:text-destructive"
+                        onClick={() => removeCnae(cnae)}
+                      />
+                    </Badge>
+                  ))}
+                </div>
+              </SidebarGroupContent>
+            </SidebarGroup>
+
+            <SidebarGroup className="animate-fade-in-up">
+              <SidebarGroupLabel>Localização</SidebarGroupLabel>
+              <SidebarGroupContent className="px-2 space-y-4 mt-2">
+                <div className="space-y-2">
+                  <Label className="text-sidebar-foreground/80">UF</Label>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-between bg-sidebar-accent text-sidebar-foreground border-sidebar-border"
                       >
-                        {uf}
-                      </DropdownMenuCheckboxItem>
-                    ))}
-                  </ScrollArea>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-            <div className="space-y-2">
-              <Label className="text-sidebar-foreground/80">Município</Label>
-              <Input
-                placeholder="Ex: São Paulo"
-                value={filters.municipio}
-                onChange={(e) => setFilter('municipio', e.target.value)}
-                className="bg-sidebar-accent text-sidebar-foreground border-sidebar-border"
-              />
-            </div>
-          </SidebarGroupContent>
-        </SidebarGroup>
+                        {filters.ufs.length > 0
+                          ? `${filters.ufs.length} selecionados`
+                          : 'Selecione UFs'}
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="w-56">
+                      <ScrollArea className="h-72">
+                        {BRAZIL_STATES.map((uf) => (
+                          <DropdownMenuCheckboxItem
+                            key={uf}
+                            checked={filters.ufs.includes(uf)}
+                            onCheckedChange={(c) => toggleUf(uf, c)}
+                          >
+                            {uf}
+                          </DropdownMenuCheckboxItem>
+                        ))}
+                      </ScrollArea>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sidebar-foreground/80">Município</Label>
+                  <Input
+                    placeholder="Ex: São Paulo"
+                    value={filters.municipio}
+                    onChange={(e) => setFilter('municipio', e.target.value)}
+                    className="bg-sidebar-accent text-sidebar-foreground border-sidebar-border"
+                  />
+                </div>
+              </SidebarGroupContent>
+            </SidebarGroup>
 
-        <SidebarGroup>
-          <SidebarGroupLabel>Dados da Empresa</SidebarGroupLabel>
-          <SidebarGroupContent className="px-2 space-y-4 mt-2">
-            <div className="space-y-2">
-              <Label className="text-sidebar-foreground/80">Porte</Label>
-              <Select
-                value={filters.porte}
-                onValueChange={(v) => setFilter('porte', v === 'Todos' ? '' : v)}
-              >
-                <SelectTrigger className="bg-sidebar-accent text-sidebar-foreground border-sidebar-border">
-                  <SelectValue placeholder="Selecione..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Todos">Todos</SelectItem>
-                  <SelectItem value="MEI">MEI</SelectItem>
-                  <SelectItem value="ME">ME</SelectItem>
-                  <SelectItem value="EPP">EPP</SelectItem>
-                  <SelectItem value="Demais">Demais</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <SidebarGroup className="animate-fade-in-up">
+              <SidebarGroupLabel>Dados da Empresa</SidebarGroupLabel>
+              <SidebarGroupContent className="px-2 space-y-4 mt-2">
+                <div className="space-y-2">
+                  <Label className="text-sidebar-foreground/80">Porte</Label>
+                  <Select
+                    value={filters.porte}
+                    onValueChange={(v) => setFilter('porte', v === 'Todos' ? '' : v)}
+                  >
+                    <SelectTrigger className="bg-sidebar-accent text-sidebar-foreground border-sidebar-border">
+                      <SelectValue placeholder="Selecione..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Todos">Todos</SelectItem>
+                      <SelectItem value="MEI">MEI</SelectItem>
+                      <SelectItem value="ME">ME</SelectItem>
+                      <SelectItem value="EPP">EPP</SelectItem>
+                      <SelectItem value="Demais">Demais</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-            <div className="space-y-2">
-              <Label className="text-sidebar-foreground/80">Situação Cadastral</Label>
-              <Select
-                value={filters.situacao}
-                onValueChange={(v) => setFilter('situacao', v === 'Todas' ? '' : v)}
-              >
-                <SelectTrigger className="bg-sidebar-accent text-sidebar-foreground border-sidebar-border">
-                  <SelectValue placeholder="Selecione..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Todas">Todas</SelectItem>
-                  <SelectItem value="Ativa">Ativa</SelectItem>
-                  <SelectItem value="Inapta">Inapta</SelectItem>
-                  <SelectItem value="Baixada">Baixada</SelectItem>
-                  <SelectItem value="Suspensa">Suspensa</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+                <div className="space-y-2">
+                  <Label className="text-sidebar-foreground/80">Situação Cadastral</Label>
+                  <Select
+                    value={filters.situacao}
+                    onValueChange={(v) => setFilter('situacao', v === 'Todas' ? '' : v)}
+                  >
+                    <SelectTrigger className="bg-sidebar-accent text-sidebar-foreground border-sidebar-border">
+                      <SelectValue placeholder="Selecione..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Todas">Todas</SelectItem>
+                      <SelectItem value="Ativa">Ativa</SelectItem>
+                      <SelectItem value="Inapta">Inapta</SelectItem>
+                      <SelectItem value="Baixada">Baixada</SelectItem>
+                      <SelectItem value="Suspensa">Suspensa</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-            <div className="space-y-2">
-              <Label className="text-sidebar-foreground/80">Capital Social Mínimo</Label>
-              <Input
-                type="number"
-                placeholder="Ex: 50000"
-                value={filters.capitalMinimo}
-                onChange={(e) => setFilter('capitalMinimo', e.target.value)}
-                className="bg-sidebar-accent text-sidebar-foreground border-sidebar-border"
-              />
-            </div>
-          </SidebarGroupContent>
-        </SidebarGroup>
+                <div className="space-y-2">
+                  <Label className="text-sidebar-foreground/80">Capital Social Mínimo</Label>
+                  <Input
+                    type="number"
+                    placeholder="Ex: 50000"
+                    value={filters.capitalMinimo}
+                    onChange={(e) => setFilter('capitalMinimo', e.target.value)}
+                    className="bg-sidebar-accent text-sidebar-foreground border-sidebar-border"
+                  />
+                </div>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          </>
+        )}
       </SidebarContent>
     </Sidebar>
   )

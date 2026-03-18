@@ -6,6 +6,7 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import Layout from '@/components/Layout'
 import Login from '@/pages/Login'
 import Index from '@/pages/Index'
+import Prospeccao from '@/pages/Prospeccao'
 import MyLeads from '@/pages/MyLeads'
 import UserManagement from '@/pages/UserManagement'
 import NotFound from '@/pages/NotFound'
@@ -48,6 +49,7 @@ const App = () => (
                   }
                 >
                   <Route path="/" element={<Index />} />
+                  <Route path="/prospeccao" element={<Prospeccao />} />
                   <Route path="/meus-leads" element={<MyLeads />} />
                   <Route path="/gestao-usuarios" element={<UserManagement />} />
                 </Route>

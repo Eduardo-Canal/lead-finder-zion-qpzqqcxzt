@@ -151,6 +151,7 @@ export type Database = {
           decisor_nome: string | null
           decisor_telefone: string | null
           email: string | null
+          historico_interacoes: Json | null
           id: string
           municipio: string | null
           observacoes: string | null
@@ -174,6 +175,7 @@ export type Database = {
           decisor_nome?: string | null
           decisor_telefone?: string | null
           email?: string | null
+          historico_interacoes?: Json | null
           id?: string
           municipio?: string | null
           observacoes?: string | null
@@ -197,6 +199,7 @@ export type Database = {
           decisor_nome?: string | null
           decisor_telefone?: string | null
           email?: string | null
+          historico_interacoes?: Json | null
           id?: string
           municipio?: string | null
           observacoes?: string | null
@@ -477,6 +480,7 @@ export const Constants = {
 //   decisor_nome: text (nullable)
 //   decisor_telefone: text (nullable)
 //   decisor_email: text (nullable)
+//   historico_interacoes: jsonb (nullable, default: '[]'::jsonb)
 // Table: perfis_acesso
 //   id: uuid (not null, default: gen_random_uuid())
 //   nome: text (not null)
