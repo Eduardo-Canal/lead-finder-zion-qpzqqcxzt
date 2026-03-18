@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { X } from 'lucide-react'
+import { Link, useLocation } from 'react-router-dom'
+import { X, LayoutDashboard, Users } from 'lucide-react'
 import {
   Sidebar,
   SidebarContent,
@@ -7,6 +8,9 @@ import {
   SidebarGroupContent,
   SidebarGroupLabel,
   SidebarHeader,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
 } from '@/components/ui/sidebar'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -61,6 +65,7 @@ const BRAZIL_STATES = [
 export function AppSidebar() {
   const { filters, setFilter, addCnae, removeCnae, toggleUf } = useLeadStore()
   const [cnaeInput, setCnaeInput] = useState('')
+  const location = useLocation()
 
   const handleAddCnae = (e: React.FormEvent) => {
     e.preventDefault()
@@ -73,11 +78,35 @@ export function AppSidebar() {
   return (
     <Sidebar>
       <SidebarHeader className="pt-6 pb-2 px-4">
-        <h2 className="text-xl font-bold text-sidebar-foreground">Filtros Avançados</h2>
+        <h2 className="text-xl font-bold text-sidebar-foreground">Navegação</h2>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>CNAE Registration</SidebarGroupLabel>
+          <SidebarGroupLabel>Menu Principal</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={location.pathname === '/'}>
+                  <Link to="/">
+                    <LayoutDashboard />
+                    <span>Painel de Prospecção</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={location.pathname === '/meus-leads'}>
+                  <Link to="/meus-leads">
+                    <Users />
+                    <span>Meus Leads</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Filtros Avançados (Painel)</SidebarGroupLabel>
           <SidebarGroupContent className="px-2">
             <form onSubmit={handleAddCnae} className="flex gap-2 mt-2">
               <Input

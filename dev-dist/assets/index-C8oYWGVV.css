@@ -838,6 +838,10 @@ body{
   margin-right: 0.5rem;
 }
 
+.mt-0\.5{
+  margin-top: 0.125rem;
+}
+
 .mt-1{
   margin-top: 0.25rem;
 }
@@ -1024,6 +1028,10 @@ body{
   min-height: 0px;
 }
 
+.min-h-\[150px\]{
+  min-height: 150px;
+}
+
 .min-h-\[80px\]{
   min-height: 80px;
 }
@@ -1116,6 +1124,10 @@ body{
   width: 100px;
 }
 
+.w-\[180px\]{
+  width: 180px;
+}
+
 .w-\[1px\]{
   width: 1px;
 }
@@ -1172,6 +1184,10 @@ body{
 
 .min-w-\[12rem\]{
   min-width: 12rem;
+}
+
+.min-w-\[200px\]{
+  min-width: 200px;
 }
 
 .min-w-\[8rem\]{
@@ -1330,6 +1346,10 @@ body{
   -webkit-user-select: none;
      -moz-user-select: none;
           user-select: none;
+}
+
+.resize-none{
+  resize: none;
 }
 
 .list-none{
@@ -1523,6 +1543,10 @@ body{
   border-width: 1px;
 }
 
+.border-0{
+  border-width: 0px;
+}
+
 .border-2{
   border-width: 2px;
 }
@@ -1614,12 +1638,22 @@ body{
   background-color: hsl(var(--accent));
 }
 
+.bg-amber-100{
+  --tw-bg-opacity: 1;
+  background-color: rgb(254 243 199 / var(--tw-bg-opacity, 1));
+}
+
 .bg-background{
   background-color: hsl(var(--background));
 }
 
 .bg-black\/80{
   background-color: rgb(0 0 0 / 0.8);
+}
+
+.bg-blue-100{
+  --tw-bg-opacity: 1;
+  background-color: rgb(219 234 254 / var(--tw-bg-opacity, 1));
 }
 
 .bg-border{
@@ -1632,6 +1666,11 @@ body{
 
 .bg-destructive{
   background-color: hsl(var(--destructive));
+}
+
+.bg-emerald-100{
+  --tw-bg-opacity: 1;
+  background-color: rgb(209 250 229 / var(--tw-bg-opacity, 1));
 }
 
 .bg-emerald-50{
@@ -1671,6 +1710,11 @@ body{
 
 .bg-primary{
   background-color: hsl(var(--primary));
+}
+
+.bg-rose-100{
+  --tw-bg-opacity: 1;
+  background-color: rgb(255 228 230 / var(--tw-bg-opacity, 1));
 }
 
 .bg-secondary{
@@ -1993,9 +2037,19 @@ body{
   color: hsl(var(--accent-foreground));
 }
 
+.text-amber-700{
+  --tw-text-opacity: 1;
+  color: rgb(180 83 9 / var(--tw-text-opacity, 1));
+}
+
 .text-blue-500{
   --tw-text-opacity: 1;
   color: rgb(59 130 246 / var(--tw-text-opacity, 1));
+}
+
+.text-blue-700{
+  --tw-text-opacity: 1;
+  color: rgb(29 78 216 / var(--tw-text-opacity, 1));
 }
 
 .text-card-foreground{
@@ -2058,6 +2112,11 @@ body{
   color: hsl(var(--primary-foreground));
 }
 
+.text-rose-700{
+  --tw-text-opacity: 1;
+  color: rgb(190 18 60 / var(--tw-text-opacity, 1));
+}
+
 .text-secondary-foreground{
   color: hsl(var(--secondary-foreground));
 }
@@ -2077,6 +2136,11 @@ body{
 .text-slate-500{
   --tw-text-opacity: 1;
   color: rgb(100 116 139 / var(--tw-text-opacity, 1));
+}
+
+.text-slate-600{
+  --tw-text-opacity: 1;
+  color: rgb(71 85 105 / var(--tw-text-opacity, 1));
 }
 
 .text-slate-700{
@@ -2168,10 +2232,24 @@ body{
   box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
 }
 
+.ring-1{
+  --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
+  --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color);
+  box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
+}
+
 .ring-2{
   --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
   --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);
   box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
+}
+
+.ring-inset{
+  --tw-ring-inset: inset;
+}
+
+.ring-black\/5{
+  --tw-ring-color: rgb(0 0 0 / 0.05);
 }
 
 .ring-ring{
@@ -2537,6 +2615,10 @@ body{
   --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
   --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);
   box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
+}
+
+.focus\:ring-primary:focus{
+  --tw-ring-color: hsl(var(--primary));
 }
 
 .focus\:ring-ring:focus{
@@ -3374,6 +3456,10 @@ body{
 
   .sm\:flex{
     display: flex;
+  }
+
+  .sm\:max-w-\[500px\]{
+    max-width: 500px;
   }
 
   .sm\:max-w-sm{
