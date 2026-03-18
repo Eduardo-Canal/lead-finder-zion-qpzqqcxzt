@@ -44,6 +44,81 @@ export type Database = {
           },
         ]
       }
+      empresas_rfb: {
+        Row: {
+          bairro: string | null
+          capital_social: number | null
+          cep: string | null
+          cnae_fiscal_principal: string | null
+          cnae_fiscal_secundaria: string | null
+          cnpj: string
+          complemento: string | null
+          data_inicio_atividade: string | null
+          email: string | null
+          logradouro: string | null
+          municipio: string | null
+          natureza_juridica: string | null
+          nome_fantasia: string | null
+          numero: string | null
+          porte: string | null
+          razao_social: string | null
+          situacao_cadastral: string | null
+          socios: Json | null
+          telefone_1: string | null
+          telefone_2: string | null
+          tipo_logradouro: string | null
+          uf: string | null
+        }
+        Insert: {
+          bairro?: string | null
+          capital_social?: number | null
+          cep?: string | null
+          cnae_fiscal_principal?: string | null
+          cnae_fiscal_secundaria?: string | null
+          cnpj: string
+          complemento?: string | null
+          data_inicio_atividade?: string | null
+          email?: string | null
+          logradouro?: string | null
+          municipio?: string | null
+          natureza_juridica?: string | null
+          nome_fantasia?: string | null
+          numero?: string | null
+          porte?: string | null
+          razao_social?: string | null
+          situacao_cadastral?: string | null
+          socios?: Json | null
+          telefone_1?: string | null
+          telefone_2?: string | null
+          tipo_logradouro?: string | null
+          uf?: string | null
+        }
+        Update: {
+          bairro?: string | null
+          capital_social?: number | null
+          cep?: string | null
+          cnae_fiscal_principal?: string | null
+          cnae_fiscal_secundaria?: string | null
+          cnpj?: string
+          complemento?: string | null
+          data_inicio_atividade?: string | null
+          email?: string | null
+          logradouro?: string | null
+          municipio?: string | null
+          natureza_juridica?: string | null
+          nome_fantasia?: string | null
+          numero?: string | null
+          porte?: string | null
+          razao_social?: string | null
+          situacao_cadastral?: string | null
+          socios?: Json | null
+          telefone_1?: string | null
+          telefone_2?: string | null
+          tipo_logradouro?: string | null
+          uf?: string | null
+        }
+        Relationships: []
+      }
       leads_salvos: {
         Row: {
           capital_social: number | null
@@ -322,6 +397,29 @@ export const Constants = {
 //   executivo_nome: text (nullable)
 //   data_contato: timestamp without time zone (nullable, default: now())
 //   created_at: timestamp without time zone (nullable, default: now())
+// Table: empresas_rfb
+//   cnpj: text (not null)
+//   razao_social: text (nullable)
+//   nome_fantasia: text (nullable)
+//   situacao_cadastral: text (nullable)
+//   data_inicio_atividade: date (nullable)
+//   cnae_fiscal_principal: text (nullable)
+//   cnae_fiscal_secundaria: text (nullable)
+//   tipo_logradouro: text (nullable)
+//   logradouro: text (nullable)
+//   numero: text (nullable)
+//   complemento: text (nullable)
+//   bairro: text (nullable)
+//   cep: text (nullable)
+//   uf: text (nullable)
+//   municipio: text (nullable)
+//   telefone_1: text (nullable)
+//   telefone_2: text (nullable)
+//   email: text (nullable)
+//   porte: text (nullable)
+//   natureza_juridica: text (nullable)
+//   capital_social: numeric (nullable)
+//   socios: jsonb (nullable, default: '[]'::jsonb)
 // Table: leads_salvos
 //   id: uuid (not null, default: gen_random_uuid())
 //   razao_social: text (nullable)
@@ -357,6 +455,8 @@ export const Constants = {
 // Table: contatos_realizados
 //   FOREIGN KEY contatos_realizados_executivo_id_fkey: FOREIGN KEY (executivo_id) REFERENCES profiles(id) ON DELETE CASCADE
 //   PRIMARY KEY contatos_realizados_pkey: PRIMARY KEY (id)
+// Table: empresas_rfb
+//   PRIMARY KEY empresas_rfb_pkey: PRIMARY KEY (cnpj)
 // Table: leads_salvos
 //   PRIMARY KEY leads_salvos_pkey: PRIMARY KEY (id)
 //   FOREIGN KEY leads_salvos_salvo_por_fkey: FOREIGN KEY (salvo_por) REFERENCES profiles(id) ON DELETE SET NULL
@@ -372,6 +472,9 @@ export const Constants = {
 //   Policy "Enable ALL for authenticated users" (ALL, PERMISSIVE) roles={authenticated}
 //     USING: true
 //     WITH CHECK: true
+// Table: empresas_rfb
+//   Policy "Enable SELECT for authenticated users" (SELECT, PERMISSIVE) roles={authenticated}
+//     USING: true
 // Table: leads_salvos
 //   Policy "Enable ALL for authenticated users" (ALL, PERMISSIVE) roles={authenticated}
 //     USING: true
