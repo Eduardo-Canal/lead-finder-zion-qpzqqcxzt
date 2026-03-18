@@ -1,25 +1,37 @@
-import { FilteredLead } from '@/stores/useLeadStore'
-import { Badge } from '@/components/ui/badge'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Separator } from '@/components/ui/separator'
-import { MapPin, Search, Save, Building2, Users, History, Mail, Phone } from 'lucide-react'
-import { toast } from 'sonner'
-import { DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+import { Badge } from '@/components/ui/badge'
+import { FilteredLead } from '@/stores/useLeadStore'
+import { MapPin, Building2, Phone, Mail, FileText, Calendar, Landmark } from 'lucide-react'
+import { supabase } from '@/lib/supabase/client'
 import useAuthStore from '@/stores/useAuthStore'
-import { mockDb, generateId } from '@/lib/db'
+import { toast } from 'sonner'
+import { ScrollArea } from '@/components/ui/scroll-area'
 
-export function LeadDetailsModal({ lead }: { lead: FilteredLead }) {
-  const { user, hasPermission } = useAuthStore()
-  const canSave = hasPermission('Salvar Leads')
+interface LeadDetailsModalProps {
+  lead: FilteredLead | null
+  onClose: () => void
+}
 
-  const handleSave = async () => {
-    if (!canSave) {
-      return toast.error('Sem permissão para salvar leads.')
+export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
+  const { user } = useAuthStore()
+
+  if (!lead) return null
+
+  const handleSaveLead = async () => {
+    if (!user) {
+      toast.error('Usuário não autenticado.')
+      return
     }
 
     try {
-      await mockDb.insert('leads_salvos', {
-        id: generateId(),
+      const { error } = await supabase.from('leads_salvos').insert({
         razao_social: lead.razao_social,
         cnpj: lead.cnpj,
         cnae_principal: lead.cnae_principal,
@@ -32,190 +44,128 @@ export function LeadDetailsModal({ lead }: { lead: FilteredLead }) {
         email: lead.email,
         telefone: lead.telefone,
         socios: lead.socios,
-        salvo_por: user?.id,
+        salvo_por: user.id,
         status_contato: 'Não Contatado',
-        ultima_data_contato: null,
-        observacoes: '',
-        created_at: new Date().toISOString(),
       })
-      window.dispatchEvent(new Event('refetch-my-leads'))
+
+      if (error) throw error
+
       toast.success('Lead salvo com sucesso!')
-    } catch (err) {
-      toast.error('Erro ao salvar o lead.')
+      window.dispatchEvent(new Event('refetch-my-leads'))
+      onClose()
+    } catch (error: any) {
+      console.error(error)
+      toast.error(error.message || 'Erro ao salvar o lead.')
     }
   }
 
-  const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-    `${lead.razao_social} ${lead.municipio} ${lead.uf}`,
-  )}`
-
-  const linkedinUrl = `https://www.linkedin.com/search/results/companies/?keywords=${encodeURIComponent(
-    lead.razao_social,
-  )}`
-
   return (
-    <>
-      <DialogHeader>
-        <DialogTitle className="text-xl flex items-center gap-2">{lead.razao_social}</DialogTitle>
-        <DialogDescription>
-          Detalhes completos da empresa e histórico de interação.
-        </DialogDescription>
-      </DialogHeader>
+    <Dialog open={!!lead} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-[700px] max-h-[90vh] flex flex-col p-0">
+        <DialogHeader className="p-6 pb-2">
+          <DialogTitle className="text-xl flex items-start gap-2">
+            <Building2 className="w-5 h-5 text-primary mt-1 shrink-0" />
+            <span className="leading-tight">{lead.razao_social}</span>
+          </DialogTitle>
+          <DialogDescription className="flex items-center gap-2 mt-2">
+            <Badge variant="outline" className="font-mono">
+              {lead.cnpj}
+            </Badge>
+            <Badge
+              variant={lead.situacao === 'Ativa' ? 'default' : 'secondary'}
+              className={
+                lead.situacao === 'Ativa' ? 'bg-emerald-500 hover:bg-emerald-600 text-white' : ''
+              }
+            >
+              {lead.situacao}
+            </Badge>
+          </DialogDescription>
+        </DialogHeader>
 
-      <div className="space-y-6 mt-2">
-        <section>
-          <h3 className="text-lg font-semibold flex items-center gap-2 mb-3">
-            <Building2 className="w-5 h-5 text-primary" />
-            Dados da Empresa
-          </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
-            <div>
-              <p className="text-muted-foreground">Razão Social</p>
-              <p className="font-medium">{lead.razao_social}</p>
+        <ScrollArea className="flex-1 px-6 py-4">
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <span className="text-xs text-muted-foreground uppercase font-semibold">
+                  CNAE Principal
+                </span>
+                <p className="text-sm font-medium flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-muted-foreground" />
+                  {lead.cnae_principal}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <span className="text-xs text-muted-foreground uppercase font-semibold">
+                  Localização
+                </span>
+                <p className="text-sm font-medium flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-muted-foreground" />
+                  {lead.municipio} - {lead.uf}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <span className="text-xs text-muted-foreground uppercase font-semibold">Porte</span>
+                <p className="text-sm font-medium">{lead.porte}</p>
+              </div>
+              <div className="space-y-1">
+                <span className="text-xs text-muted-foreground uppercase font-semibold">
+                  Capital Social
+                </span>
+                <p className="text-sm font-medium flex items-center gap-2">
+                  <Landmark className="w-4 h-4 text-muted-foreground" />
+                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                    lead.capital_social,
+                  )}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <span className="text-xs text-muted-foreground uppercase font-semibold">
+                  Data de Abertura
+                </span>
+                <p className="text-sm font-medium flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-muted-foreground" />
+                  {new Date(lead.data_abertura).toLocaleDateString('pt-BR')}
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-muted-foreground">CNPJ</p>
-              <p className="font-medium">{lead.cnpj}</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground">CNAE Principal</p>
-              <p className="font-medium">{lead.cnae_principal}</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground">Município</p>
-              <p className="font-medium">{lead.municipio}</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground">UF</p>
-              <p className="font-medium">{lead.uf}</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground">Porte</p>
-              <p className="font-medium">{lead.porte}</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground">Situação Cadastral</p>
-              <Badge
-                variant={lead.situacao === 'Ativa' ? 'default' : 'secondary'}
-                className={lead.situacao === 'Ativa' ? 'bg-primary text-white' : ''}
-              >
-                {lead.situacao}
-              </Badge>
-            </div>
-            <div>
-              <p className="text-muted-foreground">Capital Social</p>
-              <p className="font-medium text-emerald-600">
-                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
-                  lead.capital_social,
-                )}
-              </p>
-            </div>
-            <div>
-              <p className="text-muted-foreground">Data de Abertura</p>
-              <p className="font-medium">{lead.data_abertura}</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground">E-mail</p>
-              <p className="font-medium flex items-center gap-1">
-                <Mail className="w-3 h-3" /> {lead.email || 'Não informado'}
-              </p>
-            </div>
-            <div>
-              <p className="text-muted-foreground">Telefone</p>
-              <p className="font-medium flex items-center gap-1">
-                <Phone className="w-3 h-3" /> {lead.telefone || 'Não informado'}
-              </p>
-            </div>
-          </div>
-        </section>
 
-        <Separator />
-
-        <section>
-          <h3 className="text-lg font-semibold flex items-center gap-2 mb-3">
-            <Users className="w-5 h-5 text-primary" />
-            Sócios
-          </h3>
-          {lead.socios && lead.socios.length > 0 ? (
             <div className="space-y-3">
-              {lead.socios.map((socio, idx) => (
-                <div
-                  key={idx}
-                  className="bg-muted/30 border p-3 rounded-md grid grid-cols-1 md:grid-cols-3 gap-2 text-sm"
-                >
-                  <div>
-                    <p className="text-muted-foreground text-xs">Nome</p>
-                    <p className="font-medium">{socio.nome}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground text-xs">Qualificação</p>
-                    <p className="font-medium">{socio.qualificacao}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground text-xs">Data de Entrada</p>
-                    <p className="font-medium">{socio.dataEntrada}</p>
-                  </div>
+              <h4 className="font-semibold text-sm border-b pb-1">Informações de Contato</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex items-center gap-2">
+                  <Mail className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm">{lead.email || 'Não informado'}</span>
                 </div>
-              ))}
+                <div className="flex items-center gap-2">
+                  <Phone className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm">{lead.telefone || 'Não informado'}</span>
+                </div>
+              </div>
             </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              Nenhum sócio registrado para esta empresa.
-            </p>
-          )}
-        </section>
 
-        <Separator />
+            {lead.socios && lead.socios.length > 0 && (
+              <div className="space-y-3">
+                <h4 className="font-semibold text-sm border-b pb-1">Quadro Societário</h4>
+                <ul className="space-y-2">
+                  {lead.socios.map((socio: any, idx: number) => (
+                    <li key={idx} className="text-sm flex flex-col">
+                      <span className="font-medium">{socio.nome}</span>
+                      <span className="text-xs text-muted-foreground">{socio.qualificacao}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        </ScrollArea>
 
-        <section>
-          <h3 className="text-lg font-semibold flex items-center gap-2 mb-3">
-            <History className="w-5 h-5 text-primary" />
-            Histórico de Contato
-          </h3>
-          {lead.contatado ? (
-            <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-md text-sm">
-              <p className="text-emerald-800 font-semibold mb-1 text-base">Status: Contatado</p>
-              <p className="text-emerald-700">
-                Contato registrado por <strong>{lead.contatadoPor}</strong> na data de{' '}
-                <strong>{lead.contatadoEm}</strong>.
-              </p>
-            </div>
-          ) : (
-            <div className="bg-slate-50 border border-slate-200 p-4 rounded-md text-sm">
-              <p className="text-slate-700 font-semibold mb-1 text-base">Status: Não Contatado</p>
-              <p className="text-slate-500">
-                Nenhum contato foi registrado com este lead até o momento. Utilize a tabela
-                principal para marcar como contatado.
-              </p>
-            </div>
-          )}
-        </section>
-
-        <Separator />
-
-        <section className="flex flex-col sm:flex-row gap-3 pt-2">
-          <Button asChild variant="outline" className="flex-1 sm:flex-none">
-            <a href={mapUrl} target="_blank" rel="noopener noreferrer">
-              <MapPin className="w-4 h-4 mr-2" />
-              Ver no Maps
-            </a>
+        <div className="p-6 pt-4 border-t bg-slate-50 flex justify-end gap-2 shrink-0 rounded-b-lg">
+          <Button variant="outline" onClick={onClose}>
+            Fechar
           </Button>
-          <Button asChild variant="outline" className="flex-1 sm:flex-none">
-            <a href={linkedinUrl} target="_blank" rel="noopener noreferrer">
-              <Search className="w-4 h-4 mr-2" />
-              Buscar no LinkedIn
-            </a>
-          </Button>
-          <Button
-            onClick={handleSave}
-            disabled={!canSave}
-            className="flex-1 sm:flex-none sm:ml-auto"
-          >
-            <Save className="w-4 h-4 mr-2" />
-            Salvar Lead
-          </Button>
-        </section>
-      </div>
-    </>
+          <Button onClick={handleSaveLead}>Salvar em "Meus Leads"</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   )
 }
