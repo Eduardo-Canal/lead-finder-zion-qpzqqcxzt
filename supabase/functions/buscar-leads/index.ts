@@ -1,5 +1,6 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { corsHeaders } from '../_shared/cors.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
@@ -17,6 +18,53 @@ Deno.serve(async (req: Request) => {
       page = 1,
       limit = 10,
     } = payload
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
+    const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY') || ''
+    const authHeader = req.headers.get('Authorization')
+
+    const supabase = createClient(supabaseUrl, supabaseKey, {
+      global: { headers: { Authorization: authHeader || '' } },
+    })
+
+    // Generate Cache Key
+    const payloadToHash = {
+      cnae: cnae_fiscal_principal || [],
+      uf: uf || null,
+      municipio: municipio ? municipio.toUpperCase() : null,
+      porte: porte ? porte.toUpperCase() : null,
+      situacao: situacao_cadastral ? situacao_cadastral.toUpperCase() : 'ATIVA',
+      page,
+      limit,
+    }
+
+    const msgBuffer = new TextEncoder().encode(JSON.stringify(payloadToHash))
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer)
+    const hashArray = Array.from(new Uint8Array(hashBuffer))
+    const chave_cache = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('')
+
+    // Check DB Cache
+    const { data: cachedData } = await supabase
+      .from('cache_pesquisas')
+      .select('resultados, total_registros, expira_em')
+      .eq('chave_cache', chave_cache)
+      .maybeSingle()
+
+    if (cachedData && new Date(cachedData.expira_em) > new Date()) {
+      return new Response(
+        JSON.stringify({
+          data: cachedData.resultados,
+          page: page,
+          count: cachedData.total_registros,
+          pages: Math.ceil(cachedData.total_registros / limit) || 1,
+          cached: true,
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        },
+      )
+    }
 
     const apiKey = Deno.env.get('CASADOSDADOS_API_KEY')
     if (!apiKey) {
@@ -79,7 +127,6 @@ Deno.serve(async (req: Request) => {
       casadosDadosPayload.query.porte = [porte.toUpperCase()]
     }
 
-    // Updated to the correct endpoint /pesquisa per the requirements
     const response = await fetch('https://api.casadosdados.com.br/v2/public/cnpj/pesquisa', {
       method: 'POST',
       headers: {
@@ -104,7 +151,6 @@ Deno.serve(async (req: Request) => {
 
       console.error('Casa dos Dados Error:', message, errText)
 
-      // Returning 200 with an error object ensures graceful handling on the frontend without a hard runtime crash
       return new Response(JSON.stringify({ error: message, data: [] }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
@@ -142,12 +188,31 @@ Deno.serve(async (req: Request) => {
       telefone: empresa.telefone || empresa.ddd_telefone_1 || '',
     }))
 
+    // Save to Cache
+    if (results && results.length > 0) {
+      try {
+        const expira_em = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+        await supabase.from('cache_pesquisas').upsert(
+          {
+            chave_cache,
+            resultados: results,
+            total_registros: totalCount,
+            expira_em,
+          },
+          { onConflict: 'chave_cache' },
+        )
+      } catch (err) {
+        console.error('Error saving cache:', err)
+      }
+    }
+
     return new Response(
       JSON.stringify({
         data: results,
         page: currentPage,
         count: totalCount,
         pages: totalPages,
+        cached: false,
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
