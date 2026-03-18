@@ -16027,11 +16027,6 @@ function useOutlet(context) {
 	let outlet = import_react.useContext(RouteContext).outlet;
 	return import_react.useMemo(() => outlet && /* @__PURE__ */ import_react.createElement(OutletContext.Provider, { value: context }, outlet), [outlet, context]);
 }
-function useParams() {
-	let { matches } = import_react.useContext(RouteContext);
-	let routeMatch = matches[matches.length - 1];
-	return routeMatch ? routeMatch.params : {};
-}
 function useResolvedPath(to, { relative } = {}) {
 	let { matches } = import_react.useContext(RouteContext);
 	let { pathname: locationPathname } = useLocation();
@@ -19026,24 +19021,6 @@ var createLucideIcon = (iconName, iconNode) => {
 	Component.displayName = toPascalCase(iconName);
 	return Component;
 };
-var ArrowLeft = createLucideIcon("arrow-left", [["path", {
-	d: "m12 19-7-7 7-7",
-	key: "1l729n"
-}], ["path", {
-	d: "M19 12H5",
-	key: "x3x0zl"
-}]]);
-var Briefcase = createLucideIcon("briefcase", [["path", {
-	d: "M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16",
-	key: "jecpp"
-}], ["rect", {
-	width: "20",
-	height: "14",
-	x: "2",
-	y: "6",
-	rx: "2",
-	key: "i6l2r4"
-}]]);
 var Building2 = createLucideIcon("building-2", [
 	["path", {
 		d: "M10 12h4",
@@ -19064,28 +19041,6 @@ var Building2 = createLucideIcon("building-2", [
 	["path", {
 		d: "M6 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16",
 		key: "16ra0t"
-	}]
-]);
-var Calendar = createLucideIcon("calendar", [
-	["path", {
-		d: "M8 2v4",
-		key: "1cmpym"
-	}],
-	["path", {
-		d: "M16 2v4",
-		key: "4m81vk"
-	}],
-	["rect", {
-		width: "18",
-		height: "18",
-		x: "3",
-		y: "4",
-		rx: "2",
-		key: "1hopcy"
-	}],
-	["path", {
-		d: "M3 10h18",
-		key: "8toen8"
 	}]
 ]);
 var Check = createLucideIcon("check", [["path", {
@@ -19110,22 +19065,31 @@ var Circle = createLucideIcon("circle", [["circle", {
 	r: "10",
 	key: "1mglay"
 }]]);
-var Info = createLucideIcon("info", [
-	["circle", {
-		cx: "12",
-		cy: "12",
-		r: "10",
-		key: "1mglay"
+var History = createLucideIcon("history", [
+	["path", {
+		d: "M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8",
+		key: "1357e3"
 	}],
 	["path", {
-		d: "M12 16v-4",
-		key: "1dtifu"
+		d: "M3 3v5h5",
+		key: "1xhq8a"
 	}],
 	["path", {
-		d: "M12 8h.01",
-		key: "e9boi3"
+		d: "M12 7v5l4 2",
+		key: "1fdv2h"
 	}]
 ]);
+var Mail = createLucideIcon("mail", [["path", {
+	d: "m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7",
+	key: "132q7q"
+}], ["rect", {
+	x: "2",
+	y: "4",
+	width: "20",
+	height: "16",
+	rx: "2",
+	key: "izxlao"
+}]]);
 var MapPin = createLucideIcon("map-pin", [["path", {
 	d: "M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0",
 	key: "1r0f0z"
@@ -19146,6 +19110,24 @@ var PanelLeft = createLucideIcon("panel-left", [["rect", {
 	d: "M9 3v18",
 	key: "fh3hqa"
 }]]);
+var Phone = createLucideIcon("phone", [["path", {
+	d: "M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384",
+	key: "9njp5v"
+}]]);
+var Save = createLucideIcon("save", [
+	["path", {
+		d: "M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z",
+		key: "1c8476"
+	}],
+	["path", {
+		d: "M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7",
+		key: "1ydtos"
+	}],
+	["path", {
+		d: "M7 3v4a1 1 0 0 0 1 1h7",
+		key: "t51u73"
+	}]
+]);
 var Search = createLucideIcon("search", [["path", {
 	d: "m21 21-4.34-4.34",
 	key: "14j7rj"
@@ -19164,6 +19146,26 @@ var User = createLucideIcon("user", [["path", {
 	r: "4",
 	key: "17ys0d"
 }]]);
+var Users = createLucideIcon("users", [
+	["path", {
+		d: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2",
+		key: "1yyitq"
+	}],
+	["path", {
+		d: "M16 3.128a4 4 0 0 1 0 7.744",
+		key: "16gr8j"
+	}],
+	["path", {
+		d: "M22 21v-2a4 4 0 0 0-3-3.87",
+		key: "kshegd"
+	}],
+	["circle", {
+		cx: "9",
+		cy: "7",
+		r: "4",
+		key: "nufk8"
+	}]
+]);
 var X = createLucideIcon("x", [["path", {
 	d: "M18 6 6 18",
 	key: "1bl5f8"
@@ -21071,7 +21073,7 @@ var isHttpResponse = (data) => {
 var basicToast = toastFunction;
 var getHistory = () => ToastState.toasts;
 var getToasts = () => ToastState.getActiveToasts();
-Object.assign(basicToast, {
+var toast = Object.assign(basicToast, {
 	success: ToastState.success,
 	info: ToastState.info,
 	warning: ToastState.warning,
@@ -25392,7 +25394,7 @@ var hideOthers = function(originalTarget, parentNode, markerName) {
 var DIALOG_NAME = "Dialog";
 var [createDialogContext, createDialogScope] = createContextScope(DIALOG_NAME);
 var [DialogProvider, useDialogContext] = createDialogContext(DIALOG_NAME);
-var Dialog = (props) => {
+var Dialog$1 = (props) => {
 	const { __scopeDialog, children, open: openProp, defaultOpen, onOpenChange, modal = true } = props;
 	const triggerRef = import_react.useRef(null);
 	const contentRef = import_react.useRef(null);
@@ -25416,9 +25418,9 @@ var Dialog = (props) => {
 		children
 	});
 };
-Dialog.displayName = DIALOG_NAME;
+Dialog$1.displayName = DIALOG_NAME;
 var TRIGGER_NAME$3 = "DialogTrigger";
-var DialogTrigger = import_react.forwardRef((props, forwardedRef) => {
+var DialogTrigger$1 = import_react.forwardRef((props, forwardedRef) => {
 	const { __scopeDialog, ...triggerProps } = props;
 	const context = useDialogContext(TRIGGER_NAME$3, __scopeDialog);
 	const composedTriggerRef = useComposedRefs(forwardedRef, context.triggerRef);
@@ -25433,10 +25435,10 @@ var DialogTrigger = import_react.forwardRef((props, forwardedRef) => {
 		onClick: composeEventHandlers(props.onClick, context.onOpenToggle)
 	});
 });
-DialogTrigger.displayName = TRIGGER_NAME$3;
+DialogTrigger$1.displayName = TRIGGER_NAME$3;
 var PORTAL_NAME$3 = "DialogPortal";
 var [PortalProvider$1, usePortalContext$1] = createDialogContext(PORTAL_NAME$3, { forceMount: void 0 });
-var DialogPortal = (props) => {
+var DialogPortal$1 = (props) => {
 	const { __scopeDialog, forceMount, children, container } = props;
 	const context = useDialogContext(PORTAL_NAME$3, __scopeDialog);
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(PortalProvider$1, {
@@ -25452,9 +25454,9 @@ var DialogPortal = (props) => {
 		}))
 	});
 };
-DialogPortal.displayName = PORTAL_NAME$3;
+DialogPortal$1.displayName = PORTAL_NAME$3;
 var OVERLAY_NAME = "DialogOverlay";
-var DialogOverlay = import_react.forwardRef((props, forwardedRef) => {
+var DialogOverlay$1 = import_react.forwardRef((props, forwardedRef) => {
 	const portalContext = usePortalContext$1(OVERLAY_NAME, props.__scopeDialog);
 	const { forceMount = portalContext.forceMount, ...overlayProps } = props;
 	const context = useDialogContext(OVERLAY_NAME, props.__scopeDialog);
@@ -25466,7 +25468,7 @@ var DialogOverlay = import_react.forwardRef((props, forwardedRef) => {
 		})
 	}) : null;
 });
-DialogOverlay.displayName = OVERLAY_NAME;
+DialogOverlay$1.displayName = OVERLAY_NAME;
 var Slot$2 = /* @__PURE__ */ createSlot$1("DialogOverlay.RemoveScroll");
 var DialogOverlayImpl = import_react.forwardRef((props, forwardedRef) => {
 	const { __scopeDialog, ...overlayProps } = props;
@@ -25487,7 +25489,7 @@ var DialogOverlayImpl = import_react.forwardRef((props, forwardedRef) => {
 	});
 });
 var CONTENT_NAME$3 = "DialogContent";
-var DialogContent = import_react.forwardRef((props, forwardedRef) => {
+var DialogContent$1 = import_react.forwardRef((props, forwardedRef) => {
 	const portalContext = usePortalContext$1(CONTENT_NAME$3, props.__scopeDialog);
 	const { forceMount = portalContext.forceMount, ...contentProps } = props;
 	const context = useDialogContext(CONTENT_NAME$3, props.__scopeDialog);
@@ -25502,7 +25504,7 @@ var DialogContent = import_react.forwardRef((props, forwardedRef) => {
 		})
 	});
 });
-DialogContent.displayName = CONTENT_NAME$3;
+DialogContent$1.displayName = CONTENT_NAME$3;
 var DialogContentModal = import_react.forwardRef((props, forwardedRef) => {
 	const context = useDialogContext(CONTENT_NAME$3, props.__scopeDialog);
 	const contentRef = import_react.useRef(null);
@@ -25586,7 +25588,7 @@ var DialogContentImpl = import_react.forwardRef((props, forwardedRef) => {
 	})] })] });
 });
 var TITLE_NAME = "DialogTitle";
-var DialogTitle = import_react.forwardRef((props, forwardedRef) => {
+var DialogTitle$1 = import_react.forwardRef((props, forwardedRef) => {
 	const { __scopeDialog, ...titleProps } = props;
 	const context = useDialogContext(TITLE_NAME, __scopeDialog);
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Primitive$1.h2, {
@@ -25595,9 +25597,9 @@ var DialogTitle = import_react.forwardRef((props, forwardedRef) => {
 		ref: forwardedRef
 	});
 });
-DialogTitle.displayName = TITLE_NAME;
+DialogTitle$1.displayName = TITLE_NAME;
 var DESCRIPTION_NAME = "DialogDescription";
-var DialogDescription = import_react.forwardRef((props, forwardedRef) => {
+var DialogDescription$1 = import_react.forwardRef((props, forwardedRef) => {
 	const { __scopeDialog, ...descriptionProps } = props;
 	const context = useDialogContext(DESCRIPTION_NAME, __scopeDialog);
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Primitive$1.p, {
@@ -25606,9 +25608,9 @@ var DialogDescription = import_react.forwardRef((props, forwardedRef) => {
 		ref: forwardedRef
 	});
 });
-DialogDescription.displayName = DESCRIPTION_NAME;
+DialogDescription$1.displayName = DESCRIPTION_NAME;
 var CLOSE_NAME = "DialogClose";
-var DialogClose = import_react.forwardRef((props, forwardedRef) => {
+var DialogClose$1 = import_react.forwardRef((props, forwardedRef) => {
 	const { __scopeDialog, ...closeProps } = props;
 	const context = useDialogContext(CLOSE_NAME, __scopeDialog);
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Primitive$1.button, {
@@ -25618,7 +25620,7 @@ var DialogClose = import_react.forwardRef((props, forwardedRef) => {
 		onClick: composeEventHandlers(props.onClick, () => context.onOpenChange(false))
 	});
 });
-DialogClose.displayName = CLOSE_NAME;
+DialogClose$1.displayName = CLOSE_NAME;
 function getState$1(open) {
 	return open ? "open" : "closed";
 }
@@ -25657,13 +25659,13 @@ var DescriptionWarning = ({ contentRef, descriptionId }) => {
 	]);
 	return null;
 };
-var Root$3 = Dialog;
-var Portal$2 = DialogPortal;
-var Overlay = DialogOverlay;
-var Content = DialogContent;
-var Title = DialogTitle;
-var Description = DialogDescription;
-var Close = DialogClose;
+var Root$3 = Dialog$1;
+var Portal$2 = DialogPortal$1;
+var Overlay = DialogOverlay$1;
+var Content = DialogContent$1;
+var Title = DialogTitle$1;
+var Description = DialogDescription$1;
+var Close = DialogClose$1;
 //#endregion
 //#region src/components/ui/sheet.tsx
 var Sheet = Root$3;
@@ -29388,7 +29390,14 @@ var mockLeads = [
 		capitalSocial: 1e5,
 		dataAbertura: "15/03/2018",
 		naturezaJuridica: "Sociedade Empresária Limitada",
-		contatado: false
+		contatado: false,
+		email: "contato@techcorp.com.br",
+		telefone: "(11) 98765-4321",
+		socios: [{
+			nome: "Carlos Mendes",
+			qualificacao: "Sócio-Administrador",
+			dataEntrada: "15/03/2018"
+		}]
 	},
 	{
 		cnpj: "98.765.432/0001-10",
@@ -29404,7 +29413,18 @@ var mockLeads = [
 		naturezaJuridica: "Sociedade Anônima Fechada",
 		contatado: true,
 		contatadoPor: "Executivo Zion",
-		contatadoEm: "24/05/2024"
+		contatadoEm: "24/05/2024",
+		email: "diretoria@agrosul.com.br",
+		telefone: "(51) 3344-5566",
+		socios: [{
+			nome: "Roberto Alves",
+			qualificacao: "Diretor",
+			dataEntrada: "10/08/2005"
+		}, {
+			nome: "Fernanda Costa",
+			qualificacao: "Diretor",
+			dataEntrada: "12/04/2010"
+		}]
 	},
 	{
 		cnpj: "45.123.890/0001-55",
@@ -29418,7 +29438,14 @@ var mockLeads = [
 		capitalSocial: 25e4,
 		dataAbertura: "22/11/2015",
 		naturezaJuridica: "Empresa Individual de Responsabilidade Limitada",
-		contatado: false
+		contatado: false,
+		email: "vendas@comercionorte.com.br",
+		telefone: "(91) 98888-7777",
+		socios: [{
+			nome: "Pedro Alencar",
+			qualificacao: "Titular",
+			dataEntrada: "22/11/2015"
+		}]
 	},
 	{
 		cnpj: "77.888.999/0001-22",
@@ -29432,7 +29459,14 @@ var mockLeads = [
 		capitalSocial: 5e3,
 		dataAbertura: "05/01/2020",
 		naturezaJuridica: "Empresário Individual",
-		contatado: false
+		contatado: false,
+		email: "bh.limpeza@gmail.com",
+		telefone: "(31) 99999-1111",
+		socios: [{
+			nome: "José da Silva",
+			qualificacao: "Empresário",
+			dataEntrada: "05/01/2020"
+		}]
 	},
 	{
 		cnpj: "33.444.555/0001-88",
@@ -29446,7 +29480,14 @@ var mockLeads = [
 		capitalSocial: 15e5,
 		dataAbertura: "12/09/2010",
 		naturezaJuridica: "Sociedade Empresária Limitada",
-		contatado: false
+		contatado: false,
+		email: "projetos@litoralsul.com.br",
+		telefone: "(48) 3232-4444",
+		socios: [{
+			nome: "Mariana Santos",
+			qualificacao: "Sócio-Administrador",
+			dataEntrada: "12/09/2010"
+		}]
 	},
 	{
 		cnpj: "11.222.333/0001-44",
@@ -29460,7 +29501,10 @@ var mockLeads = [
 		capitalSocial: 3e5,
 		dataAbertura: "30/04/2019",
 		naturezaJuridica: "Sociedade Empresária Limitada",
-		contatado: false
+		contatado: false,
+		email: "operacoes@nordesteexpresso.com.br",
+		telefone: "(71) 98765-1234",
+		socios: []
 	},
 	{
 		cnpj: "55.666.777/0001-00",
@@ -29474,7 +29518,14 @@ var mockLeads = [
 		capitalSocial: 2e4,
 		dataAbertura: "18/07/2022",
 		naturezaJuridica: "Sociedade Empresária Limitada",
-		contatado: false
+		contatado: false,
+		email: "hello@criacaojovem.com",
+		telefone: "(11) 97777-6666",
+		socios: [{
+			nome: "Lucas Almeida",
+			qualificacao: "Sócio-Administrador",
+			dataEntrada: "18/07/2022"
+		}]
 	},
 	{
 		cnpj: "99.111.222/0001-33",
@@ -29488,7 +29539,14 @@ var mockLeads = [
 		capitalSocial: 12e4,
 		dataAbertura: "03/02/2012",
 		naturezaJuridica: "Sociedade Empresária Limitada",
-		contatado: false
+		contatado: false,
+		email: "contato@riomoda.com.br",
+		telefone: "(21) 2222-3333",
+		socios: [{
+			nome: "Juliana Vieira",
+			qualificacao: "Sócio",
+			dataEntrada: "03/02/2012"
+		}]
 	},
 	{
 		cnpj: "22.333.444/0001-55",
@@ -29502,7 +29560,14 @@ var mockLeads = [
 		capitalSocial: 5e4,
 		dataAbertura: "25/10/2016",
 		naturezaJuridica: "Empresário Individual",
-		contatado: false
+		contatado: false,
+		email: "oficina@cerradoauto.com.br",
+		telefone: "(62) 3456-7890",
+		socios: [{
+			nome: "Antônio Marcos",
+			qualificacao: "Empresário",
+			dataEntrada: "25/10/2016"
+		}]
 	},
 	{
 		cnpj: "88.999.000/0001-66",
@@ -29516,7 +29581,10 @@ var mockLeads = [
 		capitalSocial: 8e4,
 		dataAbertura: "14/06/2008",
 		naturezaJuridica: "Sociedade Empresária Limitada",
-		contatado: false
+		contatado: false,
+		email: "sac@farmaciacentral.com.br",
+		telefone: "(92) 3333-4444",
+		socios: []
 	}
 ];
 //#endregion
@@ -30424,62 +30492,572 @@ var Checkbox = import_react.forwardRef(({ className, ...props }, ref) => /* @__P
 }));
 Checkbox.displayName = Checkbox$1.displayName;
 //#endregion
+//#region src/components/ui/dialog.tsx
+var Dialog = Root$3;
+var DialogPortal = Portal$2;
+var DialogOverlay = import_react.forwardRef(({ className, ...props }, ref) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Overlay, {
+	"data-uid": "src/components/ui/dialog.tsx:20:3",
+	"data-prohibitions": "[editContent]",
+	ref,
+	className: cn$1("fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0", className),
+	...props
+}));
+DialogOverlay.displayName = Overlay.displayName;
+var DialogContent = import_react.forwardRef(({ className, children, ...props }, ref) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogPortal, {
+	"data-uid": "src/components/ui/dialog.tsx:35:3",
+	"data-prohibitions": "[editContent]",
+	children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogOverlay, {
+		"data-uid": "src/components/ui/dialog.tsx:36:5",
+		"data-prohibitions": "[editContent]"
+	}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Content, {
+		"data-uid": "src/components/ui/dialog.tsx:37:5",
+		"data-prohibitions": "[editContent]",
+		ref,
+		className: cn$1("fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg overflow-y-auto max-h-screen", className),
+		...props,
+		children: [children, /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Close, {
+			"data-uid": "src/components/ui/dialog.tsx:46:7",
+			"data-prohibitions": "[]",
+			className: "absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground",
+			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(X, {
+				"data-uid": "src/components/ui/dialog.tsx:47:9",
+				"data-prohibitions": "[editContent]",
+				className: "h-4 w-4"
+			}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+				"data-uid": "src/components/ui/dialog.tsx:48:9",
+				"data-prohibitions": "[]",
+				className: "sr-only",
+				children: "Close"
+			})]
+		})]
+	})]
+}));
+DialogContent.displayName = Content.displayName;
+var DialogHeader = ({ className, ...props }) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+	"data-uid": "src/components/ui/dialog.tsx:56:3",
+	"data-prohibitions": "[editContent]",
+	className: cn$1("flex flex-col space-y-1.5 text-center sm:text-left", className),
+	...props
+});
+DialogHeader.displayName = "DialogHeader";
+var DialogFooter = ({ className, ...props }) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+	"data-uid": "src/components/ui/dialog.tsx:61:3",
+	"data-prohibitions": "[editContent]",
+	className: cn$1("flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2", className),
+	...props
+});
+DialogFooter.displayName = "DialogFooter";
+var DialogTitle = import_react.forwardRef(({ className, ...props }, ref) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Title, {
+	"data-uid": "src/components/ui/dialog.tsx:72:3",
+	"data-prohibitions": "[editContent]",
+	ref,
+	className: cn$1("text-lg font-semibold leading-none tracking-tight", className),
+	...props
+}));
+DialogTitle.displayName = Title.displayName;
+var DialogDescription = import_react.forwardRef(({ className, ...props }, ref) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Description, {
+	"data-uid": "src/components/ui/dialog.tsx:84:3",
+	"data-prohibitions": "[editContent]",
+	ref,
+	className: cn$1("text-sm text-muted-foreground", className),
+	...props
+}));
+DialogDescription.displayName = Description.displayName;
+//#endregion
+//#region src/components/dashboard/LeadDetailsModal.tsx
+function LeadDetailsModal({ lead }) {
+	const handleSave = () => {
+		toast.success("Lead salvo com sucesso!");
+	};
+	const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${lead.razaoSocial} ${lead.municipio} ${lead.uf}`)}`;
+	const linkedinUrl = `https://www.linkedin.com/search/results/companies/?keywords=${encodeURIComponent(lead.razaoSocial)}`;
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogHeader, {
+		"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:24:7",
+		"data-prohibitions": "[editContent]",
+		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTitle, {
+			"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:25:9",
+			"data-prohibitions": "[editContent]",
+			className: "text-xl flex items-center gap-2",
+			children: lead.razaoSocial
+		}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogDescription, {
+			"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:26:9",
+			"data-prohibitions": "[]",
+			children: "Detalhes completos da empresa e histórico de interação."
+		})]
+	}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+		"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:31:7",
+		"data-prohibitions": "[editContent]",
+		className: "space-y-6 mt-2",
+		children: [
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", {
+				"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:32:9",
+				"data-prohibitions": "[editContent]",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("h3", {
+					"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:33:11",
+					"data-prohibitions": "[]",
+					className: "text-lg font-semibold flex items-center gap-2 mb-3",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Building2, {
+						"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:34:13",
+						"data-prohibitions": "[editContent]",
+						className: "w-5 h-5 text-primary"
+					}), "Dados da Empresa"]
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:37:11",
+					"data-prohibitions": "[editContent]",
+					className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm",
+					children: [
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:38:13",
+							"data-prohibitions": "[editContent]",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+								"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:39:15",
+								"data-prohibitions": "[]",
+								className: "text-muted-foreground",
+								children: "Razão Social"
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+								"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:40:15",
+								"data-prohibitions": "[editContent]",
+								className: "font-medium",
+								children: lead.razaoSocial
+							})]
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:42:13",
+							"data-prohibitions": "[editContent]",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+								"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:43:15",
+								"data-prohibitions": "[]",
+								className: "text-muted-foreground",
+								children: "CNPJ"
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+								"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:44:15",
+								"data-prohibitions": "[editContent]",
+								className: "font-medium",
+								children: lead.cnpj
+							})]
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:46:13",
+							"data-prohibitions": "[editContent]",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+								"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:47:15",
+								"data-prohibitions": "[]",
+								className: "text-muted-foreground",
+								children: "CNAE Principal"
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+								"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:48:15",
+								"data-prohibitions": "[editContent]",
+								className: "font-medium",
+								children: lead.cnaePrincipal
+							})]
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:50:13",
+							"data-prohibitions": "[editContent]",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+								"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:51:15",
+								"data-prohibitions": "[]",
+								className: "text-muted-foreground",
+								children: "Município"
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+								"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:52:15",
+								"data-prohibitions": "[editContent]",
+								className: "font-medium",
+								children: lead.municipio
+							})]
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:54:13",
+							"data-prohibitions": "[editContent]",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+								"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:55:15",
+								"data-prohibitions": "[]",
+								className: "text-muted-foreground",
+								children: "UF"
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+								"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:56:15",
+								"data-prohibitions": "[editContent]",
+								className: "font-medium",
+								children: lead.uf
+							})]
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:58:13",
+							"data-prohibitions": "[editContent]",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+								"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:59:15",
+								"data-prohibitions": "[]",
+								className: "text-muted-foreground",
+								children: "Porte"
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+								"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:60:15",
+								"data-prohibitions": "[editContent]",
+								className: "font-medium",
+								children: lead.porte
+							})]
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:62:13",
+							"data-prohibitions": "[editContent]",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+								"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:63:15",
+								"data-prohibitions": "[]",
+								className: "text-muted-foreground",
+								children: "Situação Cadastral"
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Badge, {
+								"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:64:15",
+								"data-prohibitions": "[editContent]",
+								variant: lead.situacao === "Ativa" ? "default" : "secondary",
+								className: lead.situacao === "Ativa" ? "bg-primary text-white" : "",
+								children: lead.situacao
+							})]
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:71:13",
+							"data-prohibitions": "[editContent]",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+								"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:72:15",
+								"data-prohibitions": "[]",
+								className: "text-muted-foreground",
+								children: "Capital Social"
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+								"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:73:15",
+								"data-prohibitions": "[editContent]",
+								className: "font-medium text-emerald-600",
+								children: new Intl.NumberFormat("pt-BR", {
+									style: "currency",
+									currency: "BRL"
+								}).format(lead.capitalSocial)
+							})]
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:79:13",
+							"data-prohibitions": "[editContent]",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+								"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:80:15",
+								"data-prohibitions": "[]",
+								className: "text-muted-foreground",
+								children: "Data de Abertura"
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+								"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:81:15",
+								"data-prohibitions": "[editContent]",
+								className: "font-medium",
+								children: lead.dataAbertura
+							})]
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:83:13",
+							"data-prohibitions": "[editContent]",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+								"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:84:15",
+								"data-prohibitions": "[]",
+								className: "text-muted-foreground",
+								children: "E-mail"
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
+								"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:85:15",
+								"data-prohibitions": "[editContent]",
+								className: "font-medium flex items-center gap-1",
+								children: [
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Mail, {
+										"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:86:17",
+										"data-prohibitions": "[editContent]",
+										className: "w-3 h-3"
+									}),
+									" ",
+									lead.email || "Não informado"
+								]
+							})]
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:89:13",
+							"data-prohibitions": "[editContent]",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+								"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:90:15",
+								"data-prohibitions": "[]",
+								className: "text-muted-foreground",
+								children: "Telefone"
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
+								"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:91:15",
+								"data-prohibitions": "[editContent]",
+								className: "font-medium flex items-center gap-1",
+								children: [
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Phone, {
+										"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:92:17",
+										"data-prohibitions": "[editContent]",
+										className: "w-3 h-3"
+									}),
+									" ",
+									lead.telefone || "Não informado"
+								]
+							})]
+						})
+					]
+				})]
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Separator$2, {
+				"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:98:9",
+				"data-prohibitions": "[editContent]"
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", {
+				"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:100:9",
+				"data-prohibitions": "[editContent]",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("h3", {
+					"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:101:11",
+					"data-prohibitions": "[]",
+					className: "text-lg font-semibold flex items-center gap-2 mb-3",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Users, {
+						"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:102:13",
+						"data-prohibitions": "[editContent]",
+						className: "w-5 h-5 text-primary"
+					}), "Sócios"]
+				}), lead.socios && lead.socios.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+					"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:106:13",
+					"data-prohibitions": "[editContent]",
+					className: "space-y-3",
+					children: lead.socios.map((socio, idx) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:108:17",
+						"data-prohibitions": "[editContent]",
+						className: "bg-muted/30 border p-3 rounded-md grid grid-cols-1 md:grid-cols-3 gap-2 text-sm",
+						children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+								"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:112:19",
+								"data-prohibitions": "[editContent]",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+									"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:113:21",
+									"data-prohibitions": "[]",
+									className: "text-muted-foreground text-xs",
+									children: "Nome"
+								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+									"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:114:21",
+									"data-prohibitions": "[editContent]",
+									className: "font-medium",
+									children: socio.nome
+								})]
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+								"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:116:19",
+								"data-prohibitions": "[editContent]",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+									"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:117:21",
+									"data-prohibitions": "[]",
+									className: "text-muted-foreground text-xs",
+									children: "Qualificação"
+								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+									"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:118:21",
+									"data-prohibitions": "[editContent]",
+									className: "font-medium",
+									children: socio.qualificacao
+								})]
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+								"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:120:19",
+								"data-prohibitions": "[editContent]",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+									"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:121:21",
+									"data-prohibitions": "[]",
+									className: "text-muted-foreground text-xs",
+									children: "Data de Entrada"
+								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+									"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:122:21",
+									"data-prohibitions": "[editContent]",
+									className: "font-medium",
+									children: socio.dataEntrada
+								})]
+							})
+						]
+					}, idx))
+				}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+					"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:128:13",
+					"data-prohibitions": "[]",
+					className: "text-sm text-muted-foreground",
+					children: "Nenhum sócio registrado para esta empresa."
+				})]
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Separator$2, {
+				"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:134:9",
+				"data-prohibitions": "[editContent]"
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", {
+				"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:136:9",
+				"data-prohibitions": "[editContent]",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("h3", {
+					"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:137:11",
+					"data-prohibitions": "[]",
+					className: "text-lg font-semibold flex items-center gap-2 mb-3",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(History, {
+						"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:138:13",
+						"data-prohibitions": "[editContent]",
+						className: "w-5 h-5 text-primary"
+					}), "Histórico de Contato"]
+				}), lead.contatado ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:142:13",
+					"data-prohibitions": "[editContent]",
+					className: "bg-emerald-50 border border-emerald-100 p-4 rounded-md text-sm",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+						"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:143:15",
+						"data-prohibitions": "[]",
+						className: "text-emerald-800 font-semibold mb-1 text-base",
+						children: "Status: Contatado"
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
+						"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:144:15",
+						"data-prohibitions": "[editContent]",
+						className: "text-emerald-700",
+						children: [
+							"Contato registrado por ",
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", {
+								"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:145:40",
+								"data-prohibitions": "[editContent]",
+								children: lead.contatadoPor
+							}),
+							" na data de",
+							" ",
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", {
+								"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:146:17",
+								"data-prohibitions": "[editContent]",
+								children: lead.contatadoEm
+							}),
+							"."
+						]
+					})]
+				}) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:150:13",
+					"data-prohibitions": "[]",
+					className: "bg-slate-50 border border-slate-200 p-4 rounded-md text-sm",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+						"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:151:15",
+						"data-prohibitions": "[]",
+						className: "text-slate-700 font-semibold mb-1 text-base",
+						children: "Status: Não Contatado"
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+						"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:152:15",
+						"data-prohibitions": "[]",
+						className: "text-slate-500",
+						children: "Nenhum contato foi registrado com este lead até o momento. Utilize a tabela principal para marcar como contatado."
+					})]
+				})]
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Separator$2, {
+				"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:160:9",
+				"data-prohibitions": "[editContent]"
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", {
+				"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:162:9",
+				"data-prohibitions": "[]",
+				className: "flex flex-col sm:flex-row gap-3 pt-2",
+				children: [
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+						"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:163:11",
+						"data-prohibitions": "[]",
+						asChild: true,
+						variant: "outline",
+						className: "flex-1 sm:flex-none",
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("a", {
+							"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:164:13",
+							"data-prohibitions": "[]",
+							href: mapUrl,
+							target: "_blank",
+							rel: "noopener noreferrer",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MapPin, {
+								"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:165:15",
+								"data-prohibitions": "[editContent]",
+								className: "w-4 h-4 mr-2"
+							}), "Ver no Maps"]
+						})
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+						"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:169:11",
+						"data-prohibitions": "[]",
+						asChild: true,
+						variant: "outline",
+						className: "flex-1 sm:flex-none",
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("a", {
+							"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:170:13",
+							"data-prohibitions": "[]",
+							href: linkedinUrl,
+							target: "_blank",
+							rel: "noopener noreferrer",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Search, {
+								"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:171:15",
+								"data-prohibitions": "[editContent]",
+								className: "w-4 h-4 mr-2"
+							}), "Buscar no LinkedIn"]
+						})
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
+						"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:175:11",
+						"data-prohibitions": "[]",
+						onClick: handleSave,
+						className: "flex-1 sm:flex-none sm:ml-auto",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Save, {
+							"data-uid": "src/components/dashboard/LeadDetailsModal.tsx:176:13",
+							"data-prohibitions": "[editContent]",
+							className: "w-4 h-4 mr-2"
+						}), "Salvar Lead"]
+					})
+				]
+			})
+		]
+	})] });
+}
+//#endregion
 //#region src/components/dashboard/ResultsTable.tsx
 function ResultsTable() {
 	const { filteredLeads, toggleContact } = useLeadStore();
-	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-		"data-uid": "src/components/dashboard/ResultsTable.tsx:19:5",
+	const [selectedLeadCnpj, setSelectedLeadCnpj] = (0, import_react.useState)(null);
+	const selectedLead = filteredLeads.find((l) => l.cnpj === selectedLeadCnpj);
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+		"data-uid": "src/components/dashboard/ResultsTable.tsx:25:7",
 		"data-prohibitions": "[editContent]",
 		className: "bg-white rounded-lg shadow-sm border overflow-hidden",
 		children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Table, {
-			"data-uid": "src/components/dashboard/ResultsTable.tsx:20:7",
+			"data-uid": "src/components/dashboard/ResultsTable.tsx:26:9",
 			"data-prohibitions": "[editContent]",
 			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHeader, {
-				"data-uid": "src/components/dashboard/ResultsTable.tsx:21:9",
+				"data-uid": "src/components/dashboard/ResultsTable.tsx:27:11",
 				"data-prohibitions": "[]",
 				children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, {
-					"data-uid": "src/components/dashboard/ResultsTable.tsx:22:11",
+					"data-uid": "src/components/dashboard/ResultsTable.tsx:28:13",
 					"data-prohibitions": "[]",
 					className: "bg-muted/50",
 					children: [
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
-							"data-uid": "src/components/dashboard/ResultsTable.tsx:23:13",
+							"data-uid": "src/components/dashboard/ResultsTable.tsx:29:15",
 							"data-prohibitions": "[]",
 							children: "Razão Social"
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
-							"data-uid": "src/components/dashboard/ResultsTable.tsx:24:13",
+							"data-uid": "src/components/dashboard/ResultsTable.tsx:30:15",
 							"data-prohibitions": "[]",
 							children: "CNPJ"
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
-							"data-uid": "src/components/dashboard/ResultsTable.tsx:25:13",
+							"data-uid": "src/components/dashboard/ResultsTable.tsx:31:15",
 							"data-prohibitions": "[]",
 							children: "CNAE Principal"
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
-							"data-uid": "src/components/dashboard/ResultsTable.tsx:26:13",
+							"data-uid": "src/components/dashboard/ResultsTable.tsx:32:15",
 							"data-prohibitions": "[]",
 							children: "Município/UF"
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
-							"data-uid": "src/components/dashboard/ResultsTable.tsx:27:13",
+							"data-uid": "src/components/dashboard/ResultsTable.tsx:33:15",
 							"data-prohibitions": "[]",
 							children: "Porte"
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
-							"data-uid": "src/components/dashboard/ResultsTable.tsx:28:13",
+							"data-uid": "src/components/dashboard/ResultsTable.tsx:34:15",
 							"data-prohibitions": "[]",
 							children: "Situação"
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
-							"data-uid": "src/components/dashboard/ResultsTable.tsx:29:13",
+							"data-uid": "src/components/dashboard/ResultsTable.tsx:35:15",
 							"data-prohibitions": "[]",
 							className: "w-[250px]",
 							children: "Contatado"
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
-							"data-uid": "src/components/dashboard/ResultsTable.tsx:30:13",
+							"data-uid": "src/components/dashboard/ResultsTable.tsx:36:15",
 							"data-prohibitions": "[]",
 							className: "text-right",
 							children: "Ações"
@@ -30487,42 +31065,42 @@ function ResultsTable() {
 					]
 				})
 			}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableBody, {
-				"data-uid": "src/components/dashboard/ResultsTable.tsx:33:9",
+				"data-uid": "src/components/dashboard/ResultsTable.tsx:39:11",
 				"data-prohibitions": "[editContent]",
 				children: filteredLeads.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableRow, {
-					"data-uid": "src/components/dashboard/ResultsTable.tsx:35:13",
+					"data-uid": "src/components/dashboard/ResultsTable.tsx:41:15",
 					"data-prohibitions": "[]",
 					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-						"data-uid": "src/components/dashboard/ResultsTable.tsx:36:15",
+						"data-uid": "src/components/dashboard/ResultsTable.tsx:42:17",
 						"data-prohibitions": "[]",
 						colSpan: 8,
 						className: "text-center py-10 text-muted-foreground",
 						children: "Nenhum lead encontrado com os filtros atuais."
 					})
 				}) : filteredLeads.map((lead) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, {
-					"data-uid": "src/components/dashboard/ResultsTable.tsx:42:15",
+					"data-uid": "src/components/dashboard/ResultsTable.tsx:48:17",
 					"data-prohibitions": "[editContent]",
 					className: "animate-fade-in group",
 					children: [
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-							"data-uid": "src/components/dashboard/ResultsTable.tsx:43:17",
+							"data-uid": "src/components/dashboard/ResultsTable.tsx:49:19",
 							"data-prohibitions": "[editContent]",
 							className: "font-medium",
 							children: lead.razaoSocial
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-							"data-uid": "src/components/dashboard/ResultsTable.tsx:44:17",
+							"data-uid": "src/components/dashboard/ResultsTable.tsx:50:19",
 							"data-prohibitions": "[editContent]",
 							className: "text-muted-foreground whitespace-nowrap",
 							children: lead.cnpj
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-							"data-uid": "src/components/dashboard/ResultsTable.tsx:47:17",
+							"data-uid": "src/components/dashboard/ResultsTable.tsx:53:19",
 							"data-prohibitions": "[editContent]",
 							children: lead.cnaePrincipal
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableCell, {
-							"data-uid": "src/components/dashboard/ResultsTable.tsx:48:17",
+							"data-uid": "src/components/dashboard/ResultsTable.tsx:54:19",
 							"data-prohibitions": "[editContent]",
 							children: [
 								lead.municipio,
@@ -30531,20 +31109,20 @@ function ResultsTable() {
 							]
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-							"data-uid": "src/components/dashboard/ResultsTable.tsx:51:17",
+							"data-uid": "src/components/dashboard/ResultsTable.tsx:57:19",
 							"data-prohibitions": "[editContent]",
 							children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Badge, {
-								"data-uid": "src/components/dashboard/ResultsTable.tsx:52:19",
+								"data-uid": "src/components/dashboard/ResultsTable.tsx:58:21",
 								"data-prohibitions": "[editContent]",
 								variant: "outline",
 								children: lead.porte
 							})
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-							"data-uid": "src/components/dashboard/ResultsTable.tsx:54:17",
+							"data-uid": "src/components/dashboard/ResultsTable.tsx:60:19",
 							"data-prohibitions": "[editContent]",
 							children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Badge, {
-								"data-uid": "src/components/dashboard/ResultsTable.tsx:55:19",
+								"data-uid": "src/components/dashboard/ResultsTable.tsx:61:21",
 								"data-prohibitions": "[editContent]",
 								variant: lead.situacao === "Ativa" ? "default" : "secondary",
 								className: lead.situacao === "Ativa" ? "bg-primary text-white" : "",
@@ -30552,10 +31130,10 @@ function ResultsTable() {
 							})
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-							"data-uid": "src/components/dashboard/ResultsTable.tsx:62:17",
+							"data-uid": "src/components/dashboard/ResultsTable.tsx:68:19",
 							"data-prohibitions": "[editContent]",
 							children: lead.contatado ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Badge, {
-								"data-uid": "src/components/dashboard/ResultsTable.tsx:64:21",
+								"data-uid": "src/components/dashboard/ResultsTable.tsx:70:23",
 								"data-prohibitions": "[editContent]",
 								className: "bg-emerald-500 hover:bg-emerald-600 text-white flex gap-2 w-max items-center px-3 py-1 animate-in zoom-in-95 cursor-pointer",
 								onClick: () => toggleContact(lead.cnpj),
@@ -30564,7 +31142,7 @@ function ResultsTable() {
 									lead.contatadoPor,
 									" ",
 									/* @__PURE__ */ (0, import_jsx_runtime.jsx)("br", {
-										"data-uid": "src/components/dashboard/ResultsTable.tsx:68:58",
+										"data-uid": "src/components/dashboard/ResultsTable.tsx:74:60",
 										"data-prohibitions": "[editContent]",
 										className: "hidden"
 									}),
@@ -30573,17 +31151,17 @@ function ResultsTable() {
 									lead.contatadoEm
 								]
 							}) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-								"data-uid": "src/components/dashboard/ResultsTable.tsx:72:21",
+								"data-uid": "src/components/dashboard/ResultsTable.tsx:78:23",
 								"data-prohibitions": "[]",
 								className: "flex items-center space-x-2",
 								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Checkbox, {
-									"data-uid": "src/components/dashboard/ResultsTable.tsx:73:23",
+									"data-uid": "src/components/dashboard/ResultsTable.tsx:79:25",
 									"data-prohibitions": "[editContent]",
 									id: `contact-${lead.cnpj}`,
 									checked: false,
 									onCheckedChange: () => toggleContact(lead.cnpj)
 								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("label", {
-									"data-uid": "src/components/dashboard/ResultsTable.tsx:78:23",
+									"data-uid": "src/components/dashboard/ResultsTable.tsx:84:25",
 									"data-prohibitions": "[]",
 									htmlFor: `contact-${lead.cnpj}`,
 									className: "text-sm text-muted-foreground cursor-pointer select-none",
@@ -30592,29 +31170,39 @@ function ResultsTable() {
 							})
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-							"data-uid": "src/components/dashboard/ResultsTable.tsx:87:17",
+							"data-uid": "src/components/dashboard/ResultsTable.tsx:93:19",
 							"data-prohibitions": "[]",
 							className: "text-right",
 							children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-								"data-uid": "src/components/dashboard/ResultsTable.tsx:88:19",
+								"data-uid": "src/components/dashboard/ResultsTable.tsx:94:21",
 								"data-prohibitions": "[]",
 								variant: "outline",
 								size: "sm",
-								asChild: true,
+								onClick: () => setSelectedLeadCnpj(lead.cnpj),
 								className: "opacity-0 group-hover:opacity-100 transition-opacity",
-								children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Link, {
-									"data-uid": "src/components/dashboard/ResultsTable.tsx:94:21",
-									"data-prohibitions": "[]",
-									to: `/lead/${encodeURIComponent(lead.cnpj)}`,
-									children: "Ver Detalhes"
-								})
+								children: "Ver Detalhes"
 							})
 						})
 					]
 				}, lead.cnpj))
 			})]
 		})
-	});
+	}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Dialog, {
+		"data-uid": "src/components/dashboard/ResultsTable.tsx:110:7",
+		"data-prohibitions": "[editContent]",
+		open: !!selectedLead,
+		onOpenChange: (open) => !open && setSelectedLeadCnpj(null),
+		children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogContent, {
+			"data-uid": "src/components/dashboard/ResultsTable.tsx:111:9",
+			"data-prohibitions": "[editContent]",
+			className: "max-w-3xl max-h-[90vh] overflow-y-auto",
+			children: selectedLead && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LeadDetailsModal, {
+				"data-uid": "src/components/dashboard/ResultsTable.tsx:112:28",
+				"data-prohibitions": "[editContent]",
+				lead: selectedLead
+			})
+		})
+	})] });
 }
 //#endregion
 //#region src/pages/Index.tsx
@@ -30653,434 +31241,6 @@ function Index() {
 				"data-prohibitions": "[editContent]"
 			})
 		]
-	});
-}
-//#endregion
-//#region src/components/ui/card.tsx
-var Card = import_react.forwardRef(({ className, ...props }, ref) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-	"data-uid": "src/components/ui/card.tsx:8:5",
-	"data-prohibitions": "[editContent]",
-	ref,
-	className: cn$1("rounded-lg border bg-card text-card-foreground shadow-sm", className),
-	...props
-}));
-Card.displayName = "Card";
-var CardHeader = import_react.forwardRef(({ className, ...props }, ref) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-	"data-uid": "src/components/ui/card.tsx:19:5",
-	"data-prohibitions": "[editContent]",
-	ref,
-	className: cn$1("flex flex-col space-y-1.5 p-6", className),
-	...props
-}));
-CardHeader.displayName = "CardHeader";
-var CardTitle = import_react.forwardRef(({ className, ...props }, ref) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-	"data-uid": "src/components/ui/card.tsx:26:5",
-	"data-prohibitions": "[editContent]",
-	ref,
-	className: cn$1("text-2xl font-semibold leading-none tracking-tight", className),
-	...props
-}));
-CardTitle.displayName = "CardTitle";
-var CardDescription = import_react.forwardRef(({ className, ...props }, ref) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-	"data-uid": "src/components/ui/card.tsx:37:5",
-	"data-prohibitions": "[editContent]",
-	ref,
-	className: cn$1("text-sm text-muted-foreground", className),
-	...props
-}));
-CardDescription.displayName = "CardDescription";
-var CardContent = import_react.forwardRef(({ className, ...props }, ref) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-	"data-uid": "src/components/ui/card.tsx:44:5",
-	"data-prohibitions": "[editContent]",
-	ref,
-	className: cn$1("p-6 pt-0", className),
-	...props
-}));
-CardContent.displayName = "CardContent";
-var CardFooter = import_react.forwardRef(({ className, ...props }, ref) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-	"data-uid": "src/components/ui/card.tsx:51:5",
-	"data-prohibitions": "[editContent]",
-	ref,
-	className: cn$1("flex items-center p-6 pt-0", className),
-	...props
-}));
-CardFooter.displayName = "CardFooter";
-//#endregion
-//#region src/pages/LeadDetails.tsx
-function LeadDetails() {
-	const { cnpj } = useParams();
-	const { leads, toggleContact } = useLeadStore();
-	const lead = leads.find((l) => l.cnpj === decodeURIComponent(cnpj || ""));
-	if (!lead) return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-		"data-uid": "src/pages/LeadDetails.tsx:17:7",
-		"data-prohibitions": "[]",
-		className: "flex flex-col items-center justify-center h-[60vh] space-y-4",
-		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", {
-			"data-uid": "src/pages/LeadDetails.tsx:18:9",
-			"data-prohibitions": "[]",
-			className: "text-2xl font-bold",
-			children: "Lead não encontrado"
-		}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-			"data-uid": "src/pages/LeadDetails.tsx:19:9",
-			"data-prohibitions": "[]",
-			asChild: true,
-			children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Link, {
-				"data-uid": "src/pages/LeadDetails.tsx:20:11",
-				"data-prohibitions": "[]",
-				to: "/",
-				children: "Voltar ao início"
-			})
-		})]
-	});
-	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-		"data-uid": "src/pages/LeadDetails.tsx:27:5",
-		"data-prohibitions": "[editContent]",
-		className: "max-w-4xl mx-auto space-y-6 animate-fade-in",
-		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-			"data-uid": "src/pages/LeadDetails.tsx:28:7",
-			"data-prohibitions": "[editContent]",
-			className: "flex items-center gap-4",
-			children: [
-				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-					"data-uid": "src/pages/LeadDetails.tsx:29:9",
-					"data-prohibitions": "[]",
-					variant: "outline",
-					size: "icon",
-					asChild: true,
-					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Link, {
-						"data-uid": "src/pages/LeadDetails.tsx:30:11",
-						"data-prohibitions": "[]",
-						to: "/",
-						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ArrowLeft, {
-							"data-uid": "src/pages/LeadDetails.tsx:31:13",
-							"data-prohibitions": "[editContent]",
-							className: "h-4 w-4"
-						})
-					})
-				}),
-				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-					"data-uid": "src/pages/LeadDetails.tsx:34:9",
-					"data-prohibitions": "[editContent]",
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", {
-						"data-uid": "src/pages/LeadDetails.tsx:35:11",
-						"data-prohibitions": "[editContent]",
-						className: "text-2xl font-bold text-primary",
-						children: lead.razaoSocial
-					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
-						"data-uid": "src/pages/LeadDetails.tsx:36:11",
-						"data-prohibitions": "[editContent]",
-						className: "text-muted-foreground",
-						children: lead.cnpj
-					})]
-				}),
-				/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-					"data-uid": "src/pages/LeadDetails.tsx:38:9",
-					"data-prohibitions": "[editContent]",
-					className: "ml-auto",
-					children: lead.contatado ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Badge, {
-						"data-uid": "src/pages/LeadDetails.tsx:40:13",
-						"data-prohibitions": "[]",
-						className: "bg-emerald-500 text-white text-base py-1.5 px-4 cursor-pointer hover:bg-emerald-600",
-						onClick: () => toggleContact(lead.cnpj),
-						children: "Status: Contatado"
-					}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Badge, {
-						"data-uid": "src/pages/LeadDetails.tsx:47:13",
-						"data-prohibitions": "[]",
-						variant: "outline",
-						className: "text-base py-1.5 px-4 cursor-pointer hover:bg-slate-100",
-						onClick: () => toggleContact(lead.cnpj),
-						children: "Status: Pendente"
-					})
-				})
-			]
-		}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-			"data-uid": "src/pages/LeadDetails.tsx:58:7",
-			"data-prohibitions": "[editContent]",
-			className: "grid grid-cols-1 md:grid-cols-2 gap-6",
-			children: [
-				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
-					"data-uid": "src/pages/LeadDetails.tsx:59:9",
-					"data-prohibitions": "[editContent]",
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, {
-						"data-uid": "src/pages/LeadDetails.tsx:60:11",
-						"data-prohibitions": "[]",
-						className: "flex flex-row items-center gap-2 pb-2",
-						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Building2, {
-							"data-uid": "src/pages/LeadDetails.tsx:61:13",
-							"data-prohibitions": "[editContent]",
-							className: "h-5 w-5 text-accent"
-						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, {
-							"data-uid": "src/pages/LeadDetails.tsx:62:13",
-							"data-prohibitions": "[]",
-							className: "text-lg",
-							children: "Dados Principais"
-						})]
-					}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardContent, {
-						"data-uid": "src/pages/LeadDetails.tsx:64:11",
-						"data-prohibitions": "[editContent]",
-						className: "space-y-4 pt-4",
-						children: [
-							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-								"data-uid": "src/pages/LeadDetails.tsx:65:13",
-								"data-prohibitions": "[editContent]",
-								className: "grid grid-cols-2 gap-4",
-								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-									"data-uid": "src/pages/LeadDetails.tsx:66:15",
-									"data-prohibitions": "[editContent]",
-									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
-										"data-uid": "src/pages/LeadDetails.tsx:67:17",
-										"data-prohibitions": "[]",
-										className: "text-sm font-medium text-muted-foreground",
-										children: "Porte"
-									}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
-										"data-uid": "src/pages/LeadDetails.tsx:68:17",
-										"data-prohibitions": "[editContent]",
-										className: "font-medium",
-										children: lead.porte
-									})]
-								}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-									"data-uid": "src/pages/LeadDetails.tsx:70:15",
-									"data-prohibitions": "[editContent]",
-									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
-										"data-uid": "src/pages/LeadDetails.tsx:71:17",
-										"data-prohibitions": "[]",
-										className: "text-sm font-medium text-muted-foreground",
-										children: "Situação"
-									}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Badge, {
-										"data-uid": "src/pages/LeadDetails.tsx:72:17",
-										"data-prohibitions": "[editContent]",
-										variant: lead.situacao === "Ativa" ? "default" : "secondary",
-										className: lead.situacao === "Ativa" ? "bg-primary text-white" : "",
-										children: lead.situacao
-									})]
-								})]
-							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Separator$2, {
-								"data-uid": "src/pages/LeadDetails.tsx:80:13",
-								"data-prohibitions": "[editContent]"
-							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-								"data-uid": "src/pages/LeadDetails.tsx:81:13",
-								"data-prohibitions": "[editContent]",
-								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
-									"data-uid": "src/pages/LeadDetails.tsx:82:15",
-									"data-prohibitions": "[]",
-									className: "text-sm font-medium text-muted-foreground",
-									children: "Natureza Jurídica"
-								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
-									"data-uid": "src/pages/LeadDetails.tsx:83:15",
-									"data-prohibitions": "[editContent]",
-									className: "font-medium",
-									children: lead.naturezaJuridica
-								})]
-							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-								"data-uid": "src/pages/LeadDetails.tsx:85:13",
-								"data-prohibitions": "[editContent]",
-								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
-									"data-uid": "src/pages/LeadDetails.tsx:86:15",
-									"data-prohibitions": "[]",
-									className: "text-sm font-medium text-muted-foreground",
-									children: "Capital Social"
-								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
-									"data-uid": "src/pages/LeadDetails.tsx:87:15",
-									"data-prohibitions": "[editContent]",
-									className: "font-medium text-emerald-600",
-									children: new Intl.NumberFormat("pt-BR", {
-										style: "currency",
-										currency: "BRL"
-									}).format(lead.capitalSocial)
-								})]
-							})
-						]
-					})]
-				}),
-				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
-					"data-uid": "src/pages/LeadDetails.tsx:96:9",
-					"data-prohibitions": "[editContent]",
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, {
-						"data-uid": "src/pages/LeadDetails.tsx:97:11",
-						"data-prohibitions": "[]",
-						className: "flex flex-row items-center gap-2 pb-2",
-						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Briefcase, {
-							"data-uid": "src/pages/LeadDetails.tsx:98:13",
-							"data-prohibitions": "[editContent]",
-							className: "h-5 w-5 text-accent"
-						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, {
-							"data-uid": "src/pages/LeadDetails.tsx:99:13",
-							"data-prohibitions": "[]",
-							className: "text-lg",
-							children: "Atividades (CNAE)"
-						})]
-					}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardContent, {
-						"data-uid": "src/pages/LeadDetails.tsx:101:11",
-						"data-prohibitions": "[editContent]",
-						className: "space-y-4 pt-4",
-						children: [
-							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-								"data-uid": "src/pages/LeadDetails.tsx:102:13",
-								"data-prohibitions": "[editContent]",
-								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
-									"data-uid": "src/pages/LeadDetails.tsx:103:15",
-									"data-prohibitions": "[]",
-									className: "text-sm font-medium text-muted-foreground",
-									children: "Atividade Principal"
-								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Badge, {
-									"data-uid": "src/pages/LeadDetails.tsx:104:15",
-									"data-prohibitions": "[editContent]",
-									className: "mt-1 text-sm bg-primary",
-									children: lead.cnaePrincipal
-								})]
-							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Separator$2, {
-								"data-uid": "src/pages/LeadDetails.tsx:106:13",
-								"data-prohibitions": "[editContent]"
-							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-								"data-uid": "src/pages/LeadDetails.tsx:107:13",
-								"data-prohibitions": "[editContent]",
-								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
-									"data-uid": "src/pages/LeadDetails.tsx:108:15",
-									"data-prohibitions": "[]",
-									className: "text-sm font-medium text-muted-foreground mb-2",
-									children: "Atividades Secundárias"
-								}), lead.cnaesSecundarios.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-									"data-uid": "src/pages/LeadDetails.tsx:112:17",
-									"data-prohibitions": "[editContent]",
-									className: "flex flex-wrap gap-2",
-									children: lead.cnaesSecundarios.map((cnae) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Badge, {
-										"data-uid": "src/pages/LeadDetails.tsx:114:21",
-										"data-prohibitions": "[editContent]",
-										variant: "outline",
-										children: cnae
-									}, cnae))
-								}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
-									"data-uid": "src/pages/LeadDetails.tsx:120:17",
-									"data-prohibitions": "[]",
-									className: "text-sm text-muted-foreground italic",
-									children: "Nenhuma atividade secundária registrada."
-								})]
-							})
-						]
-					})]
-				}),
-				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
-					"data-uid": "src/pages/LeadDetails.tsx:128:9",
-					"data-prohibitions": "[editContent]",
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, {
-						"data-uid": "src/pages/LeadDetails.tsx:129:11",
-						"data-prohibitions": "[]",
-						className: "flex flex-row items-center gap-2 pb-2",
-						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MapPin, {
-							"data-uid": "src/pages/LeadDetails.tsx:130:13",
-							"data-prohibitions": "[editContent]",
-							className: "h-5 w-5 text-accent"
-						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, {
-							"data-uid": "src/pages/LeadDetails.tsx:131:13",
-							"data-prohibitions": "[]",
-							className: "text-lg",
-							children: "Localização"
-						})]
-					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, {
-						"data-uid": "src/pages/LeadDetails.tsx:133:11",
-						"data-prohibitions": "[editContent]",
-						className: "pt-4",
-						children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-							"data-uid": "src/pages/LeadDetails.tsx:134:13",
-							"data-prohibitions": "[editContent]",
-							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
-								"data-uid": "src/pages/LeadDetails.tsx:135:15",
-								"data-prohibitions": "[]",
-								className: "text-sm font-medium text-muted-foreground",
-								children: "Município / UF"
-							}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
-								"data-uid": "src/pages/LeadDetails.tsx:136:15",
-								"data-prohibitions": "[editContent]",
-								className: "font-medium text-lg",
-								children: [
-									lead.municipio,
-									" - ",
-									lead.uf
-								]
-							})]
-						})
-					})]
-				}),
-				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
-					"data-uid": "src/pages/LeadDetails.tsx:143:9",
-					"data-prohibitions": "[editContent]",
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, {
-						"data-uid": "src/pages/LeadDetails.tsx:144:11",
-						"data-prohibitions": "[]",
-						className: "flex flex-row items-center gap-2 pb-2",
-						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Calendar, {
-							"data-uid": "src/pages/LeadDetails.tsx:145:13",
-							"data-prohibitions": "[editContent]",
-							className: "h-5 w-5 text-accent"
-						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, {
-							"data-uid": "src/pages/LeadDetails.tsx:146:13",
-							"data-prohibitions": "[]",
-							className: "text-lg",
-							children: "Histórico"
-						})]
-					}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardContent, {
-						"data-uid": "src/pages/LeadDetails.tsx:148:11",
-						"data-prohibitions": "[editContent]",
-						className: "space-y-4 pt-4",
-						children: [
-							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-								"data-uid": "src/pages/LeadDetails.tsx:149:13",
-								"data-prohibitions": "[editContent]",
-								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
-									"data-uid": "src/pages/LeadDetails.tsx:150:15",
-									"data-prohibitions": "[]",
-									className: "text-sm font-medium text-muted-foreground",
-									children: "Data de Abertura"
-								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
-									"data-uid": "src/pages/LeadDetails.tsx:151:15",
-									"data-prohibitions": "[editContent]",
-									className: "font-medium",
-									children: lead.dataAbertura
-								})]
-							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Separator$2, {
-								"data-uid": "src/pages/LeadDetails.tsx:153:13",
-								"data-prohibitions": "[editContent]"
-							}),
-							lead.contatado && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-								"data-uid": "src/pages/LeadDetails.tsx:155:15",
-								"data-prohibitions": "[editContent]",
-								className: "bg-emerald-50 p-3 rounded-md border border-emerald-100",
-								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
-									"data-uid": "src/pages/LeadDetails.tsx:156:17",
-									"data-prohibitions": "[]",
-									className: "text-sm font-medium text-emerald-800 flex items-center gap-2",
-									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Info, {
-										"data-uid": "src/pages/LeadDetails.tsx:157:19",
-										"data-prohibitions": "[editContent]",
-										className: "h-4 w-4"
-									}), " Contato Registrado"]
-								}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
-									"data-uid": "src/pages/LeadDetails.tsx:159:17",
-									"data-prohibitions": "[editContent]",
-									className: "text-sm mt-1 text-emerald-700",
-									children: [
-										"Realizado por ",
-										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", {
-											"data-uid": "src/pages/LeadDetails.tsx:160:33",
-											"data-prohibitions": "[editContent]",
-											children: lead.contatadoPor
-										}),
-										" em ",
-										lead.contatadoEm
-									]
-								})]
-							})
-						]
-					})]
-				})
-			]
-		})]
 	});
 }
 //#endregion
@@ -31125,60 +31285,52 @@ var NotFound = () => {
 //#endregion
 //#region src/App.tsx
 var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LeadStoreProvider, {
-	"data-uid": "src/App.tsx:12:3",
+	"data-uid": "src/App.tsx:11:3",
 	"data-prohibitions": "[]",
 	children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(BrowserRouter, {
-		"data-uid": "src/App.tsx:13:5",
+		"data-uid": "src/App.tsx:12:5",
 		"data-prohibitions": "[]",
 		future: {
 			v7_startTransition: false,
 			v7_relativeSplatPath: false
 		},
 		children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TooltipProvider, {
-			"data-uid": "src/App.tsx:14:7",
+			"data-uid": "src/App.tsx:13:7",
 			"data-prohibitions": "[]",
 			children: [
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Toaster$2, {
-					"data-uid": "src/App.tsx:15:9",
+					"data-uid": "src/App.tsx:14:9",
 					"data-prohibitions": "[editContent]"
 				}),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Toaster, {
-					"data-uid": "src/App.tsx:16:9",
+					"data-uid": "src/App.tsx:15:9",
 					"data-prohibitions": "[editContent]"
 				}),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Routes, {
-					"data-uid": "src/App.tsx:17:9",
+					"data-uid": "src/App.tsx:16:9",
 					"data-prohibitions": "[]",
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Route, {
-						"data-uid": "src/App.tsx:18:11",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Route, {
+						"data-uid": "src/App.tsx:17:11",
 						"data-prohibitions": "[]",
 						element: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Layout, {
-							"data-uid": "src/App.tsx:18:27",
+							"data-uid": "src/App.tsx:17:27",
 							"data-prohibitions": "[editContent]"
 						}),
-						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Route, {
-							"data-uid": "src/App.tsx:19:13",
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Route, {
+							"data-uid": "src/App.tsx:18:13",
 							"data-prohibitions": "[editContent]",
 							path: "/",
 							element: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Index, {
-								"data-uid": "src/App.tsx:19:38",
+								"data-uid": "src/App.tsx:18:38",
 								"data-prohibitions": "[editContent]"
 							})
-						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Route, {
-							"data-uid": "src/App.tsx:20:13",
-							"data-prohibitions": "[editContent]",
-							path: "/lead/:cnpj",
-							element: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LeadDetails, {
-								"data-uid": "src/App.tsx:20:48",
-								"data-prohibitions": "[editContent]"
-							})
-						})]
+						})
 					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Route, {
-						"data-uid": "src/App.tsx:22:11",
+						"data-uid": "src/App.tsx:20:11",
 						"data-prohibitions": "[editContent]",
 						path: "*",
 						element: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(NotFound, {
-							"data-uid": "src/App.tsx:22:36",
+							"data-uid": "src/App.tsx:20:36",
 							"data-prohibitions": "[editContent]"
 						})
 					})]
@@ -31195,4 +31347,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LeadStoreProvider, {
 }));
 //#endregion
 
-//# sourceMappingURL=index-DbfL0P3i.js.map
+//# sourceMappingURL=index-54uSD2hC.js.map

@@ -4,7 +4,6 @@ import { Toaster as Sonner } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import Layout from '@/components/Layout'
 import Index from '@/pages/Index'
-import LeadDetails from '@/pages/LeadDetails'
 import NotFound from '@/pages/NotFound'
 import { LeadStoreProvider } from '@/stores/useLeadStore'
 
@@ -17,7 +16,6 @@ const App = () => (
         <Routes>
           <Route element={<Layout />}>
             <Route path="/" element={<Index />} />
-            <Route path="/lead/:cnpj" element={<LeadDetails />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
