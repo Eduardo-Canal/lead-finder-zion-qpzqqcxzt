@@ -9,6 +9,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      cache_pesquisas: {
+        Row: {
+          chave_cache: string
+          criado_em: string
+          expira_em: string
+          id: string
+          resultados: Json
+          total_registros: number
+        }
+        Insert: {
+          chave_cache: string
+          criado_em?: string
+          expira_em?: string
+          id?: string
+          resultados?: Json
+          total_registros?: number
+        }
+        Update: {
+          chave_cache?: string
+          criado_em?: string
+          expira_em?: string
+          id?: string
+          resultados?: Json
+          total_registros?: number
+        }
+        Relationships: []
+      }
       configuracoes_sistema: {
         Row: {
           data_ultima_atualizacao_rfb: string | null
@@ -423,6 +450,13 @@ export const Constants = {
 // --- COLUMN TYPES (actual PostgreSQL types) ---
 // Use this to know the real database type when writing migrations.
 // "string" in TypeScript types above may be uuid, text, varchar, timestamptz, etc.
+// Table: cache_pesquisas
+//   id: uuid (not null, default: gen_random_uuid())
+//   chave_cache: text (not null)
+//   resultados: jsonb (not null, default: '[]'::jsonb)
+//   total_registros: integer (not null, default: 0)
+//   criado_em: timestamp with time zone (not null, default: now())
+//   expira_em: timestamp with time zone (not null, default: (now() + '30 days'::interval))
 // Table: configuracoes_sistema
 //   id: integer (not null, default: 1)
 //   data_ultima_atualizacao_rfb: timestamp with time zone (nullable)
@@ -494,6 +528,9 @@ export const Constants = {
 //   ativo: boolean (not null, default: true)
 
 // --- CONSTRAINTS ---
+// Table: cache_pesquisas
+//   UNIQUE cache_pesquisas_chave_cache_key: UNIQUE (chave_cache)
+//   PRIMARY KEY cache_pesquisas_pkey: PRIMARY KEY (id)
 // Table: configuracoes_sistema
 //   PRIMARY KEY configuracoes_sistema_pkey: PRIMARY KEY (id)
 // Table: contatos_realizados
@@ -512,6 +549,16 @@ export const Constants = {
 //   FOREIGN KEY profiles_user_id_fkey: FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
 
 // --- ROW LEVEL SECURITY POLICIES ---
+// Table: cache_pesquisas
+//   Policy "Allow authenticated users to delete cache" (DELETE, PERMISSIVE) roles={authenticated}
+//     USING: true
+//   Policy "Allow authenticated users to insert cache" (INSERT, PERMISSIVE) roles={authenticated}
+//     WITH CHECK: true
+//   Policy "Allow authenticated users to select cache" (SELECT, PERMISSIVE) roles={authenticated}
+//     USING: true
+//   Policy "Allow authenticated users to update cache" (UPDATE, PERMISSIVE) roles={authenticated}
+//     USING: true
+//     WITH CHECK: true
 // Table: configuracoes_sistema
 //   Policy "Enable INSERT for authenticated users" (INSERT, PERMISSIVE) roles={authenticated}
 //     WITH CHECK: true
@@ -544,3 +591,7 @@ export const Constants = {
 //   Policy "Enable ALL for authenticated users" (ALL, PERMISSIVE) roles={authenticated}
 //     USING: true
 //     WITH CHECK: true
+
+// --- INDEXES ---
+// Table: cache_pesquisas
+//   CREATE UNIQUE INDEX cache_pesquisas_chave_cache_key ON public.cache_pesquisas USING btree (chave_cache)

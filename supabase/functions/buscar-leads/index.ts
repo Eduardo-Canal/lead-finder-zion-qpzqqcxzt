@@ -66,20 +66,6 @@ Deno.serve(async (req: Request) => {
       )
     }
 
-    const apiKey = Deno.env.get('CASADOSDADOS_API_KEY')
-    if (!apiKey) {
-      return new Response(
-        JSON.stringify({
-          error: 'API Key da Casa dos Dados não configurada nos secrets.',
-          data: [],
-        }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200,
-        },
-      )
-    }
-
     const casadosDadosPayload: any = {
       query: {
         termo: [],
@@ -127,14 +113,22 @@ Deno.serve(async (req: Request) => {
       casadosDadosPayload.query.porte = [porte.toUpperCase()]
     }
 
-    const response = await fetch('https://api.casadosdados.com.br/v2/public/cnpj/pesquisa', {
+    const fetchHeaders: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'User-Agent':
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    }
+
+    const apiKey = Deno.env.get('CASADOSDADOS_API_KEY')
+    if (apiKey) {
+      fetchHeaders['casadosdados-api-key'] = apiKey
+      fetchHeaders['Authorization'] = `Bearer ${apiKey}`
+      fetchHeaders['x-api-key'] = apiKey
+    }
+
+    const response = await fetch('https://api.casadosdados.com.br/v2/public/cnpj/search', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'casadosdados-api-key': apiKey,
-        Authorization: `Bearer ${apiKey}`,
-        'x-api-key': apiKey,
-      },
+      headers: fetchHeaders,
       body: JSON.stringify(casadosDadosPayload),
     })
 
@@ -221,9 +215,15 @@ Deno.serve(async (req: Request) => {
     )
   } catch (error: any) {
     console.error('buscar-leads Edge Function Error:', error)
-    return new Response(JSON.stringify({ error: error.message, data: [] }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 200,
-    })
+    return new Response(
+      JSON.stringify({
+        error: error.message || 'Erro desconhecido ao realizar a busca.',
+        data: [],
+      }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      },
+    )
   }
 })

@@ -149,7 +149,7 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
 
       if (data?.error) {
         console.error('Initial Search API Error:', data.error)
-        toast.error(`Aviso: ${data.error}`)
+        // Handled gracefully without showing intrusive error toasts on the Index page
         setLeadsRaw([])
         return
       }
@@ -207,8 +207,8 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
 
       if (data?.error) {
         toast.error(`Aviso: ${data.error}`)
-        setLeadsRaw([])
-        return
+        setLeadsRaw(data?.cached ? data.data.map(mapEmpresaToLead) : [])
+        if (!data?.cached) return
       }
 
       const results = (data?.data || []).map(mapEmpresaToLead)
@@ -219,9 +219,9 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
         totalCount: data?.count || results.length,
       })
 
-      if (results.length > 0) {
+      if (results.length > 0 && !data?.error) {
         toast.success(`${results.length} leads encontrados.`)
-      } else {
+      } else if (results.length === 0 && !data?.error) {
         toast.info('Nenhum lead encontrado com estes filtros.')
       }
     } catch (err: any) {
