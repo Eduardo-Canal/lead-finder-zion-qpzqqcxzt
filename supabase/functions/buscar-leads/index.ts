@@ -19,6 +19,13 @@ Deno.serve(async (req: Request) => {
       limit = 10,
     } = payload
 
+    // Sanitization: Ensure CNAE only contains digits to prevent API integration errors
+    const cnaeCleaned = Array.isArray(cnae_fiscal_principal)
+      ? cnae_fiscal_principal
+          .map((c) => (typeof c === 'string' ? c.replace(/\D/g, '') : c))
+          .filter(Boolean)
+      : []
+
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
     const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY') || ''
     const authHeader = req.headers.get('Authorization')
@@ -28,7 +35,7 @@ Deno.serve(async (req: Request) => {
     })
 
     const payloadToHash = {
-      cnae: cnae_fiscal_principal || [],
+      cnae: cnaeCleaned,
       uf: uf || null,
       municipio: municipio ? municipio.toUpperCase() : null,
       porte: porte ? porte.toUpperCase() : null,
@@ -90,12 +97,8 @@ Deno.serve(async (req: Request) => {
       page: page,
     }
 
-    if (
-      cnae_fiscal_principal &&
-      Array.isArray(cnae_fiscal_principal) &&
-      cnae_fiscal_principal.length > 0
-    ) {
-      casadosDadosPayload.query.atividade_principal = cnae_fiscal_principal
+    if (cnaeCleaned.length > 0) {
+      casadosDadosPayload.query.atividade_principal = cnaeCleaned
     }
     if (uf) {
       casadosDadosPayload.query.uf = [uf]
@@ -176,7 +179,7 @@ Deno.serve(async (req: Request) => {
           cnpj: randomCnpj,
           razao_social: `Empresa Exemplo ${id} LTDA (Demonstração)`,
           nome_fantasia: `Exemplo ${id}`,
-          cnae_fiscal_principal: cnae_fiscal_principal?.[0] || '6204-0/00',
+          cnae_fiscal_principal: cnaeCleaned[0] || '6204000',
           municipio: municipio ? municipio.toUpperCase() : 'SÃO PAULO',
           uf: uf || 'SP',
           porte: porte || 'ME',

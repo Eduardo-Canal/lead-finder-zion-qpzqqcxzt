@@ -181,9 +181,11 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
       setFilters((prev) => ({ ...prev, cityQuick: 'Todos' }))
     }
 
-    // Build a strictly serializable payload
+    // Build a strictly serializable payload with CNAE sanitization (remove non-numeric chars)
     const payload = {
-      cnae_fiscal_principal: Array.isArray(filters.cnaes) ? filters.cnaes : [],
+      cnae_fiscal_principal: Array.isArray(filters.cnaes)
+        ? filters.cnaes.map((c) => (typeof c === 'string' ? c.replace(/\D/g, '') : c))
+        : [],
       uf: Array.isArray(filters.ufs) && filters.ufs.length > 0 ? filters.ufs[0] : null,
       municipio:
         typeof filters.municipio === 'string' && filters.municipio ? filters.municipio : null,
