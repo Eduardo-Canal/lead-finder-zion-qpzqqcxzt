@@ -8,18 +8,40 @@ Deno.serve(async (req: Request) => {
 
   try {
     const payload = await req.json().catch(() => ({}))
-    const { cnaes, uf, municipio, porte, situacao_cadastral, page = 1, limit = 10 } = payload
+    const {
+      cnae_fiscal_principal,
+      uf,
+      municipio,
+      porte,
+      situacao_cadastral,
+      page = 1,
+      limit = 10,
+    } = payload
 
     const apiKey = Deno.env.get('CASADOSDADOS_API_KEY')
     if (!apiKey) {
-      throw new Error(
-        'API Key da Casa dos Dados não configurada nos secrets (CASADOSDADOS_API_KEY).',
+      return new Response(
+        JSON.stringify({
+          error: 'API Key da Casa dos Dados não configurada nos secrets.',
+          data: [],
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        },
       )
     }
 
     const casadosDadosPayload: any = {
       query: {
         termo: [],
+        atividade_principal: [],
+        natureza_juridica: [],
+        uf: [],
+        municipio: [],
+        bairro: [],
+        cep: [],
+        ddd: [],
       },
       range_query: {
         data_abertura: { lte: null, gte: null },
@@ -35,8 +57,12 @@ Deno.serve(async (req: Request) => {
       page: page,
     }
 
-    if (cnaes && Array.isArray(cnaes) && cnaes.length > 0) {
-      casadosDadosPayload.query.atividade_principal = cnaes
+    if (
+      cnae_fiscal_principal &&
+      Array.isArray(cnae_fiscal_principal) &&
+      cnae_fiscal_principal.length > 0
+    ) {
+      casadosDadosPayload.query.atividade_principal = cnae_fiscal_principal
     }
     if (uf) {
       casadosDadosPayload.query.uf = [uf]
@@ -46,19 +72,15 @@ Deno.serve(async (req: Request) => {
     }
     if (situacao_cadastral) {
       casadosDadosPayload.query.situacao_cadastral = situacao_cadastral.toUpperCase()
+    } else {
+      casadosDadosPayload.query.situacao_cadastral = 'ATIVA'
     }
     if (porte) {
       casadosDadosPayload.query.porte = [porte.toUpperCase()]
     }
 
-    // Pass the limit to the Casa dos Dados API payload
-    if (limit) {
-      casadosDadosPayload.limit = limit
-      casadosDadosPayload.per_page = limit
-      casadosDadosPayload.size = limit
-    }
-
-    const response = await fetch('https://api.casadosdados.com.br/v2/public/cnpj/pesquisa', {
+    // Changing to the actual active endpoint for standard searches to prevent 404s
+    const response = await fetch('https://api.casadosdados.com.br/v2/public/cnpj/search', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -71,7 +93,22 @@ Deno.serve(async (req: Request) => {
 
     if (!response.ok) {
       const errText = await response.text()
-      throw new Error(`Erro na API Casa dos Dados (${response.status}): ${errText}`)
+      let message = `Erro na API Casa dos Dados (${response.status})`
+
+      if (response.status === 404) {
+        message =
+          'O endpoint de busca está temporariamente indisponível ou alterado na Casa dos Dados.'
+      } else if (response.status >= 500) {
+        message = 'Serviço externo Casa dos Dados indisponível no momento.'
+      }
+
+      console.error('Casa dos Dados Error:', message, errText)
+
+      // Returning 200 with an error object ensures graceful handling on the frontend without a hard runtime crash
+      return new Response(JSON.stringify({ error: message, data: [] }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      })
     }
 
     const data = await response.json()
@@ -92,7 +129,6 @@ Deno.serve(async (req: Request) => {
       totalPages = data.pages || 1
     }
 
-    // Explicitly enforce the result limit threshold to ensure state consistency
     const results = rawResults.slice(0, limit).map((empresa: any) => ({
       cnpj: empresa.cnpj,
       razao_social: empresa.razao_social || empresa.nome_fantasia || '',
@@ -100,7 +136,7 @@ Deno.serve(async (req: Request) => {
       municipio: empresa.municipio,
       uf: empresa.uf,
       porte: empresa.porte || '',
-      situacao_cadastral: empresa.situacao_cadastral,
+      situacao_cadastral: empresa.situacao_cadastral || 'Ativa',
       capital_social: empresa.capital_social || 0,
       email: empresa.email || '',
       telefone: empresa.telefone || empresa.ddd_telefone_1 || '',
@@ -119,9 +155,10 @@ Deno.serve(async (req: Request) => {
       },
     )
   } catch (error: any) {
-    return new Response(JSON.stringify({ error: error.message }), {
+    console.error('buscar-leads Edge Function Error:', error)
+    return new Response(JSON.stringify({ error: error.message, data: [] }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 400,
+      status: 200,
     })
   }
 })

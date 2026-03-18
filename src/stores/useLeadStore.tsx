@@ -95,7 +95,7 @@ const mapEmpresaToLead = (empresa: any): any => ({
   municipio: empresa.municipio,
   uf: empresa.uf,
   porte: empresa.porte,
-  situacao: empresa.situacao_cadastral || empresa.situacao,
+  situacao: empresa.situacao_cadastral || empresa.situacao || 'Ativa',
   capital_social: empresa.capital_social ? Number(empresa.capital_social) : 0,
   data_abertura: empresa.data_abertura || empresa.data_inicio_atividade || new Date().toISOString(),
   email: empresa.email || '',
@@ -127,11 +127,32 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
 
     setIsSearching(true)
     try {
+      const payload = {
+        cnae_fiscal_principal: [],
+        uf: null,
+        municipio: null,
+        porte: null,
+        situacao_cadastral: null,
+        page: 1,
+        limit: defaultFilters.limit,
+      }
+
       const { data, error } = await supabase.functions.invoke('buscar-leads', {
-        body: { page: 1, limit: defaultFilters.limit },
+        body: payload,
       })
-      if (error) throw error
-      if (data?.error) throw new Error(data.error)
+
+      if (error) {
+        console.error('Initial Search Error:', error)
+        setLeadsRaw([])
+        return
+      }
+
+      if (data?.error) {
+        console.error('Initial Search API Error:', data.error)
+        toast.error(`Aviso: ${data.error}`)
+        setLeadsRaw([])
+        return
+      }
 
       const results = (data?.data || []).map(mapEmpresaToLead)
       setLeadsRaw(results)
@@ -142,6 +163,7 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
       })
     } catch (err) {
       console.error(err)
+      setLeadsRaw([])
     } finally {
       setIsSearching(false)
     }
@@ -162,12 +184,11 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
     }
 
     const payload = {
-      cnaes: filters.cnaes,
-      uf: filters.ufs.length > 0 ? filters.ufs[0] : undefined,
-      municipio: filters.municipio || undefined,
-      porte: filters.porte || undefined,
-      situacao_cadastral: filters.situacao || undefined,
-      capital_social_minimo: filters.capitalMinimo ? Number(filters.capitalMinimo) : undefined,
+      cnae_fiscal_principal: filters.cnaes,
+      uf: filters.ufs.length > 0 ? filters.ufs[0] : null,
+      municipio: filters.municipio || null,
+      porte: filters.porte || null,
+      situacao_cadastral: filters.situacao || null,
       page: targetPage,
       limit: filters.limit,
     }
@@ -177,8 +198,18 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
         body: payload,
       })
 
-      if (error) throw error
-      if (data?.error) throw new Error(data.error)
+      if (error) {
+        console.error('Search API Connection Error:', error)
+        toast.error('Erro ao conectar com o serviço de busca.')
+        setLeadsRaw([])
+        return
+      }
+
+      if (data?.error) {
+        toast.error(`Aviso: ${data.error}`)
+        setLeadsRaw([])
+        return
+      }
 
       const results = (data?.data || []).map(mapEmpresaToLead)
       setLeadsRaw(results)
@@ -187,10 +218,16 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
         totalPages: data?.pages || 1,
         totalCount: data?.count || results.length,
       })
-      toast.success(`${results.length} leads encontrados na página ${targetPage}.`)
+
+      if (results.length > 0) {
+        toast.success(`${results.length} leads encontrados.`)
+      } else {
+        toast.info('Nenhum lead encontrado com estes filtros.')
+      }
     } catch (err: any) {
       console.error('Error searching leads:', err)
-      toast.error(`Erro ao buscar leads: ${err.message}`)
+      toast.error('Erro inesperado ao buscar leads.')
+      setLeadsRaw([])
     } finally {
       setIsSearching(false)
     }
