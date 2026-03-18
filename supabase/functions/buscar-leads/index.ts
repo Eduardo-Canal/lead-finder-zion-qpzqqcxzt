@@ -79,8 +79,8 @@ Deno.serve(async (req: Request) => {
       casadosDadosPayload.query.porte = [porte.toUpperCase()]
     }
 
-    // Changing to the actual active endpoint for standard searches to prevent 404s
-    const response = await fetch('https://api.casadosdados.com.br/v2/public/cnpj/search', {
+    // Updated to the correct endpoint /pesquisa per the requirements
+    const response = await fetch('https://api.casadosdados.com.br/v2/public/cnpj/pesquisa', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
