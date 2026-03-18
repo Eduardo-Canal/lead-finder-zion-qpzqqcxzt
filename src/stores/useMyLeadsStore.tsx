@@ -24,6 +24,9 @@ export type LeadSalvo = {
   decisor_nome: string | null
   decisor_telefone: string | null
   decisor_email: string | null
+  telefone: string | null
+  email: string | null
+  observacoes: string | null
 }
 
 export type MyLeadsFilters = {
