@@ -143,14 +143,11 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
 
       if (error) {
         console.error('Initial Search Error:', error)
-        setLeadsRaw([])
         return
       }
 
-      if (data?.error) {
+      if (data?.error && (!data?.data || data.data.length === 0)) {
         console.error('Initial Search API Error:', data.error)
-        // Handled gracefully without showing intrusive error toasts on the Index page
-        setLeadsRaw([])
         return
       }
 
@@ -163,7 +160,6 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
       })
     } catch (err) {
       console.error(err)
-      setLeadsRaw([])
     } finally {
       setIsSearching(false)
     }
@@ -200,15 +196,14 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
 
       if (error) {
         console.error('Search API Connection Error:', error)
-        toast.error('Erro ao conectar com o serviço de busca.')
-        setLeadsRaw([])
+        toast.error('Erro de rede. Verifique sua conexão e tente novamente.')
         return
       }
 
-      if (data?.error) {
+      if (data?.error && (!data?.data || data.data.length === 0)) {
         toast.error(`Aviso: ${data.error}`)
-        setLeadsRaw(data?.cached ? data.data.map(mapEmpresaToLead) : [])
-        if (!data?.cached) return
+        setLeadsRaw([])
+        return
       }
 
       const results = (data?.data || []).map(mapEmpresaToLead)
@@ -219,15 +214,18 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
         totalCount: data?.count || results.length,
       })
 
-      if (results.length > 0 && !data?.error) {
+      if (data?.isMock) {
+        toast.info('API indisponível. Exibindo dados de demonstração.', { duration: 5000 })
+      } else if (results.length > 0 && !data?.error) {
         toast.success(`${results.length} leads encontrados.`)
       } else if (results.length === 0 && !data?.error) {
         toast.info('Nenhum lead encontrado com estes filtros.')
+      } else if (data?.error) {
+        toast.warning(data.error)
       }
     } catch (err: any) {
       console.error('Error searching leads:', err)
       toast.error('Erro inesperado ao buscar leads.')
-      setLeadsRaw([])
     } finally {
       setIsSearching(false)
     }

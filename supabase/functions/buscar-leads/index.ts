@@ -27,7 +27,6 @@ Deno.serve(async (req: Request) => {
       global: { headers: { Authorization: authHeader || '' } },
     })
 
-    // Generate Cache Key
     const payloadToHash = {
       cnae: cnae_fiscal_principal || [],
       uf: uf || null,
@@ -43,7 +42,6 @@ Deno.serve(async (req: Request) => {
     const hashArray = Array.from(new Uint8Array(hashBuffer))
     const chave_cache = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('')
 
-    // Check DB Cache
     const { data: cachedData } = await supabase
       .from('cache_pesquisas')
       .select('resultados, total_registros, expira_em')
@@ -58,6 +56,7 @@ Deno.serve(async (req: Request) => {
           count: cachedData.total_registros,
           pages: Math.ceil(cachedData.total_registros / limit) || 1,
           cached: true,
+          isMock: false,
         }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -117,6 +116,9 @@ Deno.serve(async (req: Request) => {
       'Content-Type': 'application/json',
       'User-Agent':
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      Accept: 'application/json',
+      Origin: 'https://casadosdados.com.br',
+      Referer: 'https://casadosdados.com.br/',
     }
 
     const apiKey = Deno.env.get('CASADOSDADOS_API_KEY')
@@ -126,39 +128,82 @@ Deno.serve(async (req: Request) => {
       fetchHeaders['x-api-key'] = apiKey
     }
 
-    const response = await fetch('https://api.casadosdados.com.br/v2/public/cnpj/search', {
-      method: 'POST',
-      headers: fetchHeaders,
-      body: JSON.stringify(casadosDadosPayload),
-    })
+    let response
+    let externalError = null
+    try {
+      response = await fetch('https://api.casadosdados.com.br/v3/public/cnpj/search', {
+        method: 'POST',
+        headers: fetchHeaders,
+        body: JSON.stringify(casadosDadosPayload),
+      })
 
-    if (!response.ok) {
-      const errText = await response.text()
-      let message = `Erro na API Casa dos Dados (${response.status})`
-
-      if (response.status === 404) {
-        message =
-          'O endpoint de busca está temporariamente indisponível ou alterado na Casa dos Dados.'
-      } else if (response.status >= 500) {
-        message = 'Serviço externo Casa dos Dados indisponível no momento.'
+      if (!response.ok) {
+        response = await fetch('https://api.casadosdados.com.br/v2/public/cnpj/search', {
+          method: 'POST',
+          headers: fetchHeaders,
+          body: JSON.stringify(casadosDadosPayload),
+        })
       }
 
-      console.error('Casa dos Dados Error:', message, errText)
-
-      return new Response(JSON.stringify({ error: message, data: [] }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      })
+      if (!response.ok) {
+        externalError = await response.text()
+        throw new Error(`External API Error: ${response.status}`)
+      }
+    } catch (e: any) {
+      console.error('Fetch API error:', e.message, externalError)
+      response = null
     }
 
-    const data = await response.json()
+    let data
+    let isMock = false
+
+    if (response) {
+      try {
+        data = await response.json()
+      } catch (e) {
+        console.error('Error parsing JSON:', e)
+        data = null
+      }
+    }
+
+    if (!data || data.success === false || data.error) {
+      console.log('Using Mock Data due to External API failure or unavailability')
+      isMock = true
+      const mockResults = Array.from({ length: limit }).map((_, i) => {
+        const id = (page - 1) * limit + i + 1
+        const randomCnpj = `${Math.floor(Math.random() * 90 + 10)}.${Math.floor(Math.random() * 900 + 100)}.${Math.floor(Math.random() * 900 + 100)}/0001-${Math.floor(Math.random() * 90 + 10)}`
+        return {
+          cnpj: randomCnpj,
+          razao_social: `Empresa Exemplo ${id} LTDA (Demonstração)`,
+          nome_fantasia: `Exemplo ${id}`,
+          cnae_fiscal_principal: cnae_fiscal_principal?.[0] || '6204-0/00',
+          municipio: municipio ? municipio.toUpperCase() : 'SÃO PAULO',
+          uf: uf || 'SP',
+          porte: porte || 'ME',
+          situacao_cadastral: situacao_cadastral || 'ATIVA',
+          capital_social: Math.floor(Math.random() * 100000),
+          email: `contato${id}@exemplo.com.br`,
+          telefone: `119${Math.floor(Math.random() * 90000000 + 10000000)}`,
+        }
+      })
+
+      data = {
+        success: true,
+        data: {
+          cnpj: mockResults,
+          count: 50,
+          pages: Math.ceil(50 / limit),
+          page: page,
+        },
+      }
+    }
 
     let rawResults = []
     let totalCount = 0
     let totalPages = 1
     let currentPage = page
 
-    if (data.success !== false && data.data) {
+    if (data.data && data.data.cnpj) {
       rawResults = data.data.cnpj || []
       totalCount = data.data.count || rawResults.length
       totalPages = data.data.pages || 1
@@ -182,8 +227,7 @@ Deno.serve(async (req: Request) => {
       telefone: empresa.telefone || empresa.ddd_telefone_1 || '',
     }))
 
-    // Save to Cache
-    if (results && results.length > 0) {
+    if (results && results.length > 0 && !isMock) {
       try {
         const expira_em = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
         await supabase.from('cache_pesquisas').upsert(
@@ -207,6 +251,7 @@ Deno.serve(async (req: Request) => {
         count: totalCount,
         pages: totalPages,
         cached: false,
+        isMock,
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
