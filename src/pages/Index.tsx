@@ -1,12 +1,21 @@
-/* Home Page - Replace this page layout, components, content, behavior with what you want and translate to the language of the user */
-const Index = () => {
+import { QuickFilters } from '@/components/dashboard/QuickFilters'
+import { ResultsTable } from '@/components/dashboard/ResultsTable'
+import useLeadStore from '@/stores/useLeadStore'
+
+export default function Index() {
+  const { filteredLeads } = useLeadStore()
+
   return (
-    <div className="container mx-auto py-8 px-4">
-      <h1 className="text-3xl font-bold mb-6">
-        This is a example page ready to be rewritten with your own content
-      </h1>
+    <div className="max-w-7xl mx-auto space-y-6 animate-fade-in">
+      <div>
+        <h2 className="text-2xl font-semibold tracking-tight">Painel de Prospecção</h2>
+        <p className="text-muted-foreground mt-1">
+          Encontrados {filteredLeads.length} leads com base nos filtros atuais.
+        </p>
+      </div>
+
+      <QuickFilters />
+      <ResultsTable />
     </div>
   )
 }
-
-export default Index
