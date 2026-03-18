@@ -11,7 +11,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
-import useLeadStore, { FilteredLead } from '@/stores/useLeadStore'
+import useLeadStore from '@/stores/useLeadStore'
 import useAuthStore from '@/stores/useAuthStore'
 import { LeadDetailsModal } from './LeadDetailsModal'
 import { cn } from '@/lib/utils'
@@ -49,7 +49,7 @@ export function ResultsTable() {
               </TableRow>
             ) : (
               filteredLeads.map((lead) => (
-                <TableRow key={lead.id} className="animate-fade-in group">
+                <TableRow key={lead.id || lead.cnpj} className="animate-fade-in group">
                   <TableCell className="font-medium">{lead.razao_social}</TableCell>
                   <TableCell className="text-muted-foreground whitespace-nowrap">
                     {lead.cnpj}
