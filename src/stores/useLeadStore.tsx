@@ -9,7 +9,7 @@ import React, {
 } from 'react'
 import useAuthStore from '@/stores/useAuthStore'
 import { supabase } from '@/lib/supabase/client'
-import { mockLeads } from '@/data/mock-leads'
+import { toast } from 'sonner'
 
 export type FilteredLead = {
   id: string
@@ -53,6 +53,8 @@ type LeadStoreContextType = {
   removeCnae: (cnae: string) => void
   toggleUf: (uf: string, checked: boolean) => void
   toggleContact: (cnpj: string) => Promise<void>
+  searchLeads: () => Promise<void>
+  isSearching: boolean
 }
 
 const defaultFilters: Filters = {
@@ -70,25 +72,92 @@ const defaultFilters: Filters = {
 
 const LeadContext = createContext<LeadStoreContextType | null>(null)
 
+const mapEmpresaToLead = (empresa: any): any => ({
+  id: empresa.cnpj,
+  cnpj: empresa.cnpj,
+  razao_social: empresa.razao_social,
+  cnae_principal: empresa.cnae_fiscal_principal,
+  cnaes_secundarios: empresa.cnae_fiscal_secundaria
+    ? empresa.cnae_fiscal_secundaria.split(',')
+    : [],
+  municipio: empresa.municipio,
+  uf: empresa.uf,
+  porte: empresa.porte,
+  situacao: empresa.situacao_cadastral,
+  capital_social: empresa.capital_social ? Number(empresa.capital_social) : 0,
+  data_abertura: empresa.data_inicio_atividade || new Date().toISOString(),
+  email: empresa.email || '',
+  telefone: empresa.telefone_1 || '',
+  socios: typeof empresa.socios === 'string' ? JSON.parse(empresa.socios) : empresa.socios || [],
+})
+
 export function LeadStoreProvider({ children }: { children: ReactNode }) {
   const [leadsRaw, setLeadsRaw] = useState<any[]>([])
   const [contatos, setContatos] = useState<any[]>([])
   const [filters, setFilters] = useState<Filters>(defaultFilters)
+  const [isSearching, setIsSearching] = useState(false)
   const { user } = useAuthStore()
 
-  const fetchLeads = useCallback(async () => {
+  const fetchInitialData = useCallback(async () => {
+    if (!user) return
+
     const { data: cData } = await supabase
       .from('contatos_realizados')
       .select('*')
       .order('data_contato', { ascending: false })
 
     if (cData) setContatos(cData)
-    setLeadsRaw(mockLeads)
-  }, [])
+
+    setIsSearching(true)
+    try {
+      const { data, error } = await supabase.functions.invoke('buscar-leads', { body: {} })
+      if (error) throw error
+      const results = (data?.data || []).map(mapEmpresaToLead)
+      setLeadsRaw(results)
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setIsSearching(false)
+    }
+  }, [user])
 
   useEffect(() => {
-    if (user) fetchLeads()
-  }, [user, fetchLeads])
+    fetchInitialData()
+  }, [fetchInitialData])
+
+  const searchLeads = async () => {
+    if (!user) return
+    setIsSearching(true)
+
+    // Clear dynamic city filter on new search
+    setFilters((prev) => ({ ...prev, cityQuick: 'Todos' }))
+
+    const payload = {
+      cnaes: filters.cnaes,
+      uf: filters.ufs.length > 0 ? filters.ufs[0] : undefined,
+      municipio: filters.municipio || undefined,
+      porte: filters.porte || undefined,
+      situacao_cadastral: filters.situacao || undefined,
+      capital_social_minimo: filters.capitalMinimo ? Number(filters.capitalMinimo) : undefined,
+    }
+
+    try {
+      const { data, error } = await supabase.functions.invoke('buscar-leads', {
+        body: payload,
+      })
+
+      if (error) throw error
+
+      const results = (data?.data || []).map(mapEmpresaToLead)
+      setLeadsRaw(results)
+      toast.success(`${results.length} leads encontrados.`)
+    } catch (err) {
+      console.error('Error searching leads:', err)
+      toast.error('Erro ao buscar leads.')
+    } finally {
+      setIsSearching(false)
+    }
+  }
 
   const setFilter = (key: keyof Filters, value: any) => {
     setFilters((prev) => ({ ...prev, [key]: value }))
@@ -124,7 +193,12 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
         executivo_nome: user.nome,
       })
     }
-    fetchLeads()
+
+    const { data: cData } = await supabase
+      .from('contatos_realizados')
+      .select('*')
+      .order('data_contato', { ascending: false })
+    if (cData) setContatos(cData)
   }
 
   const leads = useMemo<FilteredLead[]>(() => {
@@ -143,22 +217,6 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
 
   const filteredLeads = useMemo(() => {
     return leads.filter((lead) => {
-      if (
-        filters.cnaes.length > 0 &&
-        !filters.cnaes.includes(lead.cnae_principal) &&
-        !lead.cnaes_secundarios.some((c: string) => filters.cnaes.includes(c))
-      )
-        return false
-      if (filters.ufs.length > 0 && !filters.ufs.includes(lead.uf)) return false
-      if (
-        filters.municipio &&
-        !lead.municipio.toLowerCase().includes(filters.municipio.toLowerCase())
-      )
-        return false
-      if (filters.porte && lead.porte !== filters.porte) return false
-      if (filters.situacao && lead.situacao !== filters.situacao) return false
-      if (filters.capitalMinimo && lead.capital_social < Number(filters.capitalMinimo)) return false
-
       if (filters.search) {
         const searchLow = filters.search.toLowerCase()
         if (!lead.razao_social.toLowerCase().includes(searchLow) && !lead.cnpj.includes(searchLow))
@@ -193,6 +251,8 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
         removeCnae,
         toggleUf,
         toggleContact,
+        searchLeads,
+        isSearching,
       },
     },
     children,

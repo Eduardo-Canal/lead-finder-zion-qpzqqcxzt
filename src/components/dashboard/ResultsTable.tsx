@@ -15,9 +15,10 @@ import useLeadStore from '@/stores/useLeadStore'
 import useAuthStore from '@/stores/useAuthStore'
 import { LeadDetailsModal } from './LeadDetailsModal'
 import { cn } from '@/lib/utils'
+import { Loader2 } from 'lucide-react'
 
 export function ResultsTable() {
-  const { filteredLeads, toggleContact } = useLeadStore()
+  const { filteredLeads, toggleContact, isSearching } = useLeadStore()
   const { hasPermission } = useAuthStore()
   const [selectedLeadCnpj, setSelectedLeadCnpj] = useState<string | null>(null)
 
@@ -41,7 +42,16 @@ export function ResultsTable() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredLeads.length === 0 ? (
+            {isSearching ? (
+              <TableRow>
+                <TableCell colSpan={8} className="text-center py-20 text-muted-foreground">
+                  <div className="flex flex-col items-center justify-center space-y-3">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    <p>Buscando leads na base de dados...</p>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : filteredLeads.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={8} className="text-center py-10 text-muted-foreground">
                   Nenhum lead encontrado com os filtros atuais.
