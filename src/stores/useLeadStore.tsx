@@ -77,15 +77,18 @@ const mapEmpresaToLead = (empresa: any): any => ({
   cnpj: empresa.cnpj,
   razao_social: empresa.razao_social,
   cnae_principal: empresa.cnae_fiscal_principal,
-  cnaes_secundarios: empresa.cnae_fiscal_secundaria
-    ? empresa.cnae_fiscal_secundaria.split(',')
-    : [],
+  cnaes_secundarios:
+    Array.isArray(empresa.cnaes_secundarios) && empresa.cnaes_secundarios.length > 0
+      ? empresa.cnaes_secundarios
+      : empresa.cnae_fiscal_secundaria
+        ? empresa.cnae_fiscal_secundaria.split(',')
+        : [],
   municipio: empresa.municipio,
   uf: empresa.uf,
   porte: empresa.porte,
   situacao: empresa.situacao_cadastral,
   capital_social: empresa.capital_social ? Number(empresa.capital_social) : 0,
-  data_abertura: empresa.data_inicio_atividade || new Date().toISOString(),
+  data_abertura: empresa.data_abertura || empresa.data_inicio_atividade || new Date().toISOString(),
   email: empresa.email || '',
   telefone: empresa.telefone_1 || '',
   socios: typeof empresa.socios === 'string' ? JSON.parse(empresa.socios) : empresa.socios || [],

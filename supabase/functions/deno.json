@@ -2,6 +2,7 @@
   "_versions": {
     "buscar-leads": 1,
     "enriquecer-lead": 1,
-    "functions": 1
+    "functions": 1,
+    "importar-rfb": 1
   }
 }
