@@ -21,6 +21,9 @@ export type LeadSalvo = {
   status_contato: string
   ultima_data_contato: string | null
   observacoes: string
+  decisor_nome: string | null
+  decisor_telefone: string | null
+  decisor_email: string | null
 }
 
 export type MyLeadsFilters = {
@@ -37,6 +40,7 @@ type MyLeadsStoreContextType = {
   setFilter: (key: keyof MyLeadsFilters, value: string) => void
   updateStatus: (id: string, status: string) => Promise<void>
   updateObservation: (id: string, observacoes: string) => Promise<void>
+  updateDecisor: (id: string, nome: string, telefone: string, email: string) => Promise<void>
 }
 
 const defaultFilters: MyLeadsFilters = {
@@ -113,6 +117,24 @@ export function MyLeadsStoreProvider({ children }: { children: ReactNode }) {
     fetchLeads()
   }
 
+  const updateDecisor = async (id: string, nome: string, telefone: string, email: string) => {
+    const { error } = await supabase
+      .from('leads_salvos')
+      .update({
+        decisor_nome: nome || null,
+        decisor_telefone: telefone || null,
+        decisor_email: email || null,
+      })
+      .eq('id', id)
+
+    if (error) {
+      console.error(error)
+      throw error
+    }
+
+    fetchLeads()
+  }
+
   const filteredLeads = useMemo(() => {
     return myLeads.filter((lead) => {
       if (filters.search) {
@@ -142,6 +164,7 @@ export function MyLeadsStoreProvider({ children }: { children: ReactNode }) {
         setFilter,
         updateStatus,
         updateObservation,
+        updateDecisor,
       },
     },
     children,

@@ -24,7 +24,9 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
-import { MessageSquare, Calendar } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { MessageSquare, Calendar, User } from 'lucide-react'
 import useMyLeadsStore, { LeadSalvo } from '@/stores/useMyLeadsStore'
 import useAuthStore from '@/stores/useAuthStore'
 import { cn } from '@/lib/utils'
@@ -39,12 +41,15 @@ const statusColors: Record<string, string> = {
 }
 
 export function MyLeadsTable() {
-  const { filteredLeads, updateStatus, updateObservation } = useMyLeadsStore()
+  const { filteredLeads, updateStatus, updateObservation, updateDecisor } = useMyLeadsStore()
   const { hasPermission } = useAuthStore()
   const canEditStatus = hasPermission('Editar Status de Contato')
 
   const [editingLead, setEditingLead] = useState<LeadSalvo | null>(null)
   const [obsText, setObsText] = useState('')
+
+  const [editingDecisor, setEditingDecisor] = useState<LeadSalvo | null>(null)
+  const [decisorForm, setDecisorForm] = useState({ nome: '', telefone: '', email: '' })
 
   const openObservationModal = (lead: LeadSalvo) => {
     setEditingLead(lead)
@@ -59,6 +64,32 @@ export function MyLeadsTable() {
     }
   }
 
+  const openDecisorModal = (lead: LeadSalvo) => {
+    setEditingDecisor(lead)
+    setDecisorForm({
+      nome: lead.decisor_nome || '',
+      telefone: lead.decisor_telefone || '',
+      email: lead.decisor_email || '',
+    })
+  }
+
+  const handleSaveDecisor = async () => {
+    if (editingDecisor) {
+      try {
+        await updateDecisor(
+          editingDecisor.id,
+          decisorForm.nome,
+          decisorForm.telefone,
+          decisorForm.email,
+        )
+        setEditingDecisor(null)
+        toast.success('Informações do decisor salvas com sucesso!')
+      } catch (err) {
+        toast.error('Erro ao salvar as informações do decisor.')
+      }
+    }
+  }
+
   return (
     <>
       <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
@@ -69,15 +100,18 @@ export function MyLeadsTable() {
               <TableHead>CNPJ</TableHead>
               <TableHead>Município/UF</TableHead>
               <TableHead>Executivo Responsável</TableHead>
-              <TableHead className="w-[180px]">Status de Contato</TableHead>
+              <TableHead className="w-[150px]">Status de Contato</TableHead>
               <TableHead>Último Contato</TableHead>
-              <TableHead className="text-center w-[100px]">Obs</TableHead>
+              <TableHead>Nome do Decisor</TableHead>
+              <TableHead>Telefone do Decisor</TableHead>
+              <TableHead>E-mail do Decisor</TableHead>
+              <TableHead className="text-center w-[100px]">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredLeads.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-10 text-muted-foreground">
+                <TableCell colSpan={10} className="text-center py-10 text-muted-foreground">
                   Nenhum lead encontrado com os filtros atuais.
                 </TableCell>
               </TableRow>
@@ -129,18 +163,50 @@ export function MyLeadsTable() {
                       {lead.ultima_data_contato || '-'}
                     </div>
                   </TableCell>
+                  <TableCell
+                    className="text-muted-foreground text-sm max-w-[150px] truncate"
+                    title={lead.decisor_nome || ''}
+                  >
+                    {lead.decisor_nome || '-'}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
+                    {lead.decisor_telefone || '-'}
+                  </TableCell>
+                  <TableCell
+                    className="text-muted-foreground text-sm max-w-[150px] truncate"
+                    title={lead.decisor_email || ''}
+                  >
+                    {lead.decisor_email || '-'}
+                  </TableCell>
                   <TableCell className="text-center">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => openObservationModal(lead)}
-                      className={cn(
-                        'h-8 w-8',
-                        lead.observacoes ? 'text-primary' : 'text-muted-foreground',
-                      )}
-                    >
-                      <MessageSquare className="h-4 w-4" />
-                    </Button>
+                    <div className="flex items-center justify-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => openDecisorModal(lead)}
+                        className={cn(
+                          'h-8 w-8',
+                          lead.decisor_nome || lead.decisor_telefone || lead.decisor_email
+                            ? 'text-primary'
+                            : 'text-muted-foreground',
+                        )}
+                        title="Editar Decisor"
+                      >
+                        <User className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => openObservationModal(lead)}
+                        className={cn(
+                          'h-8 w-8',
+                          lead.observacoes ? 'text-primary' : 'text-muted-foreground',
+                        )}
+                        title="Observações"
+                      >
+                        <MessageSquare className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
@@ -171,6 +237,54 @@ export function MyLeadsTable() {
               Cancelar
             </Button>
             <Button onClick={handleSaveObservation}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!editingDecisor} onOpenChange={(open) => !open && setEditingDecisor(null)}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>Informações do Decisor</DialogTitle>
+            <DialogDescription>
+              Atualize os dados de contato do decisor para{' '}
+              <strong className="text-foreground">{editingDecisor?.razao_social}</strong>.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="editNome">Nome do Decisor</Label>
+              <Input
+                id="editNome"
+                value={decisorForm.nome}
+                onChange={(e) => setDecisorForm((p) => ({ ...p, nome: e.target.value }))}
+                placeholder="Ex: João Silva"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="editTel">Telefone do Decisor</Label>
+              <Input
+                id="editTel"
+                value={decisorForm.telefone}
+                onChange={(e) => setDecisorForm((p) => ({ ...p, telefone: e.target.value }))}
+                placeholder="Ex: (11) 99999-9999"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="editEmail">E-mail do Decisor</Label>
+              <Input
+                id="editEmail"
+                type="email"
+                value={decisorForm.email}
+                onChange={(e) => setDecisorForm((p) => ({ ...p, email: e.target.value }))}
+                placeholder="Ex: joao@empresa.com"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingDecisor(null)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSaveDecisor}>Salvar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -8,6 +8,8 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { FilteredLead } from '@/stores/useLeadStore'
 import {
   MapPin,
@@ -54,31 +56,51 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchEnrichedData = () => {
+  const [existingLeadId, setExistingLeadId] = useState<string | null>(null)
+  const [decisorNome, setDecisorNome] = useState('')
+  const [decisorTelefone, setDecisorTelefone] = useState('')
+  const [decisorEmail, setDecisorEmail] = useState('')
+
+  const fetchEnrichedData = async () => {
     if (!lead?.cnpj) return
     setLoading(true)
     setError(null)
     setEnrichedData(null)
+    setExistingLeadId(null)
+    setDecisorNome('')
+    setDecisorTelefone('')
+    setDecisorEmail('')
 
-    supabase.functions
-      .invoke('enriquecer-lead', {
+    try {
+      const { data: savedLead } = await supabase
+        .from('leads_salvos')
+        .select('id, decisor_nome, decisor_telefone, decisor_email')
+        .eq('cnpj', lead.cnpj)
+        .maybeSingle()
+
+      if (savedLead) {
+        setExistingLeadId(savedLead.id)
+        setDecisorNome(savedLead.decisor_nome || '')
+        setDecisorTelefone(savedLead.decisor_telefone || '')
+        setDecisorEmail(savedLead.decisor_email || '')
+      }
+
+      const { data, error: invokeError } = await supabase.functions.invoke('enriquecer-lead', {
         body: { cnpj: lead.cnpj },
       })
-      .then(({ data, error: invokeError }) => {
-        if (invokeError) {
-          setError(invokeError.message || 'Erro ao enriquecer dados.')
-        } else if (data?.error) {
-          setError(data.error)
-        } else {
-          setEnrichedData(data)
-        }
-      })
-      .catch((err) => {
-        setError(err.message || 'Erro de conexão.')
-      })
-      .finally(() => {
-        setLoading(false)
-      })
+
+      if (invokeError) {
+        setError(invokeError.message || 'Erro ao enriquecer dados.')
+      } else if (data?.error) {
+        setError(data.error)
+      } else {
+        setEnrichedData(data)
+      }
+    } catch (err: any) {
+      setError(err.message || 'Erro de conexão.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => {
@@ -98,26 +120,43 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
     const dataToSave = enrichedData || lead
 
     try {
-      const { error: saveError } = await supabase.from('leads_salvos').insert({
-        razao_social: dataToSave.razao_social,
-        cnpj: lead.cnpj,
-        cnae_principal: dataToSave.cnae_fiscal_principal || dataToSave.cnae_principal,
-        municipio: dataToSave.municipio,
-        uf: dataToSave.uf,
-        porte: dataToSave.porte,
-        situacao: dataToSave.situacao_cadastral || dataToSave.situacao,
-        capital_social: dataToSave.capital_social,
-        data_abertura: dataToSave.data_abertura,
-        email: dataToSave.email,
-        telefone: dataToSave.telefone,
-        socios: dataToSave.socios,
-        salvo_por: user.id,
-        status_contato: 'Não Contatado',
-      })
+      if (existingLeadId) {
+        const { error: updateError } = await supabase
+          .from('leads_salvos')
+          .update({
+            decisor_nome: decisorNome || null,
+            decisor_telefone: decisorTelefone || null,
+            decisor_email: decisorEmail || null,
+          })
+          .eq('id', existingLeadId)
 
-      if (saveError) throw saveError
+        if (updateError) throw updateError
+        toast.success('Informações do lead atualizadas com sucesso!')
+      } else {
+        const { error: saveError } = await supabase.from('leads_salvos').insert({
+          razao_social: dataToSave.razao_social,
+          cnpj: lead.cnpj,
+          cnae_principal: dataToSave.cnae_fiscal_principal || dataToSave.cnae_principal,
+          municipio: dataToSave.municipio,
+          uf: dataToSave.uf,
+          porte: dataToSave.porte,
+          situacao: dataToSave.situacao_cadastral || dataToSave.situacao,
+          capital_social: dataToSave.capital_social,
+          data_abertura: dataToSave.data_abertura,
+          email: dataToSave.email,
+          telefone: dataToSave.telefone,
+          socios: dataToSave.socios,
+          salvo_por: user.id,
+          status_contato: 'Não Contatado',
+          decisor_nome: decisorNome || null,
+          decisor_telefone: decisorTelefone || null,
+          decisor_email: decisorEmail || null,
+        })
 
-      toast.success('Lead salvo com sucesso!')
+        if (saveError) throw saveError
+        toast.success('Lead salvo com sucesso!')
+      }
+
       window.dispatchEvent(new Event('refetch-my-leads'))
       onClose()
     } catch (err: any) {
@@ -318,6 +357,59 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
                   </ul>
                 </div>
               )}
+
+              <div className="space-y-3 mt-4 bg-primary/5 p-4 rounded-lg border border-primary/10">
+                <h4 className="font-semibold text-sm flex items-center gap-2 text-primary">
+                  Informações do Decisor {existingLeadId ? '' : '(Opcional)'}
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="space-y-1.5">
+                    <Label
+                      htmlFor="decisorNome"
+                      className="text-xs text-muted-foreground font-semibold"
+                    >
+                      Nome
+                    </Label>
+                    <Input
+                      id="decisorNome"
+                      value={decisorNome}
+                      onChange={(e) => setDecisorNome(e.target.value)}
+                      placeholder="Ex: João Silva"
+                      className="h-8 text-sm bg-white"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label
+                      htmlFor="decisorTelefone"
+                      className="text-xs text-muted-foreground font-semibold"
+                    >
+                      Telefone
+                    </Label>
+                    <Input
+                      id="decisorTelefone"
+                      value={decisorTelefone}
+                      onChange={(e) => setDecisorTelefone(e.target.value)}
+                      placeholder="Ex: (11) 99999-9999"
+                      className="h-8 text-sm bg-white"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label
+                      htmlFor="decisorEmail"
+                      className="text-xs text-muted-foreground font-semibold"
+                    >
+                      E-mail
+                    </Label>
+                    <Input
+                      id="decisorEmail"
+                      value={decisorEmail}
+                      onChange={(e) => setDecisorEmail(e.target.value)}
+                      placeholder="Ex: joao@empresa.com"
+                      className="h-8 text-sm bg-white"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           ) : null}
         </ScrollArea>
@@ -327,7 +419,7 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
             Fechar
           </Button>
           <Button onClick={handleSaveLead} disabled={loading || !!error}>
-            Salvar em "Meus Leads"
+            {existingLeadId ? 'Atualizar Lead Salvo' : 'Salvar em "Meus Leads"'}
           </Button>
         </div>
       </DialogContent>
