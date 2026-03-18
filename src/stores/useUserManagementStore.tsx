@@ -41,6 +41,7 @@ type UserManagementStoreContextType = {
   toggleUserStatus: (id: string) => void
   updateUser: (id: string, data: Partial<ProfileTable>) => void
   createProfile: (nome: string, permissoes: Permission[]) => void
+  createUser: (data: any) => Promise<void>
 }
 
 const UserManagementContext = createContext<UserManagementStoreContextType | null>(null)
@@ -83,6 +84,26 @@ export function UserManagementStoreProvider({ children }: { children: ReactNode 
     await fetchData()
   }
 
+  const createUser = async (data: any) => {
+    const existingUsers = await mockDb.getTable('users')
+    if (existingUsers.some((u: any) => u.email === data.email)) {
+      throw new Error('E-mail já está em uso')
+    }
+
+    const userId = `u_${generateId()}`
+    await mockDb.insert('users', { id: userId, email: data.email, password: data.senha })
+
+    await mockDb.insert('profiles', {
+      id: `prof_${generateId()}`,
+      user_id: userId,
+      nome: data.nome,
+      email: data.email,
+      perfil_id: data.perfil_id,
+      ativo: data.ativo,
+    })
+    await fetchData()
+  }
+
   return React.createElement(
     UserManagementContext.Provider,
     {
@@ -92,6 +113,7 @@ export function UserManagementStoreProvider({ children }: { children: ReactNode 
         toggleUserStatus,
         updateUser,
         createProfile,
+        createUser,
       },
     },
     children,
