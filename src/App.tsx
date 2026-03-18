@@ -8,7 +8,6 @@ import Login from '@/pages/Login'
 import Index from '@/pages/Index'
 import MyLeads from '@/pages/MyLeads'
 import UserManagement from '@/pages/UserManagement'
-import UpdateBase from '@/pages/UpdateBase'
 import NotFound from '@/pages/NotFound'
 import useAuthStore, { AuthProvider } from '@/stores/useAuthStore'
 import { LeadStoreProvider } from '@/stores/useLeadStore'
@@ -51,7 +50,6 @@ const App = () => (
                   <Route path="/" element={<Index />} />
                   <Route path="/meus-leads" element={<MyLeads />} />
                   <Route path="/gestao-usuarios" element={<UserManagement />} />
-                  <Route path="/admin/atualizacao-base" element={<UpdateBase />} />
                 </Route>
                 <Route path="*" element={<NotFound />} />
               </Routes>

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { X, LayoutDashboard, Users, ShieldCheck, Database } from 'lucide-react'
+import { X, LayoutDashboard, Users, ShieldCheck } from 'lucide-react'
 import {
   Sidebar,
   SidebarContent,
@@ -104,27 +104,14 @@ export function AppSidebar() {
                 </SidebarMenuButton>
               </SidebarMenuItem>
               {hasPermission('Acessar Admin') && (
-                <>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={location.pathname === '/gestao-usuarios'}>
-                      <Link to="/gestao-usuarios">
-                        <ShieldCheck />
-                        <span>Gestão de Usuários</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={location.pathname === '/admin/atualizacao-base'}
-                    >
-                      <Link to="/admin/atualizacao-base">
-                        <Database />
-                        <span>Atualização RFB</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                </>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={location.pathname === '/gestao-usuarios'}>
+                    <Link to="/gestao-usuarios">
+                      <ShieldCheck />
+                      <span>Gestão de Usuários</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
               )}
             </SidebarMenu>
           </SidebarGroupContent>

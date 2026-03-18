@@ -9,6 +9,21 @@ export type Database = {
   }
   public: {
     Tables: {
+      configuracoes_sistema: {
+        Row: {
+          data_ultima_atualizacao_rfb: string | null
+          id: number
+        }
+        Insert: {
+          data_ultima_atualizacao_rfb?: string | null
+          id?: number
+        }
+        Update: {
+          data_ultima_atualizacao_rfb?: string | null
+          id?: number
+        }
+        Relationships: []
+      }
       contatos_realizados: {
         Row: {
           cnpj: string
@@ -51,8 +66,10 @@ export type Database = {
           cep: string | null
           cnae_fiscal_principal: string | null
           cnae_fiscal_secundaria: string | null
+          cnaes_secundarios: Json | null
           cnpj: string
           complemento: string | null
+          data_abertura: string | null
           data_inicio_atividade: string | null
           email: string | null
           logradouro: string | null
@@ -75,8 +92,10 @@ export type Database = {
           cep?: string | null
           cnae_fiscal_principal?: string | null
           cnae_fiscal_secundaria?: string | null
+          cnaes_secundarios?: Json | null
           cnpj: string
           complemento?: string | null
+          data_abertura?: string | null
           data_inicio_atividade?: string | null
           email?: string | null
           logradouro?: string | null
@@ -99,8 +118,10 @@ export type Database = {
           cep?: string | null
           cnae_fiscal_principal?: string | null
           cnae_fiscal_secundaria?: string | null
+          cnaes_secundarios?: Json | null
           cnpj?: string
           complemento?: string | null
+          data_abertura?: string | null
           data_inicio_atividade?: string | null
           email?: string | null
           logradouro?: string | null
@@ -390,6 +411,9 @@ export const Constants = {
 // --- COLUMN TYPES (actual PostgreSQL types) ---
 // Use this to know the real database type when writing migrations.
 // "string" in TypeScript types above may be uuid, text, varchar, timestamptz, etc.
+// Table: configuracoes_sistema
+//   id: integer (not null, default: 1)
+//   data_ultima_atualizacao_rfb: timestamp with time zone (nullable)
 // Table: contatos_realizados
 //   id: uuid (not null, default: gen_random_uuid())
 //   cnpj: text (not null)
@@ -420,6 +444,8 @@ export const Constants = {
 //   natureza_juridica: text (nullable)
 //   capital_social: numeric (nullable)
 //   socios: jsonb (nullable, default: '[]'::jsonb)
+//   cnaes_secundarios: jsonb (nullable, default: '[]'::jsonb)
+//   data_abertura: date (nullable)
 // Table: leads_salvos
 //   id: uuid (not null, default: gen_random_uuid())
 //   razao_social: text (nullable)
@@ -452,6 +478,8 @@ export const Constants = {
 //   ativo: boolean (not null, default: true)
 
 // --- CONSTRAINTS ---
+// Table: configuracoes_sistema
+//   PRIMARY KEY configuracoes_sistema_pkey: PRIMARY KEY (id)
 // Table: contatos_realizados
 //   FOREIGN KEY contatos_realizados_executivo_id_fkey: FOREIGN KEY (executivo_id) REFERENCES profiles(id) ON DELETE CASCADE
 //   PRIMARY KEY contatos_realizados_pkey: PRIMARY KEY (id)
@@ -468,13 +496,26 @@ export const Constants = {
 //   FOREIGN KEY profiles_user_id_fkey: FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
 
 // --- ROW LEVEL SECURITY POLICIES ---
+// Table: configuracoes_sistema
+//   Policy "Enable INSERT for authenticated users" (INSERT, PERMISSIVE) roles={authenticated}
+//     WITH CHECK: true
+//   Policy "Enable SELECT for authenticated users" (SELECT, PERMISSIVE) roles={authenticated}
+//     USING: true
+//   Policy "Enable UPDATE for authenticated users" (UPDATE, PERMISSIVE) roles={authenticated}
+//     USING: true
+//     WITH CHECK: true
 // Table: contatos_realizados
 //   Policy "Enable ALL for authenticated users" (ALL, PERMISSIVE) roles={authenticated}
 //     USING: true
 //     WITH CHECK: true
 // Table: empresas_rfb
+//   Policy "Enable INSERT for authenticated users" (INSERT, PERMISSIVE) roles={authenticated}
+//     WITH CHECK: true
 //   Policy "Enable SELECT for authenticated users" (SELECT, PERMISSIVE) roles={authenticated}
 //     USING: true
+//   Policy "Enable UPDATE for authenticated users" (UPDATE, PERMISSIVE) roles={authenticated}
+//     USING: true
+//     WITH CHECK: true
 // Table: leads_salvos
 //   Policy "Enable ALL for authenticated users" (ALL, PERMISSIVE) roles={authenticated}
 //     USING: true
