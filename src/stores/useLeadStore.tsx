@@ -169,24 +169,29 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
     fetchInitialData()
   }, [fetchInitialData])
 
-  const searchLeads = async (pageToFetch?: number) => {
+  const searchLeads = async (pageToFetch?: number | any) => {
     if (!user) return
     setIsSearching(true)
 
-    const targetPage = pageToFetch || 1
+    // Ensure we have a clean number and aren't passing React synthetic events which cause circular structure serialization errors
+    const isValidPage = typeof pageToFetch === 'number'
+    const targetPage = isValidPage ? pageToFetch : 1
 
-    if (!pageToFetch) {
+    if (!isValidPage) {
       setFilters((prev) => ({ ...prev, cityQuick: 'Todos' }))
     }
 
+    // Build a strictly serializable payload
     const payload = {
-      cnae_fiscal_principal: filters.cnaes,
-      uf: filters.ufs.length > 0 ? filters.ufs[0] : null,
-      municipio: filters.municipio || null,
-      porte: filters.porte || null,
-      situacao_cadastral: filters.situacao || null,
+      cnae_fiscal_principal: Array.isArray(filters.cnaes) ? filters.cnaes : [],
+      uf: Array.isArray(filters.ufs) && filters.ufs.length > 0 ? filters.ufs[0] : null,
+      municipio:
+        typeof filters.municipio === 'string' && filters.municipio ? filters.municipio : null,
+      porte: typeof filters.porte === 'string' && filters.porte ? filters.porte : null,
+      situacao_cadastral:
+        typeof filters.situacao === 'string' && filters.situacao ? filters.situacao : null,
       page: targetPage,
-      limit: filters.limit,
+      limit: typeof filters.limit === 'number' ? filters.limit : 10,
     }
 
     try {

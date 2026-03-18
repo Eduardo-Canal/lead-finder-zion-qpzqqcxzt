@@ -16,7 +16,7 @@ export default function Prospeccao() {
             Encontrados {filteredLeads.length} leads com base nos filtros atuais.
           </p>
         </div>
-        <Button onClick={searchLeads} disabled={isSearching} className="gap-2">
+        <Button onClick={() => searchLeads()} disabled={isSearching} className="gap-2">
           {isSearching ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
