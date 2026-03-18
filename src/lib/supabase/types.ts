@@ -9,7 +9,165 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      contatos_realizados: {
+        Row: {
+          cnpj: string
+          created_at: string | null
+          data_contato: string | null
+          executivo_id: string | null
+          executivo_nome: string | null
+          id: string
+        }
+        Insert: {
+          cnpj: string
+          created_at?: string | null
+          data_contato?: string | null
+          executivo_id?: string | null
+          executivo_nome?: string | null
+          id?: string
+        }
+        Update: {
+          cnpj?: string
+          created_at?: string | null
+          data_contato?: string | null
+          executivo_id?: string | null
+          executivo_nome?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'contatos_realizados_executivo_id_fkey'
+            columns: ['executivo_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      leads_salvos: {
+        Row: {
+          capital_social: number | null
+          cnae_principal: string | null
+          cnpj: string | null
+          created_at: string | null
+          data_abertura: string | null
+          email: string | null
+          id: string
+          municipio: string | null
+          observacoes: string | null
+          porte: string | null
+          razao_social: string | null
+          salvo_por: string | null
+          situacao: string | null
+          socios: Json | null
+          status_contato: string | null
+          telefone: string | null
+          uf: string | null
+          ultima_data_contato: string | null
+        }
+        Insert: {
+          capital_social?: number | null
+          cnae_principal?: string | null
+          cnpj?: string | null
+          created_at?: string | null
+          data_abertura?: string | null
+          email?: string | null
+          id?: string
+          municipio?: string | null
+          observacoes?: string | null
+          porte?: string | null
+          razao_social?: string | null
+          salvo_por?: string | null
+          situacao?: string | null
+          socios?: Json | null
+          status_contato?: string | null
+          telefone?: string | null
+          uf?: string | null
+          ultima_data_contato?: string | null
+        }
+        Update: {
+          capital_social?: number | null
+          cnae_principal?: string | null
+          cnpj?: string | null
+          created_at?: string | null
+          data_abertura?: string | null
+          email?: string | null
+          id?: string
+          municipio?: string | null
+          observacoes?: string | null
+          porte?: string | null
+          razao_social?: string | null
+          salvo_por?: string | null
+          situacao?: string | null
+          socios?: Json | null
+          status_contato?: string | null
+          telefone?: string | null
+          uf?: string | null
+          ultima_data_contato?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'leads_salvos_salvo_por_fkey'
+            columns: ['salvo_por']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      perfis_acesso: {
+        Row: {
+          id: string
+          nome: string
+          permissoes: Json
+        }
+        Insert: {
+          id?: string
+          nome: string
+          permissoes?: Json
+        }
+        Update: {
+          id?: string
+          nome?: string
+          permissoes?: Json
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          ativo: boolean
+          email: string
+          id: string
+          nome: string
+          perfil_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          email: string
+          id?: string
+          nome: string
+          perfil_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          email?: string
+          id?: string
+          nome?: string
+          perfil_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'profiles_perfil_id_fkey'
+            columns: ['perfil_id']
+            isOneToOne: false
+            referencedRelation: 'perfis_acesso'
+            referencedColumns: ['id']
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -153,3 +311,76 @@ export const Constants = {
 // IMPORTANT: The TypeScript types above map UUID, TEXT, VARCHAR all to "string".
 // Use the COLUMN TYPES section below to know the real PostgreSQL type for each column.
 // Always use the correct PostgreSQL type when writing SQL migrations.
+
+// --- COLUMN TYPES (actual PostgreSQL types) ---
+// Use this to know the real database type when writing migrations.
+// "string" in TypeScript types above may be uuid, text, varchar, timestamptz, etc.
+// Table: contatos_realizados
+//   id: uuid (not null, default: gen_random_uuid())
+//   cnpj: text (not null)
+//   executivo_id: uuid (nullable)
+//   executivo_nome: text (nullable)
+//   data_contato: timestamp without time zone (nullable, default: now())
+//   created_at: timestamp without time zone (nullable, default: now())
+// Table: leads_salvos
+//   id: uuid (not null, default: gen_random_uuid())
+//   razao_social: text (nullable)
+//   cnpj: text (nullable)
+//   cnae_principal: text (nullable)
+//   municipio: text (nullable)
+//   uf: text (nullable)
+//   porte: text (nullable)
+//   situacao: text (nullable)
+//   capital_social: numeric (nullable)
+//   data_abertura: date (nullable)
+//   email: text (nullable)
+//   telefone: text (nullable)
+//   socios: jsonb (nullable, default: '[]'::jsonb)
+//   salvo_por: uuid (nullable)
+//   status_contato: text (nullable)
+//   ultima_data_contato: timestamp without time zone (nullable)
+//   observacoes: text (nullable)
+//   created_at: timestamp without time zone (nullable, default: now())
+// Table: perfis_acesso
+//   id: uuid (not null, default: gen_random_uuid())
+//   nome: text (not null)
+//   permissoes: jsonb (not null, default: '[]'::jsonb)
+// Table: profiles
+//   id: uuid (not null, default: gen_random_uuid())
+//   user_id: uuid (nullable)
+//   nome: text (not null)
+//   email: text (not null)
+//   perfil_id: uuid (nullable)
+//   ativo: boolean (not null, default: true)
+
+// --- CONSTRAINTS ---
+// Table: contatos_realizados
+//   FOREIGN KEY contatos_realizados_executivo_id_fkey: FOREIGN KEY (executivo_id) REFERENCES profiles(id) ON DELETE CASCADE
+//   PRIMARY KEY contatos_realizados_pkey: PRIMARY KEY (id)
+// Table: leads_salvos
+//   PRIMARY KEY leads_salvos_pkey: PRIMARY KEY (id)
+//   FOREIGN KEY leads_salvos_salvo_por_fkey: FOREIGN KEY (salvo_por) REFERENCES profiles(id) ON DELETE SET NULL
+// Table: perfis_acesso
+//   PRIMARY KEY perfis_acesso_pkey: PRIMARY KEY (id)
+// Table: profiles
+//   FOREIGN KEY profiles_perfil_id_fkey: FOREIGN KEY (perfil_id) REFERENCES perfis_acesso(id) ON DELETE SET NULL
+//   PRIMARY KEY profiles_pkey: PRIMARY KEY (id)
+//   FOREIGN KEY profiles_user_id_fkey: FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
+
+// --- ROW LEVEL SECURITY POLICIES ---
+// Table: contatos_realizados
+//   Policy "Enable ALL for authenticated users" (ALL, PERMISSIVE) roles={authenticated}
+//     USING: true
+//     WITH CHECK: true
+// Table: leads_salvos
+//   Policy "Enable ALL for authenticated users" (ALL, PERMISSIVE) roles={authenticated}
+//     USING: true
+//     WITH CHECK: true
+// Table: perfis_acesso
+//   Policy "Enable ALL for authenticated users" (ALL, PERMISSIVE) roles={authenticated}
+//     USING: true
+//     WITH CHECK: true
+// Table: profiles
+//   Policy "Enable ALL for authenticated users" (ALL, PERMISSIVE) roles={authenticated}
+//     USING: true
+//     WITH CHECK: true

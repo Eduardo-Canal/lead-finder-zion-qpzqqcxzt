@@ -8,7 +8,7 @@ export type AuthUser = {
   email: string
   perfil_id: string
   ativo: boolean
-  perfil_acesso: {
+  perfis_acesso: {
     nome: string
     permissoes: string[]
   }
@@ -37,7 +37,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       const { data: profile } = await supabase
         .from('profiles')
-        .select('*, perfil_acesso(*)')
+        .select('*, perfis_acesso(*)')
         .eq('user_id', session.user.id)
         .single()
 
@@ -80,7 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const hasPermission = (perm: string) => {
-    return user?.perfil_acesso?.permissoes?.includes(perm) || false
+    return user?.perfis_acesso?.permissoes?.includes(perm) || false
   }
 
   return React.createElement(
