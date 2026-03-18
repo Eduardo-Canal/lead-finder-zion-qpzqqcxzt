@@ -23,7 +23,7 @@ export function QuickFilters() {
   }, [leads])
 
   return (
-    <div className="bg-white p-4 rounded-lg shadow-sm border mb-6 grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+    <div className="bg-white p-4 rounded-lg shadow-sm border mb-6 grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
       <div className="relative col-span-1 md:col-span-1">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
@@ -58,6 +58,22 @@ export function QuickFilters() {
           <SelectItem value="ME">ME</SelectItem>
           <SelectItem value="EPP">EPP</SelectItem>
           <SelectItem value="Demais">Demais</SelectItem>
+        </SelectContent>
+      </Select>
+
+      <Select
+        value={filters.limit?.toString() || '10'}
+        onValueChange={(v) => setFilter('limit', Number(v))}
+      >
+        <SelectTrigger>
+          <SelectValue placeholder="Limite de resultados" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="5">5 resultados</SelectItem>
+          <SelectItem value="10">10 resultados</SelectItem>
+          <SelectItem value="25">25 resultados</SelectItem>
+          <SelectItem value="50">50 resultados</SelectItem>
+          <SelectItem value="100">100 resultados</SelectItem>
         </SelectContent>
       </Select>
 

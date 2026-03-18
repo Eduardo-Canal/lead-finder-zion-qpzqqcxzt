@@ -8,7 +8,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     const payload = await req.json().catch(() => ({}))
-    const { cnaes, uf, municipio, porte, situacao_cadastral, page = 1 } = payload
+    const { cnaes, uf, municipio, porte, situacao_cadastral, page = 1, limit = 10 } = payload
 
     const apiKey = Deno.env.get('CASADOSDADOS_API_KEY')
     if (!apiKey) {
@@ -51,6 +51,13 @@ Deno.serve(async (req: Request) => {
       casadosDadosPayload.query.porte = [porte.toUpperCase()]
     }
 
+    // Pass the limit to the Casa dos Dados API payload
+    if (limit) {
+      casadosDadosPayload.limit = limit
+      casadosDadosPayload.per_page = limit
+      casadosDadosPayload.size = limit
+    }
+
     const response = await fetch('https://api.casadosdados.com.br/v2/public/cnpj/pesquisa', {
       method: 'POST',
       headers: {
@@ -85,7 +92,8 @@ Deno.serve(async (req: Request) => {
       totalPages = data.pages || 1
     }
 
-    const results = rawResults.map((empresa: any) => ({
+    // Explicitly enforce the result limit threshold to ensure state consistency
+    const results = rawResults.slice(0, limit).map((empresa: any) => ({
       cnpj: empresa.cnpj,
       razao_social: empresa.razao_social || empresa.nome_fantasia || '',
       cnae_fiscal_principal: empresa.cnae_fiscal_principal || empresa.atividade_principal || '',

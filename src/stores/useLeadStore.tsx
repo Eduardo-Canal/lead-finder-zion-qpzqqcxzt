@@ -42,6 +42,7 @@ export type Filters = {
   cityQuick: string
   sizeQuick: string
   contactStatus: string
+  limit: number
 }
 
 type Pagination = {
@@ -75,6 +76,7 @@ const defaultFilters: Filters = {
   cityQuick: '',
   sizeQuick: '',
   contactStatus: 'Todos',
+  limit: 10,
 }
 
 const LeadContext = createContext<LeadStoreContextType | null>(null)
@@ -125,7 +127,9 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
 
     setIsSearching(true)
     try {
-      const { data, error } = await supabase.functions.invoke('buscar-leads', { body: { page: 1 } })
+      const { data, error } = await supabase.functions.invoke('buscar-leads', {
+        body: { page: 1, limit: defaultFilters.limit },
+      })
       if (error) throw error
       if (data?.error) throw new Error(data.error)
 
@@ -165,6 +169,7 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
       situacao_cadastral: filters.situacao || undefined,
       capital_social_minimo: filters.capitalMinimo ? Number(filters.capitalMinimo) : undefined,
       page: targetPage,
+      limit: filters.limit,
     }
 
     try {
