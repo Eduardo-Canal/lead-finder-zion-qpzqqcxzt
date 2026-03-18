@@ -44,16 +44,23 @@ export type Filters = {
   contactStatus: string
 }
 
+type Pagination = {
+  page: number
+  totalPages: number
+  totalCount: number
+}
+
 type LeadStoreContextType = {
   leads: FilteredLead[]
   filteredLeads: FilteredLead[]
   filters: Filters
+  pagination: Pagination
   setFilter: (key: keyof Filters, value: any) => void
   addCnae: (cnae: string) => void
   removeCnae: (cnae: string) => void
   toggleUf: (uf: string, checked: boolean) => void
   toggleContact: (cnpj: string) => Promise<void>
-  searchLeads: () => Promise<void>
+  searchLeads: (page?: number) => Promise<void>
   isSearching: boolean
 }
 
@@ -86,11 +93,11 @@ const mapEmpresaToLead = (empresa: any): any => ({
   municipio: empresa.municipio,
   uf: empresa.uf,
   porte: empresa.porte,
-  situacao: empresa.situacao_cadastral,
+  situacao: empresa.situacao_cadastral || empresa.situacao,
   capital_social: empresa.capital_social ? Number(empresa.capital_social) : 0,
   data_abertura: empresa.data_abertura || empresa.data_inicio_atividade || new Date().toISOString(),
   email: empresa.email || '',
-  telefone: empresa.telefone_1 || '',
+  telefone: empresa.telefone_1 || empresa.telefone || '',
   socios: typeof empresa.socios === 'string' ? JSON.parse(empresa.socios) : empresa.socios || [],
 })
 
@@ -98,6 +105,11 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
   const [leadsRaw, setLeadsRaw] = useState<any[]>([])
   const [contatos, setContatos] = useState<any[]>([])
   const [filters, setFilters] = useState<Filters>(defaultFilters)
+  const [pagination, setPagination] = useState<Pagination>({
+    page: 1,
+    totalPages: 1,
+    totalCount: 0,
+  })
   const [isSearching, setIsSearching] = useState(false)
   const { user } = useAuthStore()
 
@@ -113,10 +125,17 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
 
     setIsSearching(true)
     try {
-      const { data, error } = await supabase.functions.invoke('buscar-leads', { body: {} })
+      const { data, error } = await supabase.functions.invoke('buscar-leads', { body: { page: 1 } })
       if (error) throw error
+      if (data?.error) throw new Error(data.error)
+
       const results = (data?.data || []).map(mapEmpresaToLead)
       setLeadsRaw(results)
+      setPagination({
+        page: data?.page || 1,
+        totalPages: data?.pages || 1,
+        totalCount: data?.count || results.length,
+      })
     } catch (err) {
       console.error(err)
     } finally {
@@ -128,12 +147,15 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
     fetchInitialData()
   }, [fetchInitialData])
 
-  const searchLeads = async () => {
+  const searchLeads = async (pageToFetch?: number) => {
     if (!user) return
     setIsSearching(true)
 
-    // Clear dynamic city filter on new search
-    setFilters((prev) => ({ ...prev, cityQuick: 'Todos' }))
+    const targetPage = pageToFetch || 1
+
+    if (!pageToFetch) {
+      setFilters((prev) => ({ ...prev, cityQuick: 'Todos' }))
+    }
 
     const payload = {
       cnaes: filters.cnaes,
@@ -142,6 +164,7 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
       porte: filters.porte || undefined,
       situacao_cadastral: filters.situacao || undefined,
       capital_social_minimo: filters.capitalMinimo ? Number(filters.capitalMinimo) : undefined,
+      page: targetPage,
     }
 
     try {
@@ -150,13 +173,19 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
       })
 
       if (error) throw error
+      if (data?.error) throw new Error(data.error)
 
       const results = (data?.data || []).map(mapEmpresaToLead)
       setLeadsRaw(results)
-      toast.success(`${results.length} leads encontrados.`)
-    } catch (err) {
+      setPagination({
+        page: data?.page || targetPage,
+        totalPages: data?.pages || 1,
+        totalCount: data?.count || results.length,
+      })
+      toast.success(`${results.length} leads encontrados na página ${targetPage}.`)
+    } catch (err: any) {
       console.error('Error searching leads:', err)
-      toast.error('Erro ao buscar leads.')
+      toast.error(`Erro ao buscar leads: ${err.message}`)
     } finally {
       setIsSearching(false)
     }
@@ -249,6 +278,7 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
         leads,
         filteredLeads,
         filters,
+        pagination,
         setFilter,
         addCnae,
         removeCnae,

@@ -15,10 +15,10 @@ import useLeadStore from '@/stores/useLeadStore'
 import useAuthStore from '@/stores/useAuthStore'
 import { LeadDetailsModal } from './LeadDetailsModal'
 import { cn } from '@/lib/utils'
-import { Loader2 } from 'lucide-react'
+import { Loader2, ChevronLeft, ChevronRight } from 'lucide-react'
 
 export function ResultsTable() {
-  const { filteredLeads, toggleContact, isSearching } = useLeadStore()
+  const { filteredLeads, toggleContact, isSearching, pagination, searchLeads } = useLeadStore()
   const { hasPermission } = useAuthStore()
   const [selectedLeadCnpj, setSelectedLeadCnpj] = useState<string | null>(null)
 
@@ -27,7 +27,7 @@ export function ResultsTable() {
 
   return (
     <>
-      <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+      <div className="bg-white rounded-lg shadow-sm border overflow-hidden flex flex-col">
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50">
@@ -64,7 +64,9 @@ export function ResultsTable() {
                   <TableCell className="text-muted-foreground whitespace-nowrap">
                     {lead.cnpj}
                   </TableCell>
-                  <TableCell>{lead.cnae_principal}</TableCell>
+                  <TableCell className="max-w-[200px] truncate" title={lead.cnae_principal}>
+                    {lead.cnae_principal}
+                  </TableCell>
                   <TableCell>
                     {lead.municipio} - {lead.uf}
                   </TableCell>
@@ -118,7 +120,7 @@ export function ResultsTable() {
                       variant="outline"
                       size="sm"
                       onClick={() => setSelectedLeadCnpj(lead.cnpj)}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="opacity-0 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
                     >
                       Ver Detalhes
                     </Button>
@@ -128,11 +130,41 @@ export function ResultsTable() {
             )}
           </TableBody>
         </Table>
+
+        {!isSearching && filteredLeads.length > 0 && pagination.totalPages > 0 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between px-4 py-3 bg-slate-50 border-t mt-auto gap-4">
+            <div className="text-sm text-muted-foreground text-center sm:text-left">
+              Página <span className="font-medium text-foreground">{pagination.page}</span> de{' '}
+              <span className="font-medium text-foreground">{pagination.totalPages}</span> (
+              {pagination.totalCount} resultados)
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => searchLeads(pagination.page - 1)}
+                disabled={pagination.page <= 1 || isSearching}
+              >
+                <ChevronLeft className="w-4 h-4 mr-1" /> Anterior
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => searchLeads(pagination.page + 1)}
+                disabled={pagination.page >= pagination.totalPages || isSearching}
+              >
+                Próxima <ChevronRight className="w-4 h-4 ml-1" />
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       <Dialog open={!!selectedLead} onOpenChange={(open) => !open && setSelectedLeadCnpj(null)}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          {selectedLead && <LeadDetailsModal lead={selectedLead} />}
+          {selectedLead && (
+            <LeadDetailsModal lead={selectedLead} onClose={() => setSelectedLeadCnpj(null)} />
+          )}
         </DialogContent>
       </Dialog>
     </>

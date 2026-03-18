@@ -1,7 +1,7 @@
 {
   "_versions": {
-    "buscar-leads": 2,
-    "enriquecer-lead": 1,
-    "functions": 3
+    "buscar-leads": 5,
+    "enriquecer-lead": 3,
+    "functions": 5
   }
 }
