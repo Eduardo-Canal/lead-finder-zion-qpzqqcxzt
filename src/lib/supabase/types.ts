@@ -147,6 +147,9 @@ export type Database = {
           cnpj: string | null
           created_at: string | null
           data_abertura: string | null
+          decisor_email: string | null
+          decisor_nome: string | null
+          decisor_telefone: string | null
           email: string | null
           id: string
           municipio: string | null
@@ -167,6 +170,9 @@ export type Database = {
           cnpj?: string | null
           created_at?: string | null
           data_abertura?: string | null
+          decisor_email?: string | null
+          decisor_nome?: string | null
+          decisor_telefone?: string | null
           email?: string | null
           id?: string
           municipio?: string | null
@@ -187,6 +193,9 @@ export type Database = {
           cnpj?: string | null
           created_at?: string | null
           data_abertura?: string | null
+          decisor_email?: string | null
+          decisor_nome?: string | null
+          decisor_telefone?: string | null
           email?: string | null
           id?: string
           municipio?: string | null
@@ -465,6 +474,9 @@ export const Constants = {
 //   ultima_data_contato: timestamp without time zone (nullable)
 //   observacoes: text (nullable)
 //   created_at: timestamp without time zone (nullable, default: now())
+//   decisor_nome: text (nullable)
+//   decisor_telefone: text (nullable)
+//   decisor_email: text (nullable)
 // Table: perfis_acesso
 //   id: uuid (not null, default: gen_random_uuid())
 //   nome: text (not null)

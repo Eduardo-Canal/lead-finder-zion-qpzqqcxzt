@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { FilteredLead } from '@/stores/useLeadStore'
 import {
   MapPin,
@@ -23,6 +24,8 @@ import {
   Map,
   AlertCircle,
   Loader2,
+  MessageSquare,
+  User,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
 import useAuthStore from '@/stores/useAuthStore'
@@ -60,6 +63,8 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
   const [decisorNome, setDecisorNome] = useState('')
   const [decisorTelefone, setDecisorTelefone] = useState('')
   const [decisorEmail, setDecisorEmail] = useState('')
+  const [historicoInteracoes, setHistoricoInteracoes] = useState<any[]>([])
+  const [novaInteracao, setNovaInteracao] = useState('')
 
   const fetchEnrichedData = async () => {
     if (!lead?.cnpj) return
@@ -70,11 +75,13 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
     setDecisorNome('')
     setDecisorTelefone('')
     setDecisorEmail('')
+    setHistoricoInteracoes([])
+    setNovaInteracao('')
 
     try {
       const { data: savedLead } = await supabase
         .from('leads_salvos')
-        .select('id, decisor_nome, decisor_telefone, decisor_email')
+        .select('id, decisor_nome, decisor_telefone, decisor_email, historico_interacoes')
         .eq('cnpj', lead.cnpj)
         .maybeSingle()
 
@@ -83,6 +90,9 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
         setDecisorNome(savedLead.decisor_nome || '')
         setDecisorTelefone(savedLead.decisor_telefone || '')
         setDecisorEmail(savedLead.decisor_email || '')
+        setHistoricoInteracoes(
+          Array.isArray(savedLead.historico_interacoes) ? savedLead.historico_interacoes : [],
+        )
       }
 
       const { data, error: invokeError } = await supabase.functions.invoke('enriquecer-lead', {
@@ -110,6 +120,40 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
   }, [lead?.cnpj])
 
   if (!lead) return null
+
+  const handleRegistrarInteracao = async () => {
+    if (!user || !novaInteracao.trim()) return
+
+    const interaction = {
+      data: new Date().toISOString(),
+      executivo_nome: user.nome,
+      texto: novaInteracao.trim(),
+    }
+
+    const updatedHistory = [interaction, ...historicoInteracoes]
+
+    if (existingLeadId) {
+      try {
+        const { error } = await supabase
+          .from('leads_salvos')
+          .update({ historico_interacoes: updatedHistory })
+          .eq('id', existingLeadId)
+
+        if (error) throw error
+        setHistoricoInteracoes(updatedHistory)
+        setNovaInteracao('')
+        toast.success('Interação registrada com sucesso!')
+        window.dispatchEvent(new Event('refetch-my-leads'))
+      } catch (err: any) {
+        toast.error('Erro ao registrar interação.')
+      }
+    } else {
+      // Not saved to DB yet, append to state to be saved upon clicking "Salvar"
+      setHistoricoInteracoes(updatedHistory)
+      setNovaInteracao('')
+      toast.success('Interação adicionada! Salve o lead para persistir.')
+    }
+  }
 
   const handleSaveLead = async () => {
     if (!user) {
@@ -151,6 +195,7 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
           decisor_nome: decisorNome || null,
           decisor_telefone: decisorTelefone || null,
           decisor_email: decisorEmail || null,
+          historico_interacoes: historicoInteracoes,
         })
 
         if (saveError) throw saveError
@@ -175,8 +220,8 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
 
   return (
     <Dialog open={!!lead} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[700px] max-h-[90vh] flex flex-col p-0">
-        <DialogHeader className="p-6 pb-2">
+      <DialogContent className="sm:max-w-[750px] max-h-[90vh] flex flex-col p-0">
+        <DialogHeader className="p-6 pb-2 border-b">
           <DialogTitle className="text-xl flex items-start gap-2">
             <Building2 className="w-5 h-5 text-primary mt-1 shrink-0" />
             <span className="leading-tight">
@@ -241,7 +286,7 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
               </div>
             </div>
           ) : enrichedData ? (
-            <div className="space-y-6">
+            <div className="space-y-6 pb-4">
               <div className="flex flex-wrap gap-2">
                 {googleMapsUrl && (
                   <Button variant="outline" size="sm" asChild className="gap-2">
@@ -360,7 +405,8 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
 
               <div className="space-y-3 mt-4 bg-primary/5 p-4 rounded-lg border border-primary/10">
                 <h4 className="font-semibold text-sm flex items-center gap-2 text-primary">
-                  Informações do Decisor {existingLeadId ? '' : '(Opcional)'}
+                  <User className="w-4 h-4" /> Informações do Decisor{' '}
+                  {existingLeadId ? '' : '(Opcional)'}
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div className="space-y-1.5">
@@ -407,6 +453,52 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
                       placeholder="Ex: joao@empresa.com"
                       className="h-8 text-sm bg-white"
                     />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-3 mt-4 bg-muted/30 p-4 rounded-lg border">
+                <h4 className="font-semibold text-sm flex items-center gap-2">
+                  <MessageSquare className="w-4 h-4" /> Histórico de Atividades
+                </h4>
+
+                <div className="space-y-3">
+                  {historicoInteracoes.length > 0 ? (
+                    <div className="space-y-2 max-h-[200px] overflow-y-auto pr-2">
+                      {historicoInteracoes.map((item, idx) => (
+                        <div
+                          key={idx}
+                          className="bg-background p-3 rounded border text-sm space-y-1"
+                        >
+                          <div className="flex justify-between items-center text-xs text-muted-foreground mb-1 border-b border-muted pb-1">
+                            <span className="font-semibold text-foreground">
+                              {item.executivo_nome}
+                            </span>
+                            <span>{new Date(item.data).toLocaleString('pt-BR')}</span>
+                          </div>
+                          <p className="text-foreground whitespace-pre-wrap">{item.texto}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Nenhuma interação registrada.</p>
+                  )}
+
+                  <div className="space-y-2 pt-2 border-t border-muted">
+                    <Textarea
+                      value={novaInteracao}
+                      onChange={(e) => setNovaInteracao(e.target.value)}
+                      placeholder="Registre uma nova interação..."
+                      className="resize-none h-20 text-sm bg-background"
+                    />
+                    <Button
+                      variant="secondary"
+                      className="w-full"
+                      onClick={handleRegistrarInteracao}
+                      disabled={!novaInteracao.trim()}
+                    >
+                      Registrar Interação
+                    </Button>
                   </div>
                 </div>
               </div>

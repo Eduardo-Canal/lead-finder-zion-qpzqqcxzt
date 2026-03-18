@@ -23,7 +23,6 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { MessageSquare, Calendar, User } from 'lucide-react'
@@ -31,6 +30,7 @@ import useMyLeadsStore, { LeadSalvo } from '@/stores/useMyLeadsStore'
 import useAuthStore from '@/stores/useAuthStore'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
+import { InteractionHistoryModal } from './InteractionHistoryModal'
 
 const statusColors: Record<string, string> = {
   'Não Contatado': 'text-slate-600 bg-slate-100',
@@ -41,28 +41,13 @@ const statusColors: Record<string, string> = {
 }
 
 export function MyLeadsTable() {
-  const { filteredLeads, updateStatus, updateObservation, updateDecisor } = useMyLeadsStore()
+  const { filteredLeads, updateStatus, updateDecisor } = useMyLeadsStore()
   const { hasPermission } = useAuthStore()
   const canEditStatus = hasPermission('Editar Status de Contato')
 
-  const [editingLead, setEditingLead] = useState<LeadSalvo | null>(null)
-  const [obsText, setObsText] = useState('')
-
+  const [editingInteractionsLead, setEditingInteractionsLead] = useState<LeadSalvo | null>(null)
   const [editingDecisor, setEditingDecisor] = useState<LeadSalvo | null>(null)
   const [decisorForm, setDecisorForm] = useState({ nome: '', telefone: '', email: '' })
-
-  const openObservationModal = (lead: LeadSalvo) => {
-    setEditingLead(lead)
-    setObsText(lead.observacoes || '')
-  }
-
-  const handleSaveObservation = () => {
-    if (editingLead) {
-      updateObservation(editingLead.id, obsText)
-      setEditingLead(null)
-      toast.success('Observações salvas com sucesso!')
-    }
-  }
 
   const openDecisorModal = (lead: LeadSalvo) => {
     setEditingDecisor(lead)
@@ -197,12 +182,14 @@ export function MyLeadsTable() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => openObservationModal(lead)}
+                        onClick={() => setEditingInteractionsLead(lead)}
                         className={cn(
                           'h-8 w-8',
-                          lead.observacoes ? 'text-primary' : 'text-muted-foreground',
+                          lead.historico_interacoes && lead.historico_interacoes.length > 0
+                            ? 'text-primary'
+                            : 'text-muted-foreground',
                         )}
-                        title="Observações"
+                        title="Histórico de Atividades"
                       >
                         <MessageSquare className="h-4 w-4" />
                       </Button>
@@ -215,31 +202,10 @@ export function MyLeadsTable() {
         </Table>
       </div>
 
-      <Dialog open={!!editingLead} onOpenChange={(open) => !open && setEditingLead(null)}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Editar Observações</DialogTitle>
-            <DialogDescription>
-              Adicione notas ou histórico de interação para{' '}
-              <strong className="text-foreground">{editingLead?.razao_social}</strong>.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            <Textarea
-              value={obsText}
-              onChange={(e) => setObsText(e.target.value)}
-              placeholder="Digite suas observações aqui..."
-              className="min-h-[150px] resize-none"
-            />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditingLead(null)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleSaveObservation}>Salvar</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <InteractionHistoryModal
+        lead={editingInteractionsLead}
+        onClose={() => setEditingInteractionsLead(null)}
+      />
 
       <Dialog open={!!editingDecisor} onOpenChange={(open) => !open && setEditingDecisor(null)}>
         <DialogContent className="sm:max-w-[400px]">

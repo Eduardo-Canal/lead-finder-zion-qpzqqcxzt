@@ -20,7 +20,7 @@ export type LeadSalvo = {
   executivo_nome: string
   status_contato: string
   ultima_data_contato: string | null
-  observacoes: string
+  historico_interacoes: any[]
   decisor_nome: string | null
   decisor_telefone: string | null
   decisor_email: string | null
@@ -39,7 +39,7 @@ type MyLeadsStoreContextType = {
   filters: MyLeadsFilters
   setFilter: (key: keyof MyLeadsFilters, value: string) => void
   updateStatus: (id: string, status: string) => Promise<void>
-  updateObservation: (id: string, observacoes: string) => Promise<void>
+  addInteraction: (id: string, texto: string) => Promise<void>
   updateDecisor: (id: string, nome: string, telefone: string, email: string) => Promise<void>
 }
 
@@ -68,6 +68,9 @@ export function MyLeadsStoreProvider({ children }: { children: ReactNode }) {
     const enriched = data.map((lead: any) => ({
       ...lead,
       executivo_nome: lead.profiles?.nome || 'Desconhecido',
+      historico_interacoes: Array.isArray(lead.historico_interacoes)
+        ? lead.historico_interacoes
+        : [],
       ultima_data_contato: lead.ultima_data_contato
         ? new Date(lead.ultima_data_contato).toLocaleDateString('pt-BR')
         : null,
@@ -112,8 +115,29 @@ export function MyLeadsStoreProvider({ children }: { children: ReactNode }) {
     fetchLeads()
   }
 
-  const updateObservation = async (id: string, observacoes: string) => {
-    await supabase.from('leads_salvos').update({ observacoes }).eq('id', id)
+  const addInteraction = async (id: string, texto: string) => {
+    if (!user) return
+    const lead = myLeads.find((l) => l.id === id)
+    if (!lead) return
+
+    const newInteraction = {
+      data: new Date().toISOString(),
+      executivo_nome: user.nome,
+      texto,
+    }
+
+    const updatedHistory = [newInteraction, ...lead.historico_interacoes]
+
+    const { error } = await supabase
+      .from('leads_salvos')
+      .update({ historico_interacoes: updatedHistory })
+      .eq('id', id)
+
+    if (error) {
+      console.error(error)
+      throw error
+    }
+
     fetchLeads()
   }
 
@@ -163,7 +187,7 @@ export function MyLeadsStoreProvider({ children }: { children: ReactNode }) {
         filters,
         setFilter,
         updateStatus,
-        updateObservation,
+        addInteraction,
         updateDecisor,
       },
     },
