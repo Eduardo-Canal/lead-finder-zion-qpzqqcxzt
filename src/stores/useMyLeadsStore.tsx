@@ -7,8 +7,8 @@ import React, {
   useEffect,
   useCallback,
 } from 'react'
-import { mockDb } from '@/lib/db'
 import useAuthStore from '@/stores/useAuthStore'
+import { supabase } from '@/lib/supabase/client'
 
 export type LeadSalvo = {
   id: string
@@ -35,8 +35,8 @@ type MyLeadsStoreContextType = {
   filteredLeads: LeadSalvo[]
   filters: MyLeadsFilters
   setFilter: (key: keyof MyLeadsFilters, value: string) => void
-  updateStatus: (id: string, status: string) => void
-  updateObservation: (id: string, observacoes: string) => void
+  updateStatus: (id: string, status: string) => Promise<void>
+  updateObservation: (id: string, observacoes: string) => Promise<void>
 }
 
 const defaultFilters: MyLeadsFilters = {
@@ -54,16 +54,20 @@ export function MyLeadsStoreProvider({ children }: { children: ReactNode }) {
   const { user } = useAuthStore()
 
   const fetchLeads = useCallback(async () => {
-    const data = await mockDb.getTable('leads_salvos')
-    const profiles = await mockDb.getTable('profiles')
+    const { data, error } = await supabase.from('leads_salvos').select('*, profiles(nome)')
 
-    const enriched = data.map((lead: any) => {
-      const p = profiles.find((p: any) => p.id === lead.salvo_por)
-      return {
-        ...lead,
-        executivo_nome: p ? p.nome : 'Desconhecido',
-      }
-    })
+    if (error || !data) {
+      setMyLeads([])
+      return
+    }
+
+    const enriched = data.map((lead: any) => ({
+      ...lead,
+      executivo_nome: lead.profiles?.nome || 'Desconhecido',
+      ultima_data_contato: lead.ultima_data_contato
+        ? new Date(lead.ultima_data_contato).toLocaleDateString('pt-BR')
+        : null,
+    }))
     setMyLeads(enriched)
   }, [])
 
@@ -80,15 +84,32 @@ export function MyLeadsStoreProvider({ children }: { children: ReactNode }) {
   }
 
   const updateStatus = async (id: string, status: string) => {
-    await mockDb.update('leads_salvos', id, {
-      status_contato: status,
-      ultima_data_contato: new Date().toLocaleDateString('pt-BR'),
+    if (!user) return
+    const lead = myLeads.find((l) => l.id === id)
+    if (!lead) return
+
+    const now = new Date().toISOString()
+
+    await supabase
+      .from('leads_salvos')
+      .update({
+        status_contato: status,
+        ultima_data_contato: now,
+      })
+      .eq('id', id)
+
+    await supabase.from('contatos_realizados').insert({
+      cnpj: lead.cnpj,
+      executivo_id: user.id,
+      executivo_nome: user.nome,
+      data_contato: now,
     })
+
     fetchLeads()
   }
 
   const updateObservation = async (id: string, observacoes: string) => {
-    await mockDb.update('leads_salvos', id, { observacoes })
+    await supabase.from('leads_salvos').update({ observacoes }).eq('id', id)
     fetchLeads()
   }
 

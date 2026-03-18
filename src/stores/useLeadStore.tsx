@@ -1,6 +1,15 @@
-import React, { createContext, useContext, useState, useMemo, ReactNode, useEffect } from 'react'
-import { mockDb, generateId } from '@/lib/db'
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useMemo,
+  ReactNode,
+  useEffect,
+  useCallback,
+} from 'react'
 import useAuthStore from '@/stores/useAuthStore'
+import { supabase } from '@/lib/supabase/client'
+import { mockLeads } from '@/data/mock-leads'
 
 export type FilteredLead = {
   id: string
@@ -43,7 +52,7 @@ type LeadStoreContextType = {
   addCnae: (cnae: string) => void
   removeCnae: (cnae: string) => void
   toggleUf: (uf: string, checked: boolean) => void
-  toggleContact: (cnpj: string) => void
+  toggleContact: (cnpj: string) => Promise<void>
 }
 
 const defaultFilters: Filters = {
@@ -67,16 +76,19 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
   const [filters, setFilters] = useState<Filters>(defaultFilters)
   const { user } = useAuthStore()
 
-  const fetchLeads = async () => {
-    const data = await mockDb.getTable('leads_disponiveis')
-    const cData = await mockDb.getTable('contatos_realizados')
-    setLeadsRaw(data)
-    setContatos(cData)
-  }
+  const fetchLeads = useCallback(async () => {
+    const { data: cData } = await supabase
+      .from('contatos_realizados')
+      .select('*')
+      .order('data_contato', { ascending: false })
+
+    if (cData) setContatos(cData)
+    setLeadsRaw(mockLeads)
+  }, [])
 
   useEffect(() => {
     if (user) fetchLeads()
-  }, [user])
+  }, [user, fetchLeads])
 
   const setFilter = (key: keyof Filters, value: any) => {
     setFilters((prev) => ({ ...prev, [key]: value }))
@@ -102,16 +114,14 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
   const toggleContact = async (cnpj: string) => {
     if (!user) return
     const existing = contatos.find((c) => c.cnpj === cnpj)
+
     if (existing) {
-      await mockDb.delete('contatos_realizados', existing.id)
+      await supabase.from('contatos_realizados').delete().eq('id', existing.id)
     } else {
-      await mockDb.insert('contatos_realizados', {
-        id: generateId(),
+      await supabase.from('contatos_realizados').insert({
         cnpj,
         executivo_id: user.id,
         executivo_nome: user.nome,
-        data_contato: new Date().toLocaleDateString('pt-BR'),
-        created_at: new Date().toISOString(),
       })
     }
     fetchLeads()
@@ -124,7 +134,9 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
         ...lead,
         contatado: !!contato,
         contatadoPor: contato?.executivo_nome,
-        contatadoEm: contato?.data_contato,
+        contatadoEm: contato
+          ? new Date(contato.data_contato).toLocaleDateString('pt-BR')
+          : undefined,
       }
     })
   }, [leadsRaw, contatos])

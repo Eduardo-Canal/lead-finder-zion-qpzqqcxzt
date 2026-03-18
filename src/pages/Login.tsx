@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import useAuthStore from '@/stores/useAuthStore'
 import { Button } from '@/components/ui/button'
@@ -11,23 +11,37 @@ export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const { login } = useAuthStore()
+  const { login, user, loading } = useAuthStore()
   const navigate = useNavigate()
   const location = useLocation()
+
+  useEffect(() => {
+    if (!loading && user) {
+      const from = location.state?.from?.pathname || '/'
+      navigate(from, { replace: true })
+    }
+  }, [user, loading, navigate, location])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
     try {
-      await login(email, password)
+      const { error } = await login(email, password)
+      if (error) throw error
       toast.success('Login realizado com sucesso!')
-      const from = location.state?.from?.pathname || '/'
-      navigate(from, { replace: true })
     } catch (err: any) {
       toast.error(err.message || 'Erro ao realizar login')
     } finally {
       setIsLoading(false)
     }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <span className="text-muted-foreground">Carregando...</span>
+      </div>
+    )
   }
 
   return (

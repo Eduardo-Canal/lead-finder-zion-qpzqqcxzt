@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react'
-import { mockDb } from '@/lib/db'
+import { supabase } from '@/lib/supabase/client'
 
 export type AuthUser = {
   id: string
@@ -17,8 +17,8 @@ export type AuthUser = {
 type AuthStoreContextType = {
   user: AuthUser | null
   loading: boolean
-  login: (email: string, pass: string) => Promise<void>
-  logout: () => void
+  login: (email: string, pass: string) => Promise<{ error: any }>
+  logout: () => Promise<void>
   hasPermission: (perm: string) => boolean
 }
 
@@ -29,43 +29,53 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const checkSession = async () => {
-      const sessionId = localStorage.getItem('zion_session')
-      if (sessionId) {
-        const profiles = await mockDb.getTable('profiles')
-        const perfis = await mockDb.getTable('perfis_acesso')
-        const profile = profiles.find((p: any) => p.user_id === sessionId)
-        if (profile && profile.ativo) {
-          const perfil = perfis.find((p: any) => p.id === profile.perfil_id)
-          setUser({ ...profile, perfil_acesso: perfil })
-        } else {
-          localStorage.removeItem('zion_session')
-        }
+    const fetchProfile = async (session: any) => {
+      if (!session?.user) {
+        setUser(null)
+        setLoading(false)
+        return
+      }
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*, perfil_acesso(*)')
+        .eq('user_id', session.user.id)
+        .single()
+
+      if (profile && profile.ativo) {
+        setUser(profile as any)
+      } else {
+        setUser(null)
       }
       setLoading(false)
     }
-    checkSession()
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT') {
+        setUser(null)
+        setLoading(false)
+      } else if (session) {
+        fetchProfile(session)
+      } else {
+        setLoading(false)
+      }
+    })
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      fetchProfile(session)
+    })
+
+    return () => subscription.unsubscribe()
   }, [])
 
   const login = async (email: string, pass: string) => {
-    const users = await mockDb.getTable('users')
-    const u = users.find((u: any) => u.email === email && u.password === pass)
-    if (!u) throw new Error('E-mail ou senha inválidos')
-
-    const profiles = await mockDb.getTable('profiles')
-    const profile = profiles.find((p: any) => p.user_id === u.id)
-    if (!profile) throw new Error('Perfil de acesso não encontrado')
-    if (!profile.ativo) throw new Error('Seu usuário está inativo')
-
-    const perfis = await mockDb.getTable('perfis_acesso')
-    const perfil = perfis.find((p: any) => p.id === profile.perfil_id)
-
-    localStorage.setItem('zion_session', u.id)
-    setUser({ ...profile, perfil_acesso: perfil })
+    const { error } = await supabase.auth.signInWithPassword({ email, password: pass })
+    return { error }
   }
 
-  const logout = () => {
-    localStorage.removeItem('zion_session')
+  const logout = async () => {
+    await supabase.auth.signOut()
     setUser(null)
   }
 

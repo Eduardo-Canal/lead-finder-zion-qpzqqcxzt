@@ -6,8 +6,9 @@ import React, {
   useEffect,
   useCallback,
 } from 'react'
-import { mockDb, generateId } from '@/lib/db'
 import useAuthStore from '@/stores/useAuthStore'
+import { supabase } from '@/lib/supabase/client'
+import { createClient } from '@supabase/supabase-js'
 
 export const PERMISSIONS_LIST = [
   'Buscar Leads',
@@ -38,9 +39,9 @@ export type PerfilTable = {
 type UserManagementStoreContextType = {
   users: ProfileTable[]
   profiles: PerfilTable[]
-  toggleUserStatus: (id: string) => void
-  updateUser: (id: string, data: Partial<ProfileTable>) => void
-  createProfile: (nome: string, permissoes: Permission[]) => void
+  toggleUserStatus: (id: string) => Promise<void>
+  updateUser: (id: string, data: Partial<ProfileTable>) => Promise<void>
+  createProfile: (nome: string, permissoes: Permission[]) => Promise<void>
   createUser: (data: any) => Promise<void>
 }
 
@@ -52,10 +53,11 @@ export function UserManagementStoreProvider({ children }: { children: ReactNode 
   const { user } = useAuthStore()
 
   const fetchData = useCallback(async () => {
-    const u = await mockDb.getTable('profiles')
-    const p = await mockDb.getTable('perfis_acesso')
-    setUsers(u)
-    setProfiles(p)
+    const { data: pData } = await supabase.from('profiles').select('*')
+    const { data: pfData } = await supabase.from('perfis_acesso').select('*')
+
+    if (pData) setUsers(pData)
+    if (pfData) setProfiles(pfData)
   }, [])
 
   useEffect(() => {
@@ -65,42 +67,47 @@ export function UserManagementStoreProvider({ children }: { children: ReactNode 
   const toggleUserStatus = async (id: string) => {
     const u = users.find((x) => x.id === id)
     if (u) {
-      await mockDb.update('profiles', id, { ativo: !u.ativo })
+      await supabase.from('profiles').update({ ativo: !u.ativo }).eq('id', id)
       await fetchData()
     }
   }
 
   const updateUser = async (id: string, data: Partial<ProfileTable>) => {
-    await mockDb.update('profiles', id, data)
+    await supabase.from('profiles').update(data).eq('id', id)
     await fetchData()
   }
 
   const createProfile = async (nome: string, permissoes: Permission[]) => {
-    await mockDb.insert('perfis_acesso', {
-      id: `p_${generateId()}`,
-      nome,
-      permissoes,
-    })
+    await supabase.from('perfis_acesso').insert({ nome, permissoes })
     await fetchData()
   }
 
   const createUser = async (data: any) => {
-    const existingUsers = await mockDb.getTable('users')
-    if (existingUsers.some((u: any) => u.email === data.email)) {
-      throw new Error('E-mail já está em uso')
-    }
+    // Uses a secondary client to sign up the new user without affecting the current admin's session
+    const secondaryClient = createClient(
+      import.meta.env.VITE_SUPABASE_URL as string,
+      import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string,
+      { auth: { storageKey: 'temp-auth-admin', persistSession: false } },
+    )
 
-    const userId = `u_${generateId()}`
-    await mockDb.insert('users', { id: userId, email: data.email, password: data.senha })
+    const { data: authData, error: authError } = await secondaryClient.auth.signUp({
+      email: data.email,
+      password: data.senha,
+    })
 
-    await mockDb.insert('profiles', {
-      id: `prof_${generateId()}`,
-      user_id: userId,
+    if (authError) throw new Error(authError.message)
+    if (!authData.user) throw new Error('Erro ao criar usuário na autenticação')
+
+    const { error: profileError } = await supabase.from('profiles').insert({
+      user_id: authData.user.id,
       nome: data.nome,
       email: data.email,
       perfil_id: data.perfil_id,
       ativo: data.ativo,
     })
+
+    if (profileError) throw new Error(profileError.message)
+
     await fetchData()
   }
 
