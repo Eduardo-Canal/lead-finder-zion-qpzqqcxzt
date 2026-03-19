@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { X, LayoutDashboard, Users, ShieldCheck, Target } from 'lucide-react'
+import { X, LayoutDashboard, Users, ShieldCheck, Target, Settings } from 'lucide-react'
 import {
   Sidebar,
   SidebarContent,
@@ -65,7 +65,7 @@ const BRAZIL_STATES = [
 
 export function AppSidebar() {
   const { filters, setFilter, addCnae, removeCnae, toggleUf } = useLeadStore()
-  const { hasPermission } = useAuthStore()
+  const { hasPermission, user } = useAuthStore()
   const [cnaeInput, setCnaeInput] = useState('')
   const location = useLocation()
 
@@ -119,6 +119,19 @@ export function AppSidebar() {
                     <Link to="/gestao-usuarios">
                       <ShieldCheck />
                       <span>Gestão de Usuários</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
+              {user?.perfis_acesso?.nome === 'Administrador' && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={location.pathname === '/configuracoes/avancado'}
+                  >
+                    <Link to="/configuracoes/avancado">
+                      <Settings />
+                      <span>Avançado</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

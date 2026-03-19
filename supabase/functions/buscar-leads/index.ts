@@ -34,6 +34,27 @@ Deno.serve(async (req: Request) => {
       global: { headers: { Authorization: authHeader || '' } },
     })
 
+    const { data: config } = await supabase
+      .from('configuracoes_sistema')
+      .select('casadosdados_api_token')
+      .eq('id', 1)
+      .maybeSingle()
+
+    const apiKey = config?.casadosdados_api_token || Deno.env.get('CASADOSDADOS_API_KEY')
+
+    if (!apiKey) {
+      return new Response(
+        JSON.stringify({
+          error: 'API Indisponível. Token da API Casa dos Dados não configurado.',
+          data: [],
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        },
+      )
+    }
+
     const payloadToHash = {
       cnae: cnaeCleaned,
       uf: uf || null,
@@ -122,13 +143,9 @@ Deno.serve(async (req: Request) => {
       Accept: 'application/json',
       Origin: 'https://casadosdados.com.br',
       Referer: 'https://casadosdados.com.br/',
-    }
-
-    const apiKey = Deno.env.get('CASADOSDADOS_API_KEY')
-    if (apiKey) {
-      fetchHeaders['casadosdados-api-key'] = apiKey
-      fetchHeaders['Authorization'] = `Bearer ${apiKey}`
-      fetchHeaders['x-api-key'] = apiKey
+      'casadosdados-api-key': apiKey,
+      Authorization: `Bearer ${apiKey}`,
+      'x-api-key': apiKey,
     }
 
     let response

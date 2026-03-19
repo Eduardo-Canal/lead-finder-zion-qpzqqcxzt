@@ -9,6 +9,7 @@ import Index from '@/pages/Index'
 import Prospeccao from '@/pages/Prospeccao'
 import MyLeads from '@/pages/MyLeads'
 import UserManagement from '@/pages/UserManagement'
+import ConfiguracoesAvancadas from '@/pages/ConfiguracoesAvancadas'
 import NotFound from '@/pages/NotFound'
 import useAuthStore, { AuthProvider } from '@/stores/useAuthStore'
 import { LeadStoreProvider } from '@/stores/useLeadStore'
@@ -52,6 +53,7 @@ const App = () => (
                   <Route path="/prospeccao" element={<Prospeccao />} />
                   <Route path="/meus-leads" element={<MyLeads />} />
                   <Route path="/gestao-usuarios" element={<UserManagement />} />
+                  <Route path="/configuracoes/avancado" element={<ConfiguracoesAvancadas />} />
                 </Route>
                 <Route path="*" element={<NotFound />} />
               </Routes>

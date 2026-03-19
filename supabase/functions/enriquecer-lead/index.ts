@@ -1,5 +1,6 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { corsHeaders } from '../_shared/cors.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
@@ -14,6 +15,26 @@ Deno.serve(async (req: Request) => {
     }
 
     const cleanCnpj = cnpj.replace(/\D/g, '')
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
+    const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY') || ''
+    const authHeader = req.headers.get('Authorization')
+
+    const supabase = createClient(supabaseUrl, supabaseKey, {
+      global: { headers: { Authorization: authHeader || '' } },
+    })
+
+    const { data: config } = await supabase
+      .from('configuracoes_sistema')
+      .select('casadosdados_api_token')
+      .eq('id', 1)
+      .maybeSingle()
+
+    const apiKey = config?.casadosdados_api_token || Deno.env.get('CASADOSDADOS_API_KEY')
+
+    if (!apiKey) {
+      throw new Error('API Indisponível. Token da API Casa dos Dados não configurado.')
+    }
 
     const response = await fetch(`https://publica.cnpj.ws/cnpj/${cleanCnpj}`)
 
