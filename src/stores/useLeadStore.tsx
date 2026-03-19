@@ -76,7 +76,7 @@ const defaultFilters: Filters = {
   cityQuick: '',
   sizeQuick: '',
   contactStatus: 'Todos',
-  limit: 10,
+  limit: 5,
 }
 
 const LeadContext = createContext<LeadStoreContextType | null>(null)
@@ -147,7 +147,7 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
       }
 
       if (data?.error && (!data?.data || data.data.length === 0)) {
-        console.error('Initial Search API Error:', data.error)
+        toast.error(data.error)
         return
       }
 
@@ -191,7 +191,7 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
       situacao_cadastral:
         typeof filters.situacao === 'string' && filters.situacao ? filters.situacao : null,
       page: targetPage,
-      limit: typeof filters.limit === 'number' ? filters.limit : 10,
+      limit: typeof filters.limit === 'number' ? filters.limit : 5,
     }
 
     try {
@@ -206,8 +206,9 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
       }
 
       if (data?.error && (!data?.data || data.data.length === 0)) {
-        toast.error(`Aviso: ${data.error}`)
+        toast.error(data.error)
         setLeadsRaw([])
+        setPagination({ page: targetPage, totalPages: 0, totalCount: 0 })
         return
       }
 

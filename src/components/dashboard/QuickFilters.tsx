@@ -62,7 +62,7 @@ export function QuickFilters() {
       </Select>
 
       <Select
-        value={filters.limit?.toString() || '10'}
+        value={filters.limit?.toString() || '5'}
         onValueChange={(v) => setFilter('limit', Number(v))}
       >
         <SelectTrigger>

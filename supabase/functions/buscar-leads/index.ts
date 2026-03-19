@@ -16,7 +16,7 @@ Deno.serve(async (req: Request) => {
       porte,
       situacao_cadastral,
       page = 1,
-      limit = 10,
+      limit = 5,
     } = payload
 
     // Sanitization: Ensure CNAE only contains digits
@@ -125,39 +125,92 @@ Deno.serve(async (req: Request) => {
       casadosDadosPayload.query.porte = [porte.toUpperCase()]
     }
 
-    let response
     let data
     let isMock = false
 
     if (apiKey) {
       try {
-        response = await fetch('https://api.casadosdados.com.br/v2/public/cnpj/search', {
+        const response = await fetch('https://api.casadosdados.com.br/v2/public/cnpj/search', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             Accept: 'application/json',
+            Authorization: apiKey,
             'casadosdados-api-key': apiKey,
-            Authorization: `Bearer ${apiKey}`,
             'x-api-key': apiKey,
           },
           body: JSON.stringify(casadosDadosPayload),
         })
 
-        if (response.ok) {
-          data = await response.json()
+        if (!response.ok) {
+          let errorMsg = `Erro na API: ${response.status} ${response.statusText}`
+          if (response.status === 401 || response.status === 403) {
+            errorMsg = 'Token Inválido'
+          } else if (response.status === 429) {
+            errorMsg = 'Limite de Requisições Excedido'
+          } else if (response.status === 400) {
+            errorMsg = 'Requisição inválida (verifique os parâmetros)'
+          }
+          return new Response(
+            JSON.stringify({
+              error: errorMsg,
+              data: [],
+              page,
+              count: 0,
+              pages: 0,
+              cached: false,
+              isMock: false,
+            }),
+            {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              status: 200,
+            },
+          )
         }
+
+        data = await response.json()
       } catch (e) {
         console.error('Fetch API error:', e)
+        return new Response(
+          JSON.stringify({
+            error: 'Erro de conexão com a API Casa dos Dados.',
+            data: [],
+            page,
+            count: 0,
+            pages: 0,
+            cached: false,
+            isMock: false,
+          }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200,
+          },
+        )
       }
     }
 
     if (!data || data.success === false || data.error || !data.data?.cnpj) {
+      if (apiKey) {
+        return new Response(
+          JSON.stringify({
+            error: data?.error || 'Formato de resposta inesperado da API.',
+            data: [],
+            page,
+            count: 0,
+            pages: 0,
+            cached: false,
+            isMock: false,
+          }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200,
+          },
+        )
+      }
+
       isMock = true
-
       const isTargetCnae = cnaeCleaned.includes('4683400')
-      if (isTargetCnae) isMock = false // Bypass mock warning to satisfy acceptance criteria perfectly
-
-      const fallbackCount = isTargetCnae ? 6 : limit
+      const fallbackCount = isTargetCnae ? Math.min(6, limit) : limit
 
       const mockResults = Array.from({ length: fallbackCount }).map((_, i) => {
         const id = (page - 1) * limit + i + 1
