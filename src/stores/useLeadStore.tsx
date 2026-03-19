@@ -76,7 +76,7 @@ const defaultFilters: Filters = {
   cityQuick: '',
   sizeQuick: '',
   contactStatus: 'Todos',
-  limit: 5,
+  limit: 10,
 }
 
 const LeadContext = createContext<LeadStoreContextType | null>(null)
@@ -99,7 +99,7 @@ const mapEmpresaToLead = (empresa: any): any => ({
   capital_social: empresa.capital_social ? Number(empresa.capital_social) : 0,
   data_abertura: empresa.data_abertura || empresa.data_inicio_atividade || new Date().toISOString(),
   email: empresa.email || '',
-  telefone: empresa.telefone_1 || empresa.telefone || '',
+  telefone: empresa.telefone || empresa.telefone_1 || '',
   socios: typeof empresa.socios === 'string' ? JSON.parse(empresa.socios) : empresa.socios || [],
 })
 
@@ -124,45 +124,6 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
       .order('data_contato', { ascending: false })
 
     if (cData) setContatos(cData)
-
-    setIsSearching(true)
-    try {
-      const payload = {
-        cnae_fiscal_principal: [],
-        uf: null,
-        municipio: null,
-        porte: null,
-        situacao_cadastral: 'ATIVA',
-        page: 1,
-        limit: defaultFilters.limit,
-      }
-
-      const { data, error } = await supabase.functions.invoke('buscar-leads', {
-        body: payload,
-      })
-
-      if (error) {
-        console.error('Initial Search Error:', error)
-        return
-      }
-
-      if (data?.error && (!data?.data || data.data.length === 0)) {
-        toast.error(data.error)
-        return
-      }
-
-      const results = (data?.data || []).map(mapEmpresaToLead)
-      setLeadsRaw(results)
-      setPagination({
-        page: data?.page || 1,
-        totalPages: data?.pages || 1,
-        totalCount: data?.count || results.length,
-      })
-    } catch (err) {
-      console.error(err)
-    } finally {
-      setIsSearching(false)
-    }
   }, [user])
 
   useEffect(() => {
@@ -171,6 +132,12 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
 
   const searchLeads = async (pageToFetch?: number | any) => {
     if (!user) return
+
+    if (!filters.cnaes || filters.cnaes.length === 0) {
+      toast.error('CNAE é obrigatório para realizar a busca.')
+      return
+    }
+
     setIsSearching(true)
 
     const isValidPage = typeof pageToFetch === 'number'
@@ -181,9 +148,9 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
     }
 
     const payload = {
-      cnae_fiscal_principal: Array.isArray(filters.cnaes)
-        ? filters.cnaes.map((c) => (typeof c === 'string' ? c.replace(/\D/g, '') : c))
-        : [],
+      cnae_fiscal_principal: filters.cnaes.map((c) =>
+        typeof c === 'string' ? c.replace(/\D/g, '') : c,
+      ),
       uf: Array.isArray(filters.ufs) && filters.ufs.length > 0 ? filters.ufs[0] : null,
       municipio:
         typeof filters.municipio === 'string' && filters.municipio ? filters.municipio : null,
@@ -191,7 +158,7 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
       situacao_cadastral:
         typeof filters.situacao === 'string' && filters.situacao ? filters.situacao : null,
       page: targetPage,
-      limit: typeof filters.limit === 'number' ? filters.limit : 5,
+      limit: typeof filters.limit === 'number' ? filters.limit : 10,
     }
 
     try {
@@ -205,7 +172,7 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
         return
       }
 
-      if (data?.error && (!data?.data || data.data.length === 0)) {
+      if (data?.error) {
         toast.error(data.error)
         setLeadsRaw([])
         setPagination({ page: targetPage, totalPages: 0, totalCount: 0 })
@@ -220,14 +187,10 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
         totalCount: data?.count || results.length,
       })
 
-      if (data?.isMock) {
-        toast.info('API indisponível. Exibindo dados de demonstração.', { duration: 5000 })
-      } else if (results.length > 0 && !data?.error) {
+      if (results.length > 0) {
         toast.success(`${results.length} leads encontrados.`)
-      } else if (results.length === 0 && !data?.error) {
+      } else {
         toast.info('Nenhum lead encontrado com estes filtros.')
-      } else if (data?.error) {
-        toast.warning(data.error)
       }
     } catch (err: any) {
       console.error('Error searching leads:', err)

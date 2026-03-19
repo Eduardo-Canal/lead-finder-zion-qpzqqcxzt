@@ -1,37 +1,41 @@
+import { AdvancedFilters } from '@/components/dashboard/AdvancedFilters'
 import { QuickFilters } from '@/components/dashboard/QuickFilters'
 import { ResultsTable } from '@/components/dashboard/ResultsTable'
-import { AdvancedFilters } from '@/components/dashboard/AdvancedFilters'
-import useLeadStore from '@/stores/useLeadStore'
 import { Button } from '@/components/ui/button'
-import { Search, Loader2 } from 'lucide-react'
+import { Search } from 'lucide-react'
+import useLeadStore from '@/stores/useLeadStore'
 
 export default function Prospeccao() {
-  const { filteredLeads, searchLeads, isSearching } = useLeadStore()
+  const { searchLeads, filters, isSearching } = useLeadStore()
+  const isCnaeEmpty = !filters.cnaes || filters.cnaes.length === 0
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6 animate-fade-in">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-semibold tracking-tight">Painel de Prospecção</h2>
-          <p className="text-muted-foreground mt-1">
-            Encontrados {filteredLeads.length} leads com base nos filtros atuais.
-          </p>
-        </div>
-        <Button onClick={() => searchLeads()} disabled={isSearching} className="gap-2">
-          {isSearching ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Search className="h-4 w-4" />
-          )}
-          Buscar Leads
-        </Button>
+    <div className="max-w-7xl mx-auto space-y-6 animate-fade-in pb-10">
+      <div>
+        <h2 className="text-2xl font-semibold tracking-tight">Prospecção de Leads</h2>
+        <p className="text-muted-foreground mt-1">
+          Busque e filtre novas empresas para adicionar ao seu funil.
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-start">
-        <div className="md:col-span-1">
+      <div className="flex flex-col md:flex-row gap-6">
+        <div className="w-full md:w-64 shrink-0 space-y-4">
           <AdvancedFilters />
+          <Button
+            className="w-full gap-2"
+            onClick={() => searchLeads(1)}
+            disabled={isSearching || isCnaeEmpty}
+          >
+            <Search className="w-4 h-4" />
+            Buscar Leads
+          </Button>
+          {isCnaeEmpty && (
+            <p className="text-xs text-destructive text-center font-medium mt-1">
+              CNAE é obrigatório para a busca
+            </p>
+          )}
         </div>
-        <div className="md:col-span-3 space-y-6">
+        <div className="flex-1 space-y-6 min-w-0">
           <QuickFilters />
           <ResultsTable />
         </div>

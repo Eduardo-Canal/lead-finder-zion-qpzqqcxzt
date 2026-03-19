@@ -79,17 +79,18 @@ const HTTP_ERROR_DICTIONARY: Record<
 > = {
   400: {
     title: '❌ Requisição Inválida (Erro 400)',
-    meaning: 'O formato dos dados enviados está incorreto (ex: estrutura do payload).',
+    meaning:
+      'O formato dos dados enviados está incorreto ou faltam parâmetros obrigatórios como o CNAE.',
     action: [
-      'Verifique se o CNAE possui o formato correto e contém caracteres especiais (ex: 5211-7/01).',
-      'Confirme se o objeto JSON enviado segue exatamente a estrutura: {"cnaes": [...], "uf": "XX", "limite": 10}.',
+      'Verifique se o CNAE possui o formato correto.',
+      'O CNAE agora é obrigatório para a busca.',
     ],
   },
   401: {
     title: '❌ Não Autorizado (Erro 401)',
     meaning: 'O token de acesso (API Key) é inválido ou expirou.',
     action:
-      "Acesse a tela 'Avançado' e atualize o 'Token de Integração API Casa dos Dados' garantindo que ele inclui o formato Bearer correto.",
+      "Acesse a tela 'Avançado' e atualize o 'Token de Integração API Casa dos Dados'. O endpoint V5 espera a chave via cabeçalho api-key.",
   },
   403: {
     title: '❌ Proibido (Erro 403)',
@@ -125,7 +126,7 @@ const getStatusExplanation = (status: number | null) => {
       meaning:
         'A API respondeu corretamente e o novo endpoint está validando os dados com sucesso.',
       action:
-        'Nenhuma ação necessária. A integração está operando normalmente com o payload correto e preservando a integridade dos códigos CNAE.',
+        'Nenhuma ação necessária. A integração está operando normalmente com o payload correto.',
     }
   }
   if (status >= 500 && status <= 503) {
@@ -218,13 +219,13 @@ export default function DebugAPI() {
 
       const status = data?.status_http || 200
 
-      if (status >= 200 && status < 300 && !data?.error && !data?.isMock) {
+      if (status >= 200 && status < 300 && !data?.error) {
         setValidationResult({
           success: true,
           message: '✅ Conectado à API Casa dos Dados (Novo Endpoint v5)',
         })
       } else {
-        const errorMsg = data?.error || (data?.isMock ? 'Token ausente ou inválido' : status)
+        const errorMsg = data?.error || status
         setValidationResult({
           success: false,
           message: `❌ Erro na conexão: ${errorMsg}`,
@@ -243,6 +244,12 @@ export default function DebugAPI() {
 
   const handleTestAPI = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (!cnae.trim()) {
+      toast.error('CNAE é obrigatório')
+      return
+    }
+
     setLoading(true)
     setLastResponse(null)
     setLatency(null)
@@ -255,7 +262,7 @@ export default function DebugAPI() {
     try {
       const { data, error } = await supabase.functions.invoke('buscar-leads', {
         body: {
-          cnae_fiscal_principal: cleanCnae ? [cleanCnae] : [],
+          cnae_fiscal_principal: [cleanCnae],
           uf: uf && uf !== 'Todos' ? uf : null,
           limit: limit || 10,
           bypass_cache: true,
@@ -313,8 +320,7 @@ export default function DebugAPI() {
         <div>
           <h2 className="text-2xl font-semibold tracking-tight">Admin - Debug API</h2>
           <p className="text-muted-foreground mt-1">
-            Monitore o status da integração com o novo endpoint da Casa dos Dados, preserve filtros
-            essenciais e analise respostas.
+            Monitore o status da integração com o novo endpoint da Casa dos Dados v5.
           </p>
         </div>
       </div>
@@ -378,11 +384,12 @@ export default function DebugAPI() {
               <h3 className="text-sm font-medium mb-4">Teste de Requisição Manual</h3>
               <form onSubmit={handleTestAPI} className="space-y-4">
                 <div className="space-y-2">
-                  <Label>CNAE (Opcional - Mantém formatação)</Label>
+                  <Label>CNAE (Obrigatório)</Label>
                   <Input
                     placeholder="Ex: 5211-7/01"
                     value={cnae}
                     onChange={(e) => setCnae(e.target.value)}
+                    required
                   />
                 </div>
                 <div className="space-y-2">
@@ -412,7 +419,7 @@ export default function DebugAPI() {
                     required
                   />
                 </div>
-                <Button type="submit" className="w-full gap-2" disabled={loading}>
+                <Button type="submit" className="w-full gap-2" disabled={loading || !cnae.trim()}>
                   {loading ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (

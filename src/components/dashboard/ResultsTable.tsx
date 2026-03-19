@@ -17,6 +17,18 @@ import { LeadDetailsModal } from './LeadDetailsModal'
 import { cn } from '@/lib/utils'
 import { Loader2, ChevronLeft, ChevronRight } from 'lucide-react'
 
+const formatCnpj = (cnpj: string) => {
+  if (!cnpj) return ''
+  const cleaned = cnpj.replace(/\D/g, '')
+  if (cleaned.length !== 14) return cnpj
+  return cleaned.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5')
+}
+
+const formatCurrency = (value: number | string) => {
+  const num = typeof value === 'string' ? parseFloat(value) : value
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(num || 0)
+}
+
 export function ResultsTable() {
   const { filteredLeads, toggleContact, isSearching, pagination, searchLeads } = useLeadStore()
   const { hasPermission } = useAuthStore()
@@ -27,24 +39,28 @@ export function ResultsTable() {
 
   return (
     <>
-      <div className="bg-white rounded-lg shadow-sm border overflow-hidden flex flex-col">
-        <Table>
+      <div className="bg-white rounded-lg shadow-sm border overflow-hidden flex flex-col w-full overflow-x-auto">
+        <Table className="min-w-[1200px]">
           <TableHeader>
             <TableRow className="bg-muted/50">
-              <TableHead>Razão Social</TableHead>
               <TableHead>CNPJ</TableHead>
+              <TableHead>Razão Social</TableHead>
               <TableHead>CNAE Principal</TableHead>
-              <TableHead>Município/UF</TableHead>
+              <TableHead>Município</TableHead>
+              <TableHead>UF</TableHead>
               <TableHead>Porte</TableHead>
-              <TableHead>Situação</TableHead>
-              <TableHead className="w-[250px]">Contatado</TableHead>
+              <TableHead>Situação Cadastral</TableHead>
+              <TableHead>Capital Social</TableHead>
+              <TableHead>E-mail</TableHead>
+              <TableHead>Telefone</TableHead>
+              <TableHead className="w-[150px]">Contatado</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isSearching ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-20 text-muted-foreground">
+                <TableCell colSpan={12} className="text-center py-20 text-muted-foreground">
                   <div className="flex flex-col items-center justify-center space-y-3">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                     <p>Buscando leads na base de dados...</p>
@@ -53,45 +69,64 @@ export function ResultsTable() {
               </TableRow>
             ) : filteredLeads.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-10 text-muted-foreground">
+                <TableCell colSpan={12} className="text-center py-10 text-muted-foreground">
                   Nenhum lead encontrado com os filtros atuais.
                 </TableCell>
               </TableRow>
             ) : (
               filteredLeads.map((lead) => (
-                <TableRow key={lead.id || lead.cnpj} className="animate-fade-in group">
-                  <TableCell className="font-medium">{lead.razao_social}</TableCell>
-                  <TableCell className="text-muted-foreground whitespace-nowrap">
-                    {lead.cnpj}
+                <TableRow
+                  key={lead.id || lead.cnpj}
+                  className="animate-fade-in group text-xs sm:text-sm"
+                >
+                  <TableCell className="font-medium whitespace-nowrap">
+                    {formatCnpj(lead.cnpj)}
                   </TableCell>
-                  <TableCell className="max-w-[200px] truncate" title={lead.cnae_principal}>
+                  <TableCell className="font-medium min-w-[200px]">{lead.razao_social}</TableCell>
+                  <TableCell className="max-w-[150px] truncate" title={lead.cnae_principal}>
                     {lead.cnae_principal}
                   </TableCell>
+                  <TableCell>{lead.municipio}</TableCell>
+                  <TableCell>{lead.uf}</TableCell>
                   <TableCell>
-                    {lead.municipio} - {lead.uf}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{lead.porte}</Badge>
+                    <Badge variant="outline" className="whitespace-nowrap">
+                      {lead.porte}
+                    </Badge>
                   </TableCell>
                   <TableCell>
                     <Badge
-                      variant={lead.situacao === 'Ativa' ? 'default' : 'secondary'}
-                      className={lead.situacao === 'Ativa' ? 'bg-primary text-white' : ''}
+                      variant={
+                        lead.situacao === 'Ativa' || lead.situacao === 'ATIVA'
+                          ? 'default'
+                          : 'secondary'
+                      }
+                      className={
+                        lead.situacao === 'Ativa' || lead.situacao === 'ATIVA'
+                          ? 'bg-emerald-500 text-white hover:bg-emerald-600'
+                          : ''
+                      }
                     >
                       {lead.situacao}
                     </Badge>
                   </TableCell>
+                  <TableCell className="whitespace-nowrap">
+                    {formatCurrency(lead.capital_social)}
+                  </TableCell>
+                  <TableCell className="max-w-[150px] truncate" title={lead.email}>
+                    {lead.email || '-'}
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap">{lead.telefone || '-'}</TableCell>
                   <TableCell>
                     {lead.contatado ? (
                       <Badge
                         className={cn(
-                          'bg-emerald-500 text-white flex gap-2 w-max items-center px-3 py-1 animate-in zoom-in-95',
+                          'bg-emerald-500 text-white flex gap-1 w-max items-center px-2 py-1 animate-in zoom-in-95',
                           canContact && 'hover:bg-emerald-600 cursor-pointer',
                         )}
                         onClick={() => canContact && toggleContact(lead.cnpj)}
+                        title={`Contatado por: ${lead.contatadoPor} em ${lead.contatadoEm}`}
                       >
-                        Contatado por: {lead.contatadoPor} <br className="hidden" /> -{' '}
-                        {lead.contatadoEm}
+                        Sim
                       </Badge>
                     ) : (
                       <div className="flex items-center space-x-2">
@@ -104,13 +139,13 @@ export function ResultsTable() {
                         <label
                           htmlFor={`contact-${lead.cnpj}`}
                           className={cn(
-                            'text-sm select-none',
+                            'text-xs select-none',
                             canContact
                               ? 'cursor-pointer text-muted-foreground'
                               : 'text-muted-foreground/50',
                           )}
                         >
-                          Marcar contato
+                          Marcar
                         </label>
                       </div>
                     )}
@@ -120,9 +155,9 @@ export function ResultsTable() {
                       variant="outline"
                       size="sm"
                       onClick={() => setSelectedLeadCnpj(lead.cnpj)}
-                      className="opacity-0 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
+                      className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
                     >
-                      Ver Detalhes
+                      Detalhes
                     </Button>
                   </TableCell>
                 </TableRow>

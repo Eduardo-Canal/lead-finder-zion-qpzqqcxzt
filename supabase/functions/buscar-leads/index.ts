@@ -11,12 +11,32 @@ Deno.serve(async (req: Request) => {
 
   try {
     const payload = await req.json().catch(() => ({}))
-    const { cnae_fiscal_principal, uf, limit = 10, page = 1, bypass_cache = false } = payload
+    const {
+      cnae_fiscal_principal,
+      uf,
+      municipio,
+      limit = 10,
+      page = 1,
+      bypass_cache = false,
+    } = payload
 
-    // Feature: Data Integrity Preservation - Do NOT remove special characters
     const cnaes = Array.isArray(cnae_fiscal_principal)
       ? cnae_fiscal_principal.map((c) => (typeof c === 'string' ? c.trim() : c)).filter(Boolean)
       : []
+
+    if (cnaes.length === 0) {
+      return new Response(
+        JSON.stringify({
+          error: 'CNAE é obrigatório para a busca.',
+          data: [],
+          page,
+          count: 0,
+          pages: 0,
+          status_http: 400,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
+      )
+    }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
     const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY') || ''
@@ -27,7 +47,6 @@ Deno.serve(async (req: Request) => {
       global: { headers: { Authorization: authHeader || '' } },
     })
 
-    // Admin client to bypass RLS for logging
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey)
 
     const { data: config } = await supabase
@@ -36,10 +55,9 @@ Deno.serve(async (req: Request) => {
       .eq('id', 1)
       .maybeSingle()
 
-    // Dynamic Token Retrieval from config, strictly from database for persistence
     const apiKey = config?.casadosdados_api_token?.trim() || ''
 
-    const payloadToHash = { cnaes, uf: uf || null, limit, page }
+    const payloadToHash = { cnaes, uf: uf || null, municipio: municipio || null, limit, page }
     const msgBuffer = new TextEncoder().encode(JSON.stringify(payloadToHash))
     const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer)
     const hashArray = Array.from(new Uint8Array(hashBuffer))
@@ -58,6 +76,7 @@ Deno.serve(async (req: Request) => {
         await supabaseAdmin.from('api_debug_logs').insert({
           cnae: cnaes.join(', ') || null,
           uf: uf || null,
+          municipio: municipio || null,
           limite: limit,
           status_http: 200,
           sucesso: true,
@@ -73,7 +92,6 @@ Deno.serve(async (req: Request) => {
             count: cachedData.total_registros,
             pages: Math.ceil(cachedData.total_registros / limit) || 1,
             cached: true,
-            isMock: false,
             status_http: 200,
           }),
           {
@@ -84,41 +102,33 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    // Feature: Payload Optimization - Exact structure required
     const casadosDadosPayload: any = {
-      cnaes: cnaes,
+      codigo_atividade_principal: cnaes,
       limite: limit || 10,
     }
 
     if (uf && uf !== 'Todos') {
       casadosDadosPayload.uf = uf
     }
+    if (municipio && municipio !== 'Todos') {
+      casadosDadosPayload.municipio = municipio
+    }
 
     let data
-    let isMock = false
     let externalStatus = 200
     const fetchStart = performance.now()
     let timeTakenApi = 0
 
     if (apiKey) {
       try {
-        // Bearer Token Formatting: check if it contains the Bearer prefix
-        // Handle cases where the prefix might have different casing or extra spaces
-        let tokenFormatted = apiKey
-        if (!/^Bearer\s+/i.test(tokenFormatted)) {
-          tokenFormatted = `Bearer ${tokenFormatted}`
-        } else {
-          // Normalize to exactly "Bearer "
-          tokenFormatted = `Bearer ${tokenFormatted.replace(/^Bearer\s+/i, '')}`
-        }
+        let tokenRaw = apiKey.replace(/^Bearer\s+/i, '').trim()
 
-        // Feature: Endpoint Update to v5
         const response = await fetch('https://api.casadosdados.com.br/v5/cnpj/pesquisa', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             Accept: 'application/json',
-            Authorization: tokenFormatted,
+            'api-key': tokenRaw,
           },
           body: JSON.stringify(casadosDadosPayload),
         })
@@ -130,13 +140,13 @@ Deno.serve(async (req: Request) => {
           let errorMsg = `Erro na API: ${response.status} ${response.statusText}`
           if (response.status === 401 || response.status === 403) {
             errorMsg =
-              'Token Inválido ou Não Autorizado. Acesse a tela Avançado para verificar o token.'
+              'Token Inválido ou Não Autorizado. Verifique o token nas Configurações Avançadas.'
           } else if (response.status === 429) {
             errorMsg = 'Limite de Requisições Excedido'
           } else if (response.status === 404) {
             errorMsg = 'Endpoint não encontrado (verifique a URL)'
           } else if (response.status === 400) {
-            errorMsg = 'Requisição inválida (verifique o formato do CNAE e limites)'
+            errorMsg = 'Requisição inválida (verifique os parâmetros da busca)'
           }
 
           let errorData = null
@@ -146,10 +156,10 @@ Deno.serve(async (req: Request) => {
 
           const finalError = { error: errorMsg, details: errorData }
 
-          // Enhanced Debug Logging - storing full error payload
           await supabaseAdmin.from('api_debug_logs').insert({
             cnae: cnaes.join(', ') || null,
             uf: uf || null,
+            municipio: municipio || null,
             limite: limit,
             status_http: response.status,
             sucesso: false,
@@ -166,7 +176,6 @@ Deno.serve(async (req: Request) => {
               count: 0,
               pages: 0,
               cached: false,
-              isMock: false,
               status_http: response.status,
               raw_response: errorData,
             }),
@@ -183,6 +192,7 @@ Deno.serve(async (req: Request) => {
         await supabaseAdmin.from('api_debug_logs').insert({
           cnae: cnaes.join(', ') || null,
           uf: uf || null,
+          municipio: municipio || null,
           limite: limit,
           status_http: 500,
           sucesso: false,
@@ -199,70 +209,67 @@ Deno.serve(async (req: Request) => {
             count: 0,
             pages: 0,
             cached: false,
-            isMock: false,
             status_http: 500,
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
         )
       }
+    } else {
+      const errObj = { error: 'Token da API Casa dos Dados não configurado.' }
+      await supabaseAdmin.from('api_debug_logs').insert({
+        cnae: cnaes.join(', ') || null,
+        uf: uf || null,
+        municipio: municipio || null,
+        limite: limit,
+        status_http: 401,
+        sucesso: false,
+        tempo_resposta_ms: 0,
+        total_resultados: 0,
+        resposta_json: errObj,
+      })
+
+      return new Response(
+        JSON.stringify({
+          error: 'Token da API Casa dos Dados não configurado.',
+          data: [],
+          page,
+          count: 0,
+          pages: 0,
+          cached: false,
+          status_http: 401,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
+      )
     }
 
     if (!data || data.error) {
-      if (apiKey) {
-        const finalError = data?.error || 'Formato de resposta inesperado da API.'
-        await supabaseAdmin.from('api_debug_logs').insert({
-          cnae: cnaes.join(', ') || null,
-          uf: uf || null,
-          limite: limit,
-          status_http: externalStatus || 500,
-          sucesso: false,
-          tempo_resposta_ms: timeTakenApi,
-          total_resultados: 0,
-          resposta_json: data || { error: finalError },
-        })
-
-        return new Response(
-          JSON.stringify({
-            error: finalError,
-            data: [],
-            page,
-            count: 0,
-            pages: 0,
-            cached: false,
-            isMock: false,
-            status_http: externalStatus || 500,
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
-        )
-      }
-
-      isMock = true
-      const isTargetCnae = cnaes.some((c) => c.includes('4683'))
-      const fallbackCount = isTargetCnae ? Math.min(6, limit) : limit
-
-      const mockResults = Array.from({ length: fallbackCount }).map((_, i) => {
-        const id = (page - 1) * limit + i + 1
-        return {
-          cnpj: `12.345.678/0001-${10 + i}`,
-          razao_social: isTargetCnae
-            ? `COMÉRCIO DE DEFENSIVOS AGRÍCOLAS ${id} LTDA`
-            : `Empresa Exemplo ${id} LTDA (Demonstração)`,
-          nome_fantasia: isTargetCnae ? `AGRO DEFENSIVOS ${id}` : `Exemplo ${id}`,
-          cnae_fiscal_principal: cnaes[0] || '4683-4/00',
-          municipio: 'SÃO PAULO',
-          uf: uf || 'SP',
-          porte: 'DEMAIS',
-          situacao_cadastral: 'ATIVA',
-          capital_social: 50000,
-          email: `contato${id}@exemplo.com.br`,
-          telefone: `11988887777`,
-        }
+      const finalError = data?.error || 'Formato de resposta inesperado da API.'
+      await supabaseAdmin.from('api_debug_logs').insert({
+        cnae: cnaes.join(', ') || null,
+        uf: uf || null,
+        municipio: municipio || null,
+        limite: limit,
+        status_http: externalStatus || 500,
+        sucesso: false,
+        tempo_resposta_ms: timeTakenApi,
+        total_resultados: 0,
+        resposta_json: data || { error: finalError },
       })
 
-      data = { success: true, data: mockResults, count: fallbackCount, pages: 1, page: page }
+      return new Response(
+        JSON.stringify({
+          error: finalError,
+          data: [],
+          page,
+          count: 0,
+          pages: 0,
+          cached: false,
+          status_http: externalStatus || 500,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
+      )
     }
 
-    // Response Handling flexibility
     let rawResults = data?.data?.cnpj || data?.cnpj || data?.data || data?.resultados || data || []
     if (!Array.isArray(rawResults)) {
       rawResults = []
@@ -285,7 +292,7 @@ Deno.serve(async (req: Request) => {
       telefone: empresa.telefone || empresa.ddd_telefone_1 || '',
     }))
 
-    if (results && results.length > 0 && !isMock) {
+    if (results && results.length > 0) {
       try {
         const expira_em = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
         await supabase.from('cache_pesquisas').upsert(
@@ -302,18 +309,17 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    if (!isMock) {
-      await supabaseAdmin.from('api_debug_logs').insert({
-        cnae: cnaes.join(', ') || null,
-        uf: uf || null,
-        limite: limit,
-        status_http: externalStatus || 200,
-        sucesso: true,
-        tempo_resposta_ms: timeTakenApi,
-        total_resultados: totalCount,
-        resposta_json: data,
-      })
-    }
+    await supabaseAdmin.from('api_debug_logs').insert({
+      cnae: cnaes.join(', ') || null,
+      uf: uf || null,
+      municipio: municipio || null,
+      limite: limit,
+      status_http: externalStatus || 200,
+      sucesso: true,
+      tempo_resposta_ms: timeTakenApi,
+      total_resultados: totalCount,
+      resposta_json: data,
+    })
 
     return new Response(
       JSON.stringify({
@@ -322,7 +328,6 @@ Deno.serve(async (req: Request) => {
         count: totalCount,
         pages: totalPages,
         cached: false,
-        isMock,
         status_http: externalStatus || 200,
         raw_response: data,
       }),
