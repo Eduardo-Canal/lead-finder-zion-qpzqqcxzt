@@ -28,6 +28,21 @@ Deno.serve(async (req: Request) => {
           .filter(Boolean)
       : []
 
+    if (!cnaes || cnaes.length === 0) {
+      return new Response(
+        JSON.stringify({
+          error: 'O filtro de CNAE é obrigatório.',
+          data: [],
+          page,
+          count: 0,
+          pages: 0,
+          cached: false,
+          status_http: 400,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
+      )
+    }
+
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
     const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY') || ''
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
@@ -101,21 +116,16 @@ Deno.serve(async (req: Request) => {
 
     const casadosDadosPayload: any = {
       limite: limit || 10,
-      page: page || 1,
+      pagina: page || 1,
     }
 
-    if (cnaes && cnaes.length > 0) {
-      casadosDadosPayload.codigo_atividade_principal = cnaes
-    }
+    casadosDadosPayload.codigo_atividade_principal = cnaes
 
     if (uf && uf !== 'Todos') {
       casadosDadosPayload.uf = Array.isArray(uf) ? uf : [uf]
     }
     if (municipio && municipio !== 'Todos') {
       casadosDadosPayload.municipio = Array.isArray(municipio) ? municipio : [municipio]
-    }
-    if (situacao_cadastral && situacao_cadastral !== 'Todos') {
-      casadosDadosPayload.situacao_cadastral = situacao_cadastral
     }
 
     let data

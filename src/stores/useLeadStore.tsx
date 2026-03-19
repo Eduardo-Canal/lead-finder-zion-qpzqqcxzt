@@ -133,8 +133,8 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
   const searchLeads = async (pageToFetch?: number | any) => {
     if (!user) return
 
-    if (filters.cnaes.length === 0 && filters.ufs.length === 0 && !filters.municipio) {
-      toast.error('Informe pelo menos um filtro principal (CNAE, UF ou Município) para buscar.')
+    if (filters.cnaes.length === 0) {
+      toast.error('O filtro de CNAE Principal é obrigatório para realizar a busca.')
       return
     }
 

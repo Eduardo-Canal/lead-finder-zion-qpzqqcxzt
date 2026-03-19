@@ -8,8 +8,7 @@ import useLeadStore from '@/stores/useLeadStore'
 export default function Prospeccao() {
   const { searchLeads, filters, isSearching } = useLeadStore()
 
-  const isSearchDisabled =
-    filters.cnaes.length === 0 && filters.ufs.length === 0 && !filters.municipio
+  const isSearchDisabled = filters.cnaes.length === 0
 
   return (
     <div className="max-w-7xl mx-auto space-y-6 animate-fade-in pb-10">
@@ -33,7 +32,7 @@ export default function Prospeccao() {
           </Button>
           {isSearchDisabled && (
             <p className="text-xs text-muted-foreground text-center font-medium mt-1">
-              Preencha ao menos um filtro principal (CNAE, UF ou Município)
+              O filtro de CNAE Principal é obrigatório
             </p>
           )}
         </div>

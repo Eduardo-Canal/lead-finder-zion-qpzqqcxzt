@@ -32,7 +32,7 @@ export function AdvancedFilters() {
       </div>
 
       <div className="space-y-3">
-        <Label>CNAE Principal (Opcional)</Label>
+        <Label>CNAE Principal (Obrigatório)</Label>
         <div className="flex gap-2">
           <Input
             placeholder="Ex: 4683-4/00"
