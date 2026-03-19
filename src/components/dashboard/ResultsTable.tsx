@@ -52,6 +52,9 @@ const formatObjectField = (val: any): string => {
   if (val === null || val === undefined) return ''
   if (typeof val === 'string' || typeof val === 'number') return String(val)
   if (typeof val === 'object') {
+    if ('email' in val && typeof val.email === 'string') {
+      return val.email
+    }
     if ('codigo' in val && 'descricao' in val) {
       return `${val.codigo} - ${val.descricao}`
     }
@@ -162,8 +165,11 @@ export function ResultsTable() {
                   <TableCell className="whitespace-nowrap">
                     {formatDate(lead.data_abertura)}
                   </TableCell>
-                  <TableCell className="max-w-[150px] truncate" title={lead.email}>
-                    {lead.email}
+                  <TableCell
+                    className="max-w-[150px] truncate"
+                    title={formatObjectField(lead.email)}
+                  >
+                    {formatObjectField(lead.email) || '-'}
                   </TableCell>
                   <TableCell className="whitespace-nowrap">{lead.telefone || '-'}</TableCell>
                   <TableCell>

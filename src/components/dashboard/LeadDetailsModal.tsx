@@ -42,6 +42,22 @@ const formatDate = (date: string) => {
   }
 }
 
+const formatEmail = (val: any): string => {
+  if (!val) return '-'
+  if (typeof val === 'string') return val
+  if (typeof val === 'object' && val !== null) {
+    if ('email' in val && typeof val.email === 'string') {
+      return val.email
+    }
+    try {
+      return JSON.stringify(val)
+    } catch {
+      return String(val)
+    }
+  }
+  return String(val)
+}
+
 const Field = ({
   label,
   value,
@@ -231,7 +247,7 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
               <section>
                 <h3 className="text-lg font-bold border-b pb-2 mb-4">4. Contato</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-6">
-                  <Field label="Email" value={d.email} />
+                  <Field label="Email" value={formatEmail(d.email)} />
                   <Field label="Telefone" value={d.telefone} />
                 </div>
               </section>
