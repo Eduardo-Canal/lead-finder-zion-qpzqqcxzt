@@ -36,7 +36,13 @@ Deno.serve(async (req: Request) => {
       .eq('id', 1)
       .maybeSingle()
 
-    const apiKey = config?.casadosdados_api_token || Deno.env.get('CASADOSDADOS_API_KEY')
+    // Dynamic Token Retrieval from config first, fallback to env var
+    let apiKey = config?.casadosdados_api_token
+    if (!apiKey || apiKey.trim() === '') {
+      apiKey = Deno.env.get('CASADOSDADOS_API_KEY')
+    }
+
+    apiKey = apiKey?.trim() || ''
 
     const payloadToHash = { cnaes, uf: uf || null, limit, page }
     const msgBuffer = new TextEncoder().encode(JSON.stringify(payloadToHash))
@@ -101,8 +107,15 @@ Deno.serve(async (req: Request) => {
 
     if (apiKey) {
       try {
-        // Feature: Header Authentication standardization
-        const tokenFormatted = apiKey.startsWith('Bearer ') ? apiKey : `Bearer ${apiKey}`
+        // Bearer Token Formatting: check if it contains the Bearer prefix
+        // Handle cases where the prefix might have different casing or extra spaces
+        let tokenFormatted = apiKey
+        if (!/^Bearer\s+/i.test(tokenFormatted)) {
+          tokenFormatted = `Bearer ${tokenFormatted}`
+        } else {
+          // Normalize to exactly "Bearer "
+          tokenFormatted = `Bearer ${tokenFormatted.replace(/^Bearer\s+/i, '')}`
+        }
 
         // Feature: Endpoint Update to v5
         const response = await fetch('https://api.casadosdados.com.br/v5/cnpj/pesquisa', {
@@ -121,7 +134,8 @@ Deno.serve(async (req: Request) => {
         if (!response.ok) {
           let errorMsg = `Erro na API: ${response.status} ${response.statusText}`
           if (response.status === 401 || response.status === 403) {
-            errorMsg = 'Token Inválido ou Não Autorizado'
+            errorMsg =
+              'Token Inválido ou Não Autorizado. Acesse a tela Avançado para verificar o token.'
           } else if (response.status === 429) {
             errorMsg = 'Limite de Requisições Excedido'
           } else if (response.status === 404) {
@@ -137,6 +151,7 @@ Deno.serve(async (req: Request) => {
 
           const finalError = { error: errorMsg, details: errorData }
 
+          // Enhanced Debug Logging
           await supabaseAdmin.from('api_debug_logs').insert({
             cnae: cnaes.join(', ') || null,
             uf: uf || null,
