@@ -78,54 +78,68 @@ const HTTP_ERROR_DICTIONARY: Record<
   number | string,
   { title: string; meaning: string; action: string | string[] }
 > = {
+  400: {
+    title: '❌ Requisição Inválida (Erro 400)',
+    meaning: 'O formato dos dados enviados está incorreto (ex: estrutura do payload).',
+    action: [
+      'Verifique se o CNAE possui o formato correto e contém caracteres especiais (ex: 5211-7/01).',
+      'Confirme se o objeto JSON enviado segue exatamente a estrutura: {"cnaes": [...], "uf": "XX", "limite": 10}.',
+    ],
+  },
   401: {
     title: '❌ Não Autorizado (Erro 401)',
     meaning: 'O token de acesso (API Key) é inválido ou expirou.',
-    action: "Acesse a tela 'Avançado' e atualize o 'Token de Integração API Casa dos Dados'.",
+    action:
+      "Acesse a tela 'Avançado' e atualize o 'Token de Integração API Casa dos Dados' garantindo que ele inclui o formato Bearer correto.",
   },
   403: {
     title: '❌ Proibido (Erro 403)',
-    meaning:
-      'Sua conta não tem permissão para acessar este recurso ou o limite do plano foi atingido.',
-    action: 'Verifique seu saldo ou permissões na Casa dos Dados.',
+    meaning: 'Sua conta não tem permissão para acessar este recurso.',
+    action: 'Verifique seu saldo ou permissões na plataforma Casa dos Dados.',
   },
   404: {
-    title: '❌ Recurso não encontrado (Erro 404)',
-    meaning:
-      'O servidor da Casa dos Dados não encontrou a informação solicitada ou o endereço da API está incorreto.',
+    title: '❌ Endpoint não encontrado (Erro 404)',
+    meaning: 'O servidor da Casa dos Dados não encontrou a rota solicitada.',
     action: [
-      'Verifique se o CNAE informado é válido e possui 7 dígitos.',
-      'Confirme se a UF (Estado) está escrita corretamente (Ex: SP, RJ).',
-      'Verifique se o Município possui caracteres especiais ou erros de digitação.',
-      'Certifique-se de que a URL da API configurada no sistema está correta.',
+      'Confirme se o endpoint na Edge Function está apontando para /v2/public/cnpj/pesquisa.',
+      'Verifique se não há erros de digitação na URL.',
     ],
   },
   429: {
     title: '❌ Limite de Requisições Excedido (Erro 429)',
-    meaning: 'Você atingiu o limite de consultas permitidas pelo seu plano na Casa dos Dados.',
-    action:
-      'Aguarde alguns minutos antes de tentar novamente ou verifique o limite do seu plano contratado.',
+    meaning: 'Você atingiu o limite de consultas permitidas pelo seu plano.',
+    action: 'Aguarde alguns minutos antes de tentar novamente.',
   },
   '5xx': {
     title: '❌ Erro Interno no Servidor (Erro 5xx)',
-    meaning: 'O serviço da Casa dos Dados está enfrentando instabilidades momentâneas.',
-    action:
-      'Tente novamente em instantes. Se o problema persistir, entre em contato com o suporte técnico da Casa dos Dados.',
+    meaning: 'O serviço da Casa dos Dados está enfrentando instabilidades.',
+    action: 'Tente novamente em instantes.',
   },
 }
 
-const getErrorExplanation = (status: number | null) => {
-  if (!status || status < 400) return null
-  if (status >= 500 && status <= 503) {
-    return HTTP_ERROR_DICTIONARY['5xx']
-  }
-  return (
-    HTTP_ERROR_DICTIONARY[status] || {
-      title: `❌ Erro Desconhecido (Erro ${status})`,
-      meaning: 'Ocorreu um erro não catalogado ao processar a requisição.',
-      action: 'Verifique os logs detalhados ou contate o suporte.',
+const getStatusExplanation = (status: number | null) => {
+  if (!status) return null
+  if (status >= 200 && status < 300) {
+    return {
+      type: 'success',
+      title: '✅ Integração Operacional',
+      meaning:
+        'A API respondeu corretamente e o novo endpoint está validando os dados com sucesso.',
+      action:
+        'Nenhuma ação necessária. A integração está operando normalmente com o payload correto e preservando a integridade dos códigos CNAE.',
     }
-  )
+  }
+  if (status >= 500 && status <= 503) {
+    return { type: 'error', ...HTTP_ERROR_DICTIONARY['5xx'] }
+  }
+  return HTTP_ERROR_DICTIONARY[status]
+    ? { type: 'error', ...HTTP_ERROR_DICTIONARY[status] }
+    : {
+        type: 'error',
+        title: `❌ Erro Desconhecido (Erro ${status})`,
+        meaning: 'Ocorreu um erro não catalogado ao processar a requisição.',
+        action: 'Verifique os logs detalhados da Edge Function para investigar.',
+      }
 }
 
 export default function DebugAPI() {
@@ -136,8 +150,7 @@ export default function DebugAPI() {
   const [hasToken, setHasToken] = useState<boolean | null>(null)
   const [cnae, setCnae] = useState('')
   const [uf, setUf] = useState('')
-  const [municipio, setMunicipio] = useState('')
-  const [limit, setLimit] = useState<number | ''>(5)
+  const [limit, setLimit] = useState<number | ''>(10)
   const [loading, setLoading] = useState(false)
   const [lastResponse, setLastResponse] = useState<any>(null)
   const [latency, setLatency] = useState<number | null>(null)
@@ -157,7 +170,6 @@ export default function DebugAPI() {
       navigate('/')
       return
     }
-
     if (isAdmin) {
       fetchStatus()
       fetchHistory()
@@ -189,7 +201,7 @@ export default function DebugAPI() {
     setValidationResult(null)
 
     try {
-      const dummyCnae = Math.floor(Math.random() * 9000000 + 1000000).toString()
+      const dummyCnae = '5211-7/01'
       const { data, error } = await supabase.functions.invoke('buscar-leads', {
         body: {
           cnae_fiscal_principal: [dummyCnae],
@@ -210,7 +222,7 @@ export default function DebugAPI() {
       if (status >= 200 && status < 300 && !data?.error && !data?.isMock) {
         setValidationResult({
           success: true,
-          message: '✅ Conectado à API Casa dos Dados',
+          message: '✅ Conectado à API Casa dos Dados (Novo Endpoint)',
         })
       } else {
         const errorMsg = data?.error || (data?.isMock ? 'Token ausente ou inválido' : status)
@@ -238,15 +250,15 @@ export default function DebugAPI() {
     setTotalResults(null)
 
     const start = performance.now()
-    const cleanCnae = cnae.replace(/\D/g, '')
+    // Feature: Data Integrity Preservation - Do not strip special characters
+    const cleanCnae = cnae.trim()
 
     try {
       const { data, error } = await supabase.functions.invoke('buscar-leads', {
         body: {
           cnae_fiscal_principal: cleanCnae ? [cleanCnae] : [],
           uf: uf && uf !== 'Todos' ? uf : null,
-          municipio: municipio ? municipio.trim() : null,
-          limit: limit || 5,
+          limit: limit || 10,
           bypass_cache: true,
         },
       })
@@ -283,7 +295,6 @@ export default function DebugAPI() {
       await supabase.from('api_debug_logs').insert({
         cnae: cleanCnae || null,
         uf: uf && uf !== 'Todos' ? uf : null,
-        municipio: municipio || null,
         limite: limit || null,
         status_http: status,
         sucesso: success,
@@ -306,7 +317,7 @@ export default function DebugAPI() {
 
   if (!isAdmin) return null
 
-  const errorExplanation = getErrorExplanation(httpStatus)
+  const statusExplanation = getStatusExplanation(httpStatus)
 
   return (
     <div className="max-w-7xl mx-auto space-y-6 animate-fade-in pb-10">
@@ -314,52 +325,10 @@ export default function DebugAPI() {
         <div>
           <h2 className="text-2xl font-semibold tracking-tight">Admin - Debug API</h2>
           <p className="text-muted-foreground mt-1">
-            Monitore o status da integração com a Casa dos Dados, realize testes manuais e analise
-            as respostas.
+            Monitore o status da integração com o novo endpoint da Casa dos Dados, preserve filtros
+            essenciais e analise respostas.
           </p>
         </div>
-
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="outline" className="gap-2">
-              <HelpCircle className="h-4 w-4" />
-              Guia de Resolução de Erros
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-96 max-h-[80vh] overflow-y-auto" align="end">
-            <div className="space-y-4">
-              <div>
-                <h4 className="font-semibold mb-1">Guia Rápido de Erros</h4>
-                <p className="text-sm text-muted-foreground">
-                  Principais códigos de retorno e o que fazer em cada caso.
-                </p>
-              </div>
-              <div className="space-y-4">
-                {Object.values(HTTP_ERROR_DICTIONARY).map((err, idx) => (
-                  <div key={idx} className="border-b pb-3 last:border-0 last:pb-0">
-                    <p className="font-medium text-sm text-destructive">{err.title}</p>
-                    <p className="text-sm mt-1">
-                      <span className="font-semibold text-muted-foreground">Significa:</span>{' '}
-                      {err.meaning}
-                    </p>
-                    <div className="text-sm mt-1">
-                      <span className="font-semibold text-muted-foreground">Ações:</span>{' '}
-                      {Array.isArray(err.action) ? (
-                        <ul className="list-decimal pl-5 space-y-1 mt-1">
-                          {err.action.map((act, i) => (
-                            <li key={i}>{act}</li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <span>{err.action}</span>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </PopoverContent>
-        </Popover>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -421,38 +390,28 @@ export default function DebugAPI() {
               <h3 className="text-sm font-medium mb-4">Teste de Requisição Manual</h3>
               <form onSubmit={handleTestAPI} className="space-y-4">
                 <div className="space-y-2">
-                  <Label>CNAE (Opcional)</Label>
+                  <Label>CNAE (Opcional - Mantém formatação)</Label>
                   <Input
-                    placeholder="Ex: 4683-4/00"
+                    placeholder="Ex: 5211-7/01"
                     value={cnae}
                     onChange={(e) => setCnae(e.target.value)}
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>UF (Opcional)</Label>
-                    <Select value={uf} onValueChange={setUf}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="UF" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Todos">Todas</SelectItem>
-                        {BRAZIL_STATES.map((state) => (
-                          <SelectItem key={state} value={state}>
-                            {state}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Município (Opcional)</Label>
-                    <Input
-                      placeholder="Ex: São Paulo"
-                      value={municipio}
-                      onChange={(e) => setMunicipio(e.target.value)}
-                    />
-                  </div>
+                <div className="space-y-2">
+                  <Label>UF (Opcional)</Label>
+                  <Select value={uf} onValueChange={setUf}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="UF" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Todos">Todas</SelectItem>
+                      {BRAZIL_STATES.map((state) => (
+                        <SelectItem key={state} value={state}>
+                          {state}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
                   <Label>Limite de Resultados</Label>
@@ -480,8 +439,8 @@ export default function DebugAPI() {
 
         <Card className="md:col-span-2 flex flex-col">
           <CardHeader>
-            <CardTitle className="text-lg">Resposta da API</CardTitle>
-            <CardDescription>Visualizador em tempo real dos dados retornados</CardDescription>
+            <CardTitle className="text-lg">Ações Recomendadas e Feedback</CardTitle>
+            <CardDescription>Auditoria baseada no retorno do endpoint</CardDescription>
           </CardHeader>
           <CardContent className="flex-1 flex flex-col space-y-4">
             <div className="flex flex-wrap gap-4 mb-2">
@@ -517,30 +476,44 @@ export default function DebugAPI() {
               </div>
             </div>
 
-            {errorExplanation && (
+            {statusExplanation && (
               <Alert
-                variant="destructive"
-                className="animate-in fade-in slide-in-from-top-2 border-destructive/50 bg-destructive/5"
+                variant={statusExplanation.type === 'success' ? 'default' : 'destructive'}
+                className={cn(
+                  'animate-in fade-in slide-in-from-top-2 border',
+                  statusExplanation.type === 'success'
+                    ? 'border-emerald-500/50 bg-emerald-500/5'
+                    : 'border-destructive/50 bg-destructive/5',
+                )}
               >
-                <AlertTriangle className="h-4 w-4 text-destructive" />
-                <AlertTitle className="font-semibold text-destructive">
-                  {errorExplanation.title}
+                {statusExplanation.type === 'success' ? (
+                  <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                ) : (
+                  <AlertTriangle className="h-4 w-4 text-destructive" />
+                )}
+                <AlertTitle
+                  className={cn(
+                    'font-semibold',
+                    statusExplanation.type === 'success' ? 'text-emerald-600' : 'text-destructive',
+                  )}
+                >
+                  {statusExplanation.title}
                 </AlertTitle>
                 <AlertDescription className="mt-3 space-y-3 text-sm leading-relaxed text-foreground">
                   <div>
-                    <strong className="font-semibold block mb-1">O que significa:</strong>
-                    <p>{errorExplanation.meaning}</p>
+                    <strong className="font-semibold block mb-1">Status Atual:</strong>
+                    <p>{statusExplanation.meaning}</p>
                   </div>
                   <div>
-                    <strong className="font-semibold block mb-1">Ações para corrigir:</strong>
-                    {Array.isArray(errorExplanation.action) ? (
+                    <strong className="font-semibold block mb-1">Ações Recomendadas:</strong>
+                    {Array.isArray(statusExplanation.action) ? (
                       <ul className="list-decimal pl-5 space-y-1">
-                        {errorExplanation.action.map((act, i) => (
+                        {statusExplanation.action.map((act, i) => (
                           <li key={i}>{act}</li>
                         ))}
                       </ul>
                     ) : (
-                      <p>{errorExplanation.action}</p>
+                      <p>{statusExplanation.action}</p>
                     )}
                   </div>
                 </AlertDescription>
@@ -612,7 +585,7 @@ export default function DebugAPI() {
                 </TableRow>
               ) : (
                 history.map((log) => {
-                  const logErrorExplanation = getErrorExplanation(log.status_http)
+                  const logExplanation = getStatusExplanation(log.status_http)
 
                   return (
                     <TableRow key={log.id}>
@@ -637,40 +610,52 @@ export default function DebugAPI() {
                             {log.status_http || '-'}
                           </Badge>
 
-                          {logErrorExplanation && (
+                          {logExplanation && (
                             <Popover>
                               <PopoverTrigger asChild>
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="h-6 w-6 rounded-full hover:bg-destructive/10 text-destructive shrink-0"
+                                  className={cn(
+                                    'h-6 w-6 rounded-full shrink-0',
+                                    logExplanation.type === 'success'
+                                      ? 'text-emerald-500 hover:bg-emerald-500/10'
+                                      : 'text-destructive hover:bg-destructive/10',
+                                  )}
                                 >
                                   <Info className="h-4 w-4" />
                                 </Button>
                               </PopoverTrigger>
                               <PopoverContent className="w-80" side="top">
                                 <div className="space-y-2 text-sm">
-                                  <p className="font-semibold text-destructive flex items-center gap-2">
-                                    {logErrorExplanation.title}
+                                  <p
+                                    className={cn(
+                                      'font-semibold flex items-center gap-2',
+                                      logExplanation.type === 'success'
+                                        ? 'text-emerald-600'
+                                        : 'text-destructive',
+                                    )}
+                                  >
+                                    {logExplanation.title}
                                   </p>
                                   <p>
                                     <span className="font-medium text-muted-foreground">
-                                      Significa:
+                                      Status:
                                     </span>{' '}
-                                    {logErrorExplanation.meaning}
+                                    {logExplanation.meaning}
                                   </p>
                                   <div className="mt-1">
                                     <span className="font-medium text-muted-foreground">
-                                      Ações para corrigir:
+                                      Ações Recomendadas:
                                     </span>
-                                    {Array.isArray(logErrorExplanation.action) ? (
+                                    {Array.isArray(logExplanation.action) ? (
                                       <ul className="list-decimal pl-5 space-y-1 mt-1">
-                                        {logErrorExplanation.action.map((act, i) => (
+                                        {logExplanation.action.map((act, i) => (
                                           <li key={i}>{act}</li>
                                         ))}
                                       </ul>
                                     ) : (
-                                      <p className="mt-1">{logErrorExplanation.action}</p>
+                                      <p className="mt-1">{logExplanation.action}</p>
                                     )}
                                   </div>
                                 </div>

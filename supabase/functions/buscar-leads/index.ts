@@ -9,22 +9,11 @@ Deno.serve(async (req: Request) => {
 
   try {
     const payload = await req.json().catch(() => ({}))
-    const {
-      cnae_fiscal_principal,
-      uf,
-      municipio,
-      porte,
-      situacao_cadastral,
-      page = 1,
-      limit = 5,
-      bypass_cache = false,
-    } = payload
+    const { cnae_fiscal_principal, uf, limit = 10, page = 1, bypass_cache = false } = payload
 
-    // Sanitization: Ensure CNAE only contains digits
-    const cnaeCleaned = Array.isArray(cnae_fiscal_principal)
-      ? cnae_fiscal_principal
-          .map((c) => (typeof c === 'string' ? c.replace(/\D/g, '') : c))
-          .filter(Boolean)
+    // Feature: Data Integrity Preservation - Do NOT remove special characters
+    const cnaes = Array.isArray(cnae_fiscal_principal)
+      ? cnae_fiscal_principal.map((c) => (typeof c === 'string' ? c.trim() : c)).filter(Boolean)
       : []
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
@@ -43,16 +32,7 @@ Deno.serve(async (req: Request) => {
 
     const apiKey = config?.casadosdados_api_token || Deno.env.get('CASADOSDADOS_API_KEY')
 
-    const payloadToHash = {
-      cnae: cnaeCleaned,
-      uf: uf || null,
-      municipio: municipio ? municipio.toUpperCase() : null,
-      porte: porte ? porte.toUpperCase() : null,
-      situacao: situacao_cadastral ? situacao_cadastral.toUpperCase() : 'ATIVA',
-      page,
-      limit,
-    }
-
+    const payloadToHash = { cnaes, uf: uf || null, limit, page }
     const msgBuffer = new TextEncoder().encode(JSON.stringify(payloadToHash))
     const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer)
     const hashArray = Array.from(new Uint8Array(hashBuffer))
@@ -84,49 +64,14 @@ Deno.serve(async (req: Request) => {
       }
     }
 
+    // Feature: Payload Optimization - Exact structure required
     const casadosDadosPayload: any = {
-      query: {
-        termo: [],
-        atividade_principal: cnaeCleaned,
-        natureza_juridica: [],
-        uf: uf ? [uf] : [],
-        municipio: municipio ? [municipio.toUpperCase()] : [],
-        bairro: [],
-        cep: [],
-        ddd: [],
-      },
-      range_query: {
-        data_abertura: { lte: null, gte: null },
-        capital_social: { lte: null, gte: null },
-      },
-      exclusao: {
-        natureza_juridica: [],
-        atividade_principal: [],
-        bairro: [],
-        uf: [],
-        municipio: [],
-      },
-      somente_mei: false,
-      excluir_mei: false,
-      com_email: false,
-      incluir_atividade_secundaria: false,
-      com_contato_telefonico: false,
-      somente_fixo: false,
-      somente_celular: false,
-      somente_matriz: false,
-      somente_filial: false,
-      estado_inscricao: [],
-      page: page,
+      cnaes: cnaes,
+      limite: limit || 10,
     }
 
-    if (situacao_cadastral) {
-      casadosDadosPayload.query.situacao_cadastral = situacao_cadastral.toUpperCase()
-    } else {
-      casadosDadosPayload.query.situacao_cadastral = 'ATIVA'
-    }
-
-    if (porte) {
-      casadosDadosPayload.query.porte = [porte.toUpperCase()]
+    if (uf && uf !== 'Todos') {
+      casadosDadosPayload.uf = uf
     }
 
     let data
@@ -135,14 +80,16 @@ Deno.serve(async (req: Request) => {
 
     if (apiKey) {
       try {
-        const response = await fetch('https://api.casadosdados.com.br/v2/public/cnpj/search', {
+        // Feature: Header Authentication standardization
+        const tokenFormatted = apiKey.startsWith('Bearer ') ? apiKey : `Bearer ${apiKey}`
+
+        // Feature: Endpoint Correction
+        const response = await fetch('https://api.casadosdados.com.br/v2/public/cnpj/pesquisa', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             Accept: 'application/json',
-            Authorization: apiKey,
-            'casadosdados-api-key': apiKey,
-            'x-api-key': apiKey,
+            Authorization: tokenFormatted,
           },
           body: JSON.stringify(casadosDadosPayload),
         })
@@ -152,11 +99,13 @@ Deno.serve(async (req: Request) => {
         if (!response.ok) {
           let errorMsg = `Erro na API: ${response.status} ${response.statusText}`
           if (response.status === 401 || response.status === 403) {
-            errorMsg = 'Token Inválido'
+            errorMsg = 'Token Inválido ou Não Autorizado'
           } else if (response.status === 429) {
             errorMsg = 'Limite de Requisições Excedido'
+          } else if (response.status === 404) {
+            errorMsg = 'Endpoint não encontrado (verifique a URL)'
           } else if (response.status === 400) {
-            errorMsg = 'Requisição inválida (verifique os parâmetros)'
+            errorMsg = 'Requisição inválida (verifique o formato do CNAE e limites)'
           }
           return new Response(
             JSON.stringify({
@@ -169,10 +118,7 @@ Deno.serve(async (req: Request) => {
               isMock: false,
               status_http: response.status,
             }),
-            {
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-              status: 200,
-            },
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
           )
         }
 
@@ -190,15 +136,12 @@ Deno.serve(async (req: Request) => {
             isMock: false,
             status_http: 500,
           }),
-          {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 200,
-          },
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
         )
       }
     }
 
-    if (!data || data.success === false || data.error || !data.data?.cnpj) {
+    if (!data || data.error) {
       if (apiKey) {
         return new Response(
           JSON.stringify({
@@ -211,51 +154,44 @@ Deno.serve(async (req: Request) => {
             isMock: false,
             status_http: externalStatus || 500,
           }),
-          {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 200,
-          },
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
         )
       }
 
       isMock = true
-      const isTargetCnae = cnaeCleaned.includes('4683400')
+      const isTargetCnae = cnaes.some((c) => c.includes('4683'))
       const fallbackCount = isTargetCnae ? Math.min(6, limit) : limit
 
       const mockResults = Array.from({ length: fallbackCount }).map((_, i) => {
         const id = (page - 1) * limit + i + 1
-        const randomCnpj = `${Math.floor(Math.random() * 90 + 10)}.${Math.floor(Math.random() * 900 + 100)}.${Math.floor(Math.random() * 900 + 100)}/0001-${Math.floor(Math.random() * 90 + 10)}`
         return {
-          cnpj: isTargetCnae ? `12.345.678/0001-${10 + i}` : randomCnpj,
+          cnpj: `12.345.678/0001-${10 + i}`,
           razao_social: isTargetCnae
             ? `COMÉRCIO DE DEFENSIVOS AGRÍCOLAS ${id} LTDA`
             : `Empresa Exemplo ${id} LTDA (Demonstração)`,
           nome_fantasia: isTargetCnae ? `AGRO DEFENSIVOS ${id}` : `Exemplo ${id}`,
-          cnae_fiscal_principal: cnaeCleaned[0] || '4683400',
-          municipio: municipio ? municipio.toUpperCase() : 'SÃO PAULO',
+          cnae_fiscal_principal: cnaes[0] || '4683-4/00',
+          municipio: 'SÃO PAULO',
           uf: uf || 'SP',
-          porte: porte || 'DEMAIS',
-          situacao_cadastral: situacao_cadastral || 'ATIVA',
-          capital_social: Math.floor(Math.random() * 100000) + 50000,
+          porte: 'DEMAIS',
+          situacao_cadastral: 'ATIVA',
+          capital_social: 50000,
           email: `contato${id}@exemplo.com.br`,
-          telefone: `119${Math.floor(Math.random() * 90000000 + 10000000)}`,
+          telefone: `11988887777`,
         }
       })
 
-      data = {
-        success: true,
-        data: {
-          cnpj: mockResults,
-          count: isTargetCnae ? 6 : 50,
-          pages: Math.ceil((isTargetCnae ? 6 : 50) / limit),
-          page: page,
-        },
-      }
+      data = { success: true, data: mockResults, count: fallbackCount, pages: 1, page: page }
     }
 
-    let rawResults = data?.data?.cnpj || data?.cnpj || []
-    let totalCount = data?.data?.count || data?.count || rawResults.length
-    let totalPages = data?.data?.pages || data?.pages || 1
+    // Response Handling flexibility
+    let rawResults = data?.data?.cnpj || data?.cnpj || data?.data || data?.resultados || data || []
+    if (!Array.isArray(rawResults)) {
+      rawResults = []
+    }
+
+    let totalCount = data?.data?.count || data?.count || data?.total || rawResults.length
+    let totalPages = data?.data?.pages || data?.pages || data?.total_pages || 1
     let currentPage = data?.data?.page || data?.page || page
 
     const results = rawResults.slice(0, limit).map((empresa: any) => ({
@@ -299,23 +235,12 @@ Deno.serve(async (req: Request) => {
         status_http: externalStatus || 200,
         raw_response: data,
       }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      },
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
     )
   } catch (error: any) {
-    console.error('buscar-leads Edge Function Error:', error)
-    return new Response(
-      JSON.stringify({
-        error: error.message || 'Erro desconhecido ao realizar a busca.',
-        data: [],
-        status_http: 500,
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      },
-    )
+    return new Response(JSON.stringify({ error: error.message, data: [], status_http: 500 }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 200,
+    })
   }
 })
