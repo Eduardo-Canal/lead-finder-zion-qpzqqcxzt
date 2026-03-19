@@ -16,6 +16,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import {
   Loader2,
   Activity,
@@ -28,6 +29,8 @@ import {
   HelpCircle,
   AlertTriangle,
   Info,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react'
 import {
   Table,
@@ -71,55 +74,54 @@ const BRAZIL_STATES = [
   'TO',
 ]
 
-const HTTP_ERROR_DICTIONARY: Record<number, { title: string; meaning: string; action: string }> = {
+const HTTP_ERROR_DICTIONARY: Record<
+  number | string,
+  { title: string; meaning: string; action: string | string[] }
+> = {
   401: {
-    title: '401 - Não Autorizado',
-    meaning: 'Significa que o token (API Key) é inválido ou expirado.',
-    action: "Revise a chave na tela 'Avançado'.",
+    title: '❌ Não Autorizado (Erro 401)',
+    meaning: 'O token de acesso (API Key) é inválido ou expirou.',
+    action: "Acesse a tela 'Avançado' e atualize o 'Token de Integração API Casa dos Dados'.",
   },
   403: {
-    title: '403 - Proibido',
+    title: '❌ Proibido (Erro 403)',
     meaning:
-      'Significa que sua conta não tem permissão para acessar este recurso ou o limite do plano foi atingido.',
+      'Sua conta não tem permissão para acessar este recurso ou o limite do plano foi atingido.',
     action: 'Verifique seu saldo ou permissões na Casa dos Dados.',
   },
   404: {
-    title: '404 - Não Encontrado',
+    title: '❌ Recurso não encontrado (Erro 404)',
     meaning:
-      'Recurso não encontrado. Isso indica que o endereço da API (URL) pode estar incorreto ou que os parâmetros enviados (como um CNAE inexistente) não foram localizados no servidor da Casa dos Dados.',
-    action:
-      '1. Verifique se os campos de CNAE ou UF foram preenchidos corretamente. 2. Confirme se a URL da Edge Function está configurada corretamente no sistema. 3. Tente realizar uma busca mais simples para validar se o serviço está respondendo.',
+      'O servidor da Casa dos Dados não encontrou a informação solicitada ou o endereço da API está incorreto.',
+    action: [
+      'Verifique se o CNAE informado é válido e possui 7 dígitos.',
+      'Confirme se a UF (Estado) está escrita corretamente (Ex: SP, RJ).',
+      'Verifique se o Município possui caracteres especiais ou erros de digitação.',
+      'Certifique-se de que a URL da API configurada no sistema está correta.',
+    ],
   },
   429: {
-    title: '429 - Muitas Requisições',
-    meaning: 'Significa que você atingiu o limite de velocidade de consultas.',
-    action: 'Aguarde alguns minutos antes de tentar novamente.',
+    title: '❌ Limite de Requisições Excedido (Erro 429)',
+    meaning: 'Você atingiu o limite de consultas permitidas pelo seu plano na Casa dos Dados.',
+    action:
+      'Aguarde alguns minutos antes de tentar novamente ou verifique o limite do seu plano contratado.',
   },
-  500: {
-    title: '500 - Erro no Servidor',
-    meaning: 'Significa uma instabilidade no servidor da Casa dos Dados.',
-    action: 'Tente novamente em instantes.',
-  },
-  502: {
-    title: '502 - Bad Gateway',
-    meaning: 'Significa uma instabilidade de comunicação com o servidor da Casa dos Dados.',
-    action: 'Tente novamente em instantes.',
-  },
-  503: {
-    title: '503 - Serviço Indisponível',
-    meaning: 'Significa uma instabilidade no servidor da Casa dos Dados.',
-    action: 'Tente novamente em instantes.',
+  '5xx': {
+    title: '❌ Erro Interno no Servidor (Erro 5xx)',
+    meaning: 'O serviço da Casa dos Dados está enfrentando instabilidades momentâneas.',
+    action:
+      'Tente novamente em instantes. Se o problema persistir, entre em contato com o suporte técnico da Casa dos Dados.',
   },
 }
 
 const getErrorExplanation = (status: number | null) => {
   if (!status || status < 400) return null
   if (status >= 500 && status <= 503) {
-    return HTTP_ERROR_DICTIONARY[status] || HTTP_ERROR_DICTIONARY[500]
+    return HTTP_ERROR_DICTIONARY['5xx']
   }
   return (
     HTTP_ERROR_DICTIONARY[status] || {
-      title: `${status} - Erro Desconhecido`,
+      title: `❌ Erro Desconhecido (Erro ${status})`,
       meaning: 'Ocorreu um erro não catalogado ao processar a requisição.',
       action: 'Verifique os logs detalhados ou contate o suporte.',
     }
@@ -142,6 +144,7 @@ export default function DebugAPI() {
   const [httpStatus, setHttpStatus] = useState<number | null>(null)
   const [totalResults, setTotalResults] = useState<number | null>(null)
   const [history, setHistory] = useState<any[]>([])
+  const [isJsonOpen, setIsJsonOpen] = useState(true)
 
   const [isValidating, setIsValidating] = useState(false)
   const [validationResult, setValidationResult] = useState<{
@@ -275,6 +278,7 @@ export default function DebugAPI() {
       setLastResponse(respostaJson)
       setHttpStatus(status)
       setTotalResults(resultadosQtd)
+      setIsJsonOpen(success)
 
       await supabase.from('api_debug_logs').insert({
         cnae: cleanCnae || null,
@@ -338,10 +342,18 @@ export default function DebugAPI() {
                       <span className="font-semibold text-muted-foreground">Significa:</span>{' '}
                       {err.meaning}
                     </p>
-                    <p className="text-sm mt-1">
-                      <span className="font-semibold text-muted-foreground">Ação:</span>{' '}
-                      {err.action}
-                    </p>
+                    <div className="text-sm mt-1">
+                      <span className="font-semibold text-muted-foreground">Ações:</span>{' '}
+                      {Array.isArray(err.action) ? (
+                        <ul className="list-decimal pl-5 space-y-1 mt-1">
+                          {err.action.map((act, i) => (
+                            <li key={i}>{act}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <span>{err.action}</span>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -471,7 +483,7 @@ export default function DebugAPI() {
             <CardTitle className="text-lg">Resposta da API</CardTitle>
             <CardDescription>Visualizador em tempo real dos dados retornados</CardDescription>
           </CardHeader>
-          <CardContent className="flex-1 flex flex-col space-y-4 min-h-[400px]">
+          <CardContent className="flex-1 flex flex-col space-y-4">
             <div className="flex flex-wrap gap-4 mb-2">
               <div className="flex items-center gap-2 border px-3 py-2 rounded-md bg-muted/30">
                 <Code2 className="h-4 w-4 text-muted-foreground" />
@@ -506,42 +518,71 @@ export default function DebugAPI() {
             </div>
 
             {errorExplanation && (
-              <Alert variant="destructive" className="animate-in fade-in slide-in-from-top-2">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertTitle className="font-semibold">{errorExplanation.title}</AlertTitle>
-                <AlertDescription className="mt-2 space-y-2 text-sm leading-relaxed">
-                  <p>
-                    <strong className="font-semibold text-destructive-foreground/90">
-                      O que significa:
-                    </strong>{' '}
-                    {errorExplanation.meaning}
-                  </p>
-                  <p>
-                    <strong className="font-semibold text-destructive-foreground/90">
-                      Ações para corrigir:
-                    </strong>{' '}
-                    {errorExplanation.action}
-                  </p>
+              <Alert
+                variant="destructive"
+                className="animate-in fade-in slide-in-from-top-2 border-destructive/50 bg-destructive/5"
+              >
+                <AlertTriangle className="h-4 w-4 text-destructive" />
+                <AlertTitle className="font-semibold text-destructive">
+                  {errorExplanation.title}
+                </AlertTitle>
+                <AlertDescription className="mt-3 space-y-3 text-sm leading-relaxed text-foreground">
+                  <div>
+                    <strong className="font-semibold block mb-1">O que significa:</strong>
+                    <p>{errorExplanation.meaning}</p>
+                  </div>
+                  <div>
+                    <strong className="font-semibold block mb-1">Ações para corrigir:</strong>
+                    {Array.isArray(errorExplanation.action) ? (
+                      <ul className="list-decimal pl-5 space-y-1">
+                        {errorExplanation.action.map((act, i) => (
+                          <li key={i}>{act}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p>{errorExplanation.action}</p>
+                    )}
+                  </div>
                 </AlertDescription>
               </Alert>
             )}
 
-            <ScrollArea className="flex-1 w-full rounded-md border bg-slate-950 p-4 min-h-[300px]">
-              {lastResponse ? (
-                <pre
-                  className={cn(
-                    'text-sm font-mono whitespace-pre-wrap break-all',
-                    httpStatus && httpStatus < 300 ? 'text-emerald-400' : 'text-destructive/90',
-                  )}
-                >
-                  {JSON.stringify(lastResponse, null, 2)}
-                </pre>
-              ) : (
-                <div className="h-full flex items-center justify-center text-slate-500 font-mono text-sm min-h-[200px]">
-                  Aguardando execução do teste...
+            {lastResponse ? (
+              <Collapsible
+                open={isJsonOpen}
+                onOpenChange={setIsJsonOpen}
+                className="w-full border rounded-md mt-4"
+              >
+                <div className="flex items-center justify-between px-4 py-3 bg-muted/30">
+                  <h4 className="text-sm font-medium">Resposta JSON (Auditoria)</h4>
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" size="sm" className="w-9 p-0">
+                      {isJsonOpen ? (
+                        <ChevronUp className="h-4 w-4" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </CollapsibleTrigger>
                 </div>
-              )}
-            </ScrollArea>
+                <CollapsibleContent>
+                  <ScrollArea className="w-full bg-slate-950 p-4 max-h-[500px]">
+                    <pre
+                      className={cn(
+                        'text-sm font-mono whitespace-pre-wrap break-all',
+                        httpStatus && httpStatus < 300 ? 'text-emerald-400' : 'text-destructive/90',
+                      )}
+                    >
+                      {JSON.stringify(lastResponse, null, 2)}
+                    </pre>
+                  </ScrollArea>
+                </CollapsibleContent>
+              </Collapsible>
+            ) : (
+              <div className="flex-1 border rounded-md bg-muted/10 flex items-center justify-center min-h-[300px] text-muted-foreground font-mono text-sm mt-4">
+                Aguardando execução do teste...
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -610,7 +651,6 @@ export default function DebugAPI() {
                               <PopoverContent className="w-80" side="top">
                                 <div className="space-y-2 text-sm">
                                   <p className="font-semibold text-destructive flex items-center gap-2">
-                                    <AlertTriangle className="h-4 w-4" />{' '}
                                     {logErrorExplanation.title}
                                   </p>
                                   <p>
@@ -619,10 +659,20 @@ export default function DebugAPI() {
                                     </span>{' '}
                                     {logErrorExplanation.meaning}
                                   </p>
-                                  <p>
-                                    <span className="font-medium text-muted-foreground">Ação:</span>{' '}
-                                    {logErrorExplanation.action}
-                                  </p>
+                                  <div className="mt-1">
+                                    <span className="font-medium text-muted-foreground">
+                                      Ações para corrigir:
+                                    </span>
+                                    {Array.isArray(logErrorExplanation.action) ? (
+                                      <ul className="list-decimal pl-5 space-y-1 mt-1">
+                                        {logErrorExplanation.action.map((act, i) => (
+                                          <li key={i}>{act}</li>
+                                        ))}
+                                      </ul>
+                                    ) : (
+                                      <p className="mt-1">{logErrorExplanation.action}</p>
+                                    )}
+                                  </div>
                                 </div>
                               </PopoverContent>
                             </Popover>
@@ -636,7 +686,7 @@ export default function DebugAPI() {
                           </span>
                         ) : (
                           <span className="flex items-center text-destructive font-medium text-sm">
-                            <XCircle className="h-4 w-4 mr-1" /> Erro
+                            <XCircle className="h-4 w-4 mr-1" /> Falha
                           </span>
                         )}
                       </TableCell>
