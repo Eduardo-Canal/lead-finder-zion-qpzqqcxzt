@@ -29,6 +29,25 @@ const formatCurrency = (value: number | string) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(num || 0)
 }
 
+const formatDate = (date: string) => {
+  if (!date || date === '-') return '-'
+  try {
+    if (date.includes('-')) {
+      const parts = date.split('-')
+      if (parts.length === 3 && parts[0].length === 4) {
+        return `${parts[2]}/${parts[1]}/${parts[0]}`
+      }
+    }
+    const d = new Date(date)
+    if (!isNaN(d.getTime())) {
+      return d.toLocaleDateString('pt-BR')
+    }
+    return date
+  } catch {
+    return date
+  }
+}
+
 const formatObjectField = (val: any): string => {
   if (val === null || val === undefined) return ''
   if (typeof val === 'string' || typeof val === 'number') return String(val)
@@ -73,6 +92,7 @@ export function ResultsTable() {
               <TableHead>Porte</TableHead>
               <TableHead>Situação Cadastral</TableHead>
               <TableHead>Capital Social</TableHead>
+              <TableHead>Data de Abertura</TableHead>
               <TableHead>E-mail</TableHead>
               <TableHead>Telefone</TableHead>
               <TableHead className="w-[150px]">Contatado</TableHead>
@@ -82,7 +102,7 @@ export function ResultsTable() {
           <TableBody>
             {isSearching ? (
               <TableRow>
-                <TableCell colSpan={12} className="text-center py-20 text-muted-foreground">
+                <TableCell colSpan={13} className="text-center py-20 text-muted-foreground">
                   <div className="flex flex-col items-center justify-center space-y-3">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                     <p>Buscando leads na base de dados...</p>
@@ -91,7 +111,7 @@ export function ResultsTable() {
               </TableRow>
             ) : filteredLeads.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={12} className="text-center py-10 text-muted-foreground">
+                <TableCell colSpan={13} className="text-center py-10 text-muted-foreground">
                   Nenhum lead encontrado com os filtros atuais.
                 </TableCell>
               </TableRow>
@@ -139,12 +159,13 @@ export function ResultsTable() {
                   <TableCell className="whitespace-nowrap">
                     {formatCurrency(lead.capital_social)}
                   </TableCell>
+                  <TableCell className="whitespace-nowrap">
+                    {formatDate(lead.data_abertura)}
+                  </TableCell>
                   <TableCell className="max-w-[150px] truncate" title={lead.email}>
                     {lead.email}
                   </TableCell>
-                  <TableCell className="whitespace-nowrap">
-                    {formatObjectField(lead.telefone) || '-'}
-                  </TableCell>
+                  <TableCell className="whitespace-nowrap">{lead.telefone || '-'}</TableCell>
                   <TableCell>
                     {lead.contatado ? (
                       <Badge

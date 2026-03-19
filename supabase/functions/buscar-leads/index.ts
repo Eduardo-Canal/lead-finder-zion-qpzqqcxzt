@@ -315,17 +315,37 @@ Deno.serve(async (req: Request) => {
         situacao = situacao
       }
 
+      let telefoneFormatado = ''
+      if (empresa.telefone) {
+        telefoneFormatado = String(empresa.telefone)
+      } else if (empresa.ddd_telefone_1 || empresa.telefone_1) {
+        const ddd = empresa.ddd_telefone_1 ? `(${empresa.ddd_telefone_1}) ` : ''
+        const num = empresa.telefone_1 || ''
+        telefoneFormatado = `${ddd}${num}`.trim()
+      } else if (empresa.contato_telefone) {
+        telefoneFormatado = String(empresa.contato_telefone)
+      }
+
+      let emailFormatado = ''
+      if (empresa.email) {
+        emailFormatado =
+          typeof empresa.email === 'string' ? empresa.email : JSON.stringify(empresa.email)
+      } else if (empresa.contato_email) {
+        emailFormatado = String(empresa.contato_email)
+      }
+
       return {
         cnpj: empresa.cnpj,
         razao_social: empresa.razao_social || empresa.nome_fantasia || '',
         cnae_fiscal_principal: empresa.cnae_fiscal_principal || empresa.atividade_principal || '',
-        municipio: empresa.municipio,
-        uf: empresa.uf,
+        municipio: empresa.municipio || '',
+        uf: empresa.uf || '',
         porte: empresa.porte_empresa || empresa.porte || '',
         situacao_cadastral: situacao,
         capital_social: empresa.capital_social || 0,
-        email: empresa.email || empresa.contato_email || '',
-        telefone: empresa.telefone || empresa.ddd_telefone_1 || empresa.contato_telefone || '',
+        email: emailFormatado,
+        telefone: telefoneFormatado,
+        data_inicio_atividade: empresa.data_inicio_atividade || empresa.data_abertura || '',
       }
     })
 
