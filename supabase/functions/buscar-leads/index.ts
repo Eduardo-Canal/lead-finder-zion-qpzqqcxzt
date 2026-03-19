@@ -72,6 +72,7 @@ Deno.serve(async (req: Request) => {
           pages: Math.ceil(cachedData.total_registros / limit) || 1,
           cached: true,
           isMock: false,
+          status_http: 200,
         }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -160,6 +161,7 @@ Deno.serve(async (req: Request) => {
               pages: 0,
               cached: false,
               isMock: false,
+              status_http: response.status,
             }),
             {
               headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -180,6 +182,7 @@ Deno.serve(async (req: Request) => {
             pages: 0,
             cached: false,
             isMock: false,
+            status_http: 500,
           }),
           {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -200,6 +203,7 @@ Deno.serve(async (req: Request) => {
             pages: 0,
             cached: false,
             isMock: false,
+            status_http: 500,
           }),
           {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -286,6 +290,7 @@ Deno.serve(async (req: Request) => {
         pages: totalPages,
         cached: false,
         isMock,
+        status_http: 200,
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -298,6 +303,7 @@ Deno.serve(async (req: Request) => {
       JSON.stringify({
         error: error.message || 'Erro desconhecido ao realizar a busca.',
         data: [],
+        status_http: 500,
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

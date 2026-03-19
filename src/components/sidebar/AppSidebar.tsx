@@ -1,6 +1,14 @@
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { X, LayoutDashboard, Users, ShieldCheck, Target, Settings } from 'lucide-react'
+import {
+  X,
+  LayoutDashboard,
+  Users,
+  ShieldCheck,
+  Target,
+  Settings,
+  TerminalSquare,
+} from 'lucide-react'
 import {
   Sidebar,
   SidebarContent,
@@ -124,17 +132,27 @@ export function AppSidebar() {
                 </SidebarMenuItem>
               )}
               {user?.perfis_acesso?.nome === 'Administrador' && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={location.pathname === '/configuracoes/avancado'}
-                  >
-                    <Link to="/configuracoes/avancado">
-                      <Settings />
-                      <span>Avançado</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+                <>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={location.pathname === '/configuracoes/avancado'}
+                    >
+                      <Link to="/configuracoes/avancado">
+                        <Settings />
+                        <span>Avançado</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={location.pathname === '/admin/debug-api'}>
+                      <Link to="/admin/debug-api">
+                        <TerminalSquare />
+                        <span>Debug API</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </>
               )}
             </SidebarMenu>
           </SidebarGroupContent>
