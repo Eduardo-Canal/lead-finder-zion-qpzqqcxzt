@@ -18,7 +18,7 @@ export function QuickFilters() {
   const { hasPermission } = useAuthStore()
 
   const availableCities = useMemo(() => {
-    const cities = new Set(leads.map((l) => l.municipio))
+    const cities = new Set(leads.map((l) => l.municipio).filter(Boolean))
     return Array.from(cities).sort()
   }, [leads])
 
@@ -40,9 +40,9 @@ export function QuickFilters() {
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="Todos">Todas as Cidades</SelectItem>
-          {availableCities.map((c) => (
-            <SelectItem key={c} value={c}>
-              {c}
+          {availableCities.map((city) => (
+            <SelectItem key={city} value={city}>
+              {city}
             </SelectItem>
           ))}
         </SelectContent>
