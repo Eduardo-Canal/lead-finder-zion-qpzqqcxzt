@@ -81,6 +81,22 @@ const defaultFilters: Filters = {
 
 const LeadContext = createContext<LeadStoreContextType | null>(null)
 
+const safeString = (val: any): string => {
+  if (val === null || val === undefined) return ''
+  if (typeof val === 'string' || typeof val === 'number') return String(val)
+  if (typeof val === 'object') {
+    if ('codigo' in val && 'descricao' in val) return `${val.codigo} - ${val.descricao}`
+    if ('id' in val && 'descricao' in val) return `${val.id} - ${val.descricao}`
+    if ('text' in val) return String(val.text)
+    try {
+      return JSON.stringify(val)
+    } catch {
+      return String(val)
+    }
+  }
+  return String(val)
+}
+
 const mapEmpresaToLead = (empresa: any): any => {
   let situacaoStr = 'Ativa'
 
@@ -98,25 +114,26 @@ const mapEmpresaToLead = (empresa: any): any => {
   }
 
   return {
-    id: empresa.cnpj,
-    cnpj: empresa.cnpj,
-    razao_social: empresa.razao_social,
-    cnae_principal: empresa.cnae_fiscal_principal,
+    id: safeString(empresa.cnpj),
+    cnpj: safeString(empresa.cnpj),
+    razao_social: safeString(empresa.razao_social),
+    cnae_principal: safeString(empresa.cnae_fiscal_principal),
     cnaes_secundarios:
       Array.isArray(empresa.cnaes_secundarios) && empresa.cnaes_secundarios.length > 0
-        ? empresa.cnaes_secundarios
+        ? empresa.cnaes_secundarios.map(safeString)
         : empresa.cnae_fiscal_secundaria
-          ? empresa.cnae_fiscal_secundaria.split(',')
+          ? safeString(empresa.cnae_fiscal_secundaria).split(',').map(safeString)
           : [],
-    municipio: empresa.municipio,
-    uf: empresa.uf,
-    porte: empresa.porte,
+    municipio: safeString(empresa.municipio),
+    uf: safeString(empresa.uf),
+    porte: safeString(empresa.porte),
     situacao: situacaoStr,
     capital_social: empresa.capital_social ? Number(empresa.capital_social) : 0,
-    data_abertura:
+    data_abertura: safeString(
       empresa.data_abertura || empresa.data_inicio_atividade || new Date().toISOString(),
-    email: empresa.email || '',
-    telefone: empresa.telefone || empresa.telefone_1 || '',
+    ),
+    email: safeString(empresa.email || ''),
+    telefone: safeString(empresa.telefone || empresa.telefone_1 || ''),
     socios: typeof empresa.socios === 'string' ? JSON.parse(empresa.socios) : empresa.socios || [],
   }
 }

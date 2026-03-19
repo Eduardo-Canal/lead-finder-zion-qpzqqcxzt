@@ -19,7 +19,7 @@ import { Loader2, ChevronLeft, ChevronRight } from 'lucide-react'
 
 const formatCnpj = (cnpj: string) => {
   if (!cnpj) return ''
-  const cleaned = cnpj.replace(/\D/g, '')
+  const cleaned = String(cnpj).replace(/\D/g, '')
   if (cleaned.length !== 14) return cnpj
   return cleaned.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5')
 }
@@ -27,6 +27,28 @@ const formatCnpj = (cnpj: string) => {
 const formatCurrency = (value: number | string) => {
   const num = typeof value === 'string' ? parseFloat(value) : value
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(num || 0)
+}
+
+const formatObjectField = (val: any): string => {
+  if (val === null || val === undefined) return ''
+  if (typeof val === 'string' || typeof val === 'number') return String(val)
+  if (typeof val === 'object') {
+    if ('codigo' in val && 'descricao' in val) {
+      return `${val.codigo} - ${val.descricao}`
+    }
+    if ('id' in val && 'descricao' in val) {
+      return `${val.id} - ${val.descricao}`
+    }
+    if ('text' in val) {
+      return String(val.text)
+    }
+    try {
+      return JSON.stringify(val)
+    } catch {
+      return String(val)
+    }
+  }
+  return String(val)
 }
 
 export function ResultsTable() {
@@ -80,42 +102,52 @@ export function ResultsTable() {
                   className="animate-fade-in group text-xs sm:text-sm"
                 >
                   <TableCell className="font-medium whitespace-nowrap">
-                    {formatCnpj(lead.cnpj)}
+                    {formatCnpj(formatObjectField(lead.cnpj))}
                   </TableCell>
-                  <TableCell className="font-medium min-w-[200px]">{lead.razao_social}</TableCell>
-                  <TableCell className="max-w-[150px] truncate" title={lead.cnae_principal}>
-                    {lead.cnae_principal}
+                  <TableCell className="font-medium min-w-[200px]">
+                    {formatObjectField(lead.razao_social)}
                   </TableCell>
-                  <TableCell>{lead.municipio}</TableCell>
-                  <TableCell>{lead.uf}</TableCell>
+                  <TableCell
+                    className="max-w-[150px] truncate"
+                    title={formatObjectField(lead.cnae_principal)}
+                  >
+                    {formatObjectField(lead.cnae_principal)}
+                  </TableCell>
+                  <TableCell>{formatObjectField(lead.municipio)}</TableCell>
+                  <TableCell>{formatObjectField(lead.uf)}</TableCell>
                   <TableCell>
                     <Badge variant="outline" className="whitespace-nowrap">
-                      {lead.porte}
+                      {formatObjectField(lead.porte)}
                     </Badge>
                   </TableCell>
                   <TableCell>
                     <Badge
                       variant={
-                        lead.situacao === 'Ativa' || lead.situacao === 'ATIVA'
+                        formatObjectField(lead.situacao).toUpperCase() === 'ATIVA'
                           ? 'default'
                           : 'secondary'
                       }
                       className={
-                        lead.situacao === 'Ativa' || lead.situacao === 'ATIVA'
+                        formatObjectField(lead.situacao).toUpperCase() === 'ATIVA'
                           ? 'bg-emerald-500 text-white hover:bg-emerald-600'
                           : ''
                       }
                     >
-                      {lead.situacao}
+                      {formatObjectField(lead.situacao)}
                     </Badge>
                   </TableCell>
                   <TableCell className="whitespace-nowrap">
                     {formatCurrency(lead.capital_social)}
                   </TableCell>
-                  <TableCell className="max-w-[150px] truncate" title={lead.email}>
-                    {lead.email || '-'}
+                  <TableCell
+                    className="max-w-[150px] truncate"
+                    title={formatObjectField(lead.email)}
+                  >
+                    {formatObjectField(lead.email) || '-'}
                   </TableCell>
-                  <TableCell className="whitespace-nowrap">{lead.telefone || '-'}</TableCell>
+                  <TableCell className="whitespace-nowrap">
+                    {formatObjectField(lead.telefone) || '-'}
+                  </TableCell>
                   <TableCell>
                     {lead.contatado ? (
                       <Badge
