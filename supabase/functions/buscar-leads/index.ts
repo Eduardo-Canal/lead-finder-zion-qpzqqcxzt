@@ -32,7 +32,7 @@ Deno.serve(async (req: Request) => {
       return new Response(
         JSON.stringify({
           error: 'O filtro de CNAE é obrigatório.',
-          data: [],
+          cnpjs: [],
           page,
           count: 0,
           pages: 0,
@@ -99,7 +99,7 @@ Deno.serve(async (req: Request) => {
 
         return new Response(
           JSON.stringify({
-            data: cachedData.resultados,
+            cnpjs: cachedData.resultados,
             page: page,
             count: cachedData.total_registros,
             pages: Math.ceil(cachedData.total_registros / limit) || 1,
@@ -186,7 +186,7 @@ Deno.serve(async (req: Request) => {
           return new Response(
             JSON.stringify({
               error: errorMsg,
-              data: [],
+              cnpjs: [],
               page,
               count: 0,
               pages: 0,
@@ -219,7 +219,7 @@ Deno.serve(async (req: Request) => {
         return new Response(
           JSON.stringify({
             error: 'Erro de conexão com a API Casa dos Dados.',
-            data: [],
+            cnpjs: [],
             page,
             count: 0,
             pages: 0,
@@ -247,7 +247,7 @@ Deno.serve(async (req: Request) => {
         JSON.stringify({
           error:
             'Erro ao buscar leads: Token da API não configurado. Adicione nas Configurações Avançadas.',
-          data: [],
+          cnpjs: [],
           page,
           count: 0,
           pages: 0,
@@ -275,7 +275,7 @@ Deno.serve(async (req: Request) => {
       return new Response(
         JSON.stringify({
           error: finalError,
-          data: [],
+          cnpjs: [],
           page,
           count: 0,
           pages: 0,
@@ -286,14 +286,14 @@ Deno.serve(async (req: Request) => {
       )
     }
 
-    let rawResults = data?.data?.cnpj || data?.cnpj || data?.data || data?.resultados || data || []
+    let rawResults = data?.cnpjs
     if (!Array.isArray(rawResults)) {
       rawResults = []
     }
 
-    let totalCount = data?.data?.count || data?.count || data?.total || rawResults.length
-    let totalPages = data?.data?.pages || data?.pages || data?.total_pages || 1
-    let currentPage = data?.data?.page || data?.page || page
+    let totalCount = data?.count || rawResults.length
+    let totalPages = data?.pages || 1
+    let currentPage = data?.page || page
 
     const results = rawResults.slice(0, limit).map((empresa: any) => ({
       cnpj: empresa.cnpj,
@@ -302,7 +302,7 @@ Deno.serve(async (req: Request) => {
       municipio: empresa.municipio,
       uf: empresa.uf,
       porte: empresa.porte || '',
-      situacao_cadastral: empresa.situacao_cadastral || 'Ativa',
+      situacao_cadastral: empresa.situacao_cadastral,
       capital_social: empresa.capital_social || 0,
       email: empresa.email || '',
       telefone: empresa.telefone || empresa.ddd_telefone_1 || '',
@@ -339,7 +339,7 @@ Deno.serve(async (req: Request) => {
 
     return new Response(
       JSON.stringify({
-        data: results,
+        cnpjs: results,
         page: currentPage,
         count: totalCount,
         pages: totalPages,
@@ -350,7 +350,7 @@ Deno.serve(async (req: Request) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
     )
   } catch (error: any) {
-    return new Response(JSON.stringify({ error: error.message, data: [], status_http: 500 }), {
+    return new Response(JSON.stringify({ error: error.message, cnpjs: [], status_http: 500 }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     })

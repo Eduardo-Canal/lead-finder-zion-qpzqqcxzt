@@ -81,27 +81,45 @@ const defaultFilters: Filters = {
 
 const LeadContext = createContext<LeadStoreContextType | null>(null)
 
-const mapEmpresaToLead = (empresa: any): any => ({
-  id: empresa.cnpj,
-  cnpj: empresa.cnpj,
-  razao_social: empresa.razao_social,
-  cnae_principal: empresa.cnae_fiscal_principal,
-  cnaes_secundarios:
-    Array.isArray(empresa.cnaes_secundarios) && empresa.cnaes_secundarios.length > 0
-      ? empresa.cnaes_secundarios
-      : empresa.cnae_fiscal_secundaria
-        ? empresa.cnae_fiscal_secundaria.split(',')
-        : [],
-  municipio: empresa.municipio,
-  uf: empresa.uf,
-  porte: empresa.porte,
-  situacao: empresa.situacao_cadastral || empresa.situacao || 'Ativa',
-  capital_social: empresa.capital_social ? Number(empresa.capital_social) : 0,
-  data_abertura: empresa.data_abertura || empresa.data_inicio_atividade || new Date().toISOString(),
-  email: empresa.email || '',
-  telefone: empresa.telefone || empresa.telefone_1 || '',
-  socios: typeof empresa.socios === 'string' ? JSON.parse(empresa.socios) : empresa.socios || [],
-})
+const mapEmpresaToLead = (empresa: any): any => {
+  let situacaoStr = 'Ativa'
+
+  if (empresa.situacao_cadastral) {
+    if (
+      typeof empresa.situacao_cadastral === 'object' &&
+      empresa.situacao_cadastral.situacao_atual
+    ) {
+      situacaoStr = empresa.situacao_cadastral.situacao_atual
+    } else if (typeof empresa.situacao_cadastral === 'string') {
+      situacaoStr = empresa.situacao_cadastral
+    }
+  } else if (empresa.situacao && typeof empresa.situacao === 'string') {
+    situacaoStr = empresa.situacao
+  }
+
+  return {
+    id: empresa.cnpj,
+    cnpj: empresa.cnpj,
+    razao_social: empresa.razao_social,
+    cnae_principal: empresa.cnae_fiscal_principal,
+    cnaes_secundarios:
+      Array.isArray(empresa.cnaes_secundarios) && empresa.cnaes_secundarios.length > 0
+        ? empresa.cnaes_secundarios
+        : empresa.cnae_fiscal_secundaria
+          ? empresa.cnae_fiscal_secundaria.split(',')
+          : [],
+    municipio: empresa.municipio,
+    uf: empresa.uf,
+    porte: empresa.porte,
+    situacao: situacaoStr,
+    capital_social: empresa.capital_social ? Number(empresa.capital_social) : 0,
+    data_abertura:
+      empresa.data_abertura || empresa.data_inicio_atividade || new Date().toISOString(),
+    email: empresa.email || '',
+    telefone: empresa.telefone || empresa.telefone_1 || '',
+    socios: typeof empresa.socios === 'string' ? JSON.parse(empresa.socios) : empresa.socios || [],
+  }
+}
 
 export function LeadStoreProvider({ children }: { children: ReactNode }) {
   const [leadsRaw, setLeadsRaw] = useState<any[]>([])
@@ -147,7 +165,6 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
       setFilters((prev) => ({ ...prev, cityQuick: 'Todos' }))
     }
 
-    // Sanitize CNAEs to contain only numeric characters before sending to API
     const sanitizedCnaes = filters.cnaes
       .map((c) => (typeof c === 'string' ? c.replace(/\D/g, '') : String(c).replace(/\D/g, '')))
       .filter(Boolean)
@@ -171,6 +188,8 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
         body: payload,
       })
 
+      console.log('Full API Response:', data)
+
       if (error) {
         console.error('Search API Connection Error:', error)
         toast.error('Erro ao conectar com o servidor. Verifique sua conexão.')
@@ -186,7 +205,7 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
         return
       }
 
-      const results = (data?.data || []).map(mapEmpresaToLead)
+      const results = (data?.cnpjs || []).map(mapEmpresaToLead)
       setLeadsRaw(results)
       setPagination({
         page: data?.page || targetPage,
