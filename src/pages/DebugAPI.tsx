@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
-import { Loader2, Activity, Clock, CheckCircle2, XCircle, Code2, Play } from 'lucide-react'
+import { Loader2, Activity, Clock, CheckCircle2, XCircle, Code2, Play, Hash } from 'lucide-react'
 import {
   Table,
   TableBody,
@@ -65,11 +65,13 @@ export default function DebugAPI() {
   const [hasToken, setHasToken] = useState<boolean | null>(null)
   const [cnae, setCnae] = useState('')
   const [uf, setUf] = useState('')
+  const [municipio, setMunicipio] = useState('')
   const [limit, setLimit] = useState<number | ''>(5)
   const [loading, setLoading] = useState(false)
   const [lastResponse, setLastResponse] = useState<any>(null)
   const [latency, setLatency] = useState<number | null>(null)
   const [httpStatus, setHttpStatus] = useState<number | null>(null)
+  const [totalResults, setTotalResults] = useState<number | null>(null)
   const [history, setHistory] = useState<any[]>([])
 
   const [isValidating, setIsValidating] = useState(false)
@@ -105,7 +107,7 @@ export default function DebugAPI() {
       .from('api_debug_logs')
       .select('*')
       .order('timestamp', { ascending: false })
-      .limit(5)
+      .limit(10)
 
     if (data) setHistory(data)
   }
@@ -161,6 +163,7 @@ export default function DebugAPI() {
     setLastResponse(null)
     setLatency(null)
     setHttpStatus(null)
+    setTotalResults(null)
 
     const start = performance.now()
     const cleanCnae = cnae.replace(/\D/g, '')
@@ -170,7 +173,9 @@ export default function DebugAPI() {
         body: {
           cnae_fiscal_principal: cleanCnae ? [cleanCnae] : [],
           uf: uf && uf !== 'Todos' ? uf : null,
+          municipio: municipio ? municipio.trim() : null,
           limit: limit || 5,
+          bypass_cache: true,
         },
       })
 
@@ -180,29 +185,39 @@ export default function DebugAPI() {
 
       let status = 200
       let success = true
+      let resultadosQtd = 0
+      let respostaJson = null
 
       if (error) {
         status = error.status || 500
         success = false
-        setLastResponse({ message: error.message, details: error })
+        respostaJson = { message: error.message, details: error }
       } else {
-        setLastResponse(data)
+        respostaJson = data?.raw_response || data
         if (data?.status_http) {
           status = data.status_http
         } else if (data?.error) {
           status = 400
         }
         success = status >= 200 && status < 300
+        resultadosQtd = data?.count ?? (data?.data?.length || 0)
       }
 
+      setLastResponse(respostaJson)
       setHttpStatus(status)
+      setTotalResults(resultadosQtd)
 
       await supabase.from('api_debug_logs').insert({
         cnae: cleanCnae || null,
         uf: uf && uf !== 'Todos' ? uf : null,
+        municipio: municipio || null,
+        limite: limit || null,
         status_http: status,
         sucesso: success,
-      })
+        tempo_resposta_ms: timeTaken,
+        total_resultados: resultadosQtd,
+        resposta_json: respostaJson,
+      } as any)
 
       fetchHistory()
       toast.success('Teste concluído')
@@ -217,7 +232,7 @@ export default function DebugAPI() {
   if (!isAdmin) return null
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6 animate-fade-in">
+    <div className="max-w-7xl mx-auto space-y-6 animate-fade-in pb-10">
       <div>
         <h2 className="text-2xl font-semibold tracking-tight">Admin - Debug API</h2>
         <p className="text-muted-foreground mt-1">
@@ -282,7 +297,7 @@ export default function DebugAPI() {
             </div>
 
             <div className="mt-6 pt-6 border-t">
-              <h3 className="text-sm font-medium mb-4">Teste Manual Avançado</h3>
+              <h3 className="text-sm font-medium mb-4">Teste de Requisição Manual</h3>
               <form onSubmit={handleTestAPI} className="space-y-4">
                 <div className="space-y-2">
                   <Label>CNAE (Opcional)</Label>
@@ -292,21 +307,31 @@ export default function DebugAPI() {
                     onChange={(e) => setCnae(e.target.value)}
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label>UF (Opcional)</Label>
-                  <Select value={uf} onValueChange={setUf}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione UF" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Todos">Todas as UFs</SelectItem>
-                      {BRAZIL_STATES.map((state) => (
-                        <SelectItem key={state} value={state}>
-                          {state}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>UF (Opcional)</Label>
+                    <Select value={uf} onValueChange={setUf}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="UF" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Todos">Todas</SelectItem>
+                        {BRAZIL_STATES.map((state) => (
+                          <SelectItem key={state} value={state}>
+                            {state}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Município (Opcional)</Label>
+                    <Input
+                      placeholder="Ex: São Paulo"
+                      value={municipio}
+                      onChange={(e) => setMunicipio(e.target.value)}
+                    />
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label>Limite de Resultados</Label>
@@ -335,7 +360,7 @@ export default function DebugAPI() {
         <Card className="md:col-span-2 flex flex-col">
           <CardHeader>
             <CardTitle className="text-lg">Resposta da API</CardTitle>
-            <CardDescription>Visualizador em tempo real</CardDescription>
+            <CardDescription>Visualizador em tempo real dos dados retornados</CardDescription>
           </CardHeader>
           <CardContent className="flex-1 flex flex-col space-y-4 min-h-[400px]">
             <div className="flex flex-wrap gap-4">
@@ -362,6 +387,13 @@ export default function DebugAPI() {
                 <span className="text-sm font-medium">Tempo:</span>
                 <span className="text-sm">{latency ? `${latency} ms` : '-'}</span>
               </div>
+              <div className="flex items-center gap-2 border px-3 py-2 rounded-md bg-muted/30">
+                <Hash className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium">Resultados:</span>
+                <span className="text-sm font-mono">
+                  {totalResults !== null ? totalResults : '-'}
+                </span>
+              </div>
             </div>
 
             <ScrollArea className="flex-1 w-full rounded-md border bg-slate-950 p-4">
@@ -381,8 +413,8 @@ export default function DebugAPI() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Últimas 5 Requisições</CardTitle>
-          <CardDescription>Histórico de testes manuais realizados</CardDescription>
+          <CardTitle className="text-lg">Histórico de Testes</CardTitle>
+          <CardDescription>Últimas 10 requisições manuais realizadas</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
@@ -405,7 +437,7 @@ export default function DebugAPI() {
               ) : (
                 history.map((log) => (
                   <TableRow key={log.id}>
-                    <TableCell className="text-muted-foreground">
+                    <TableCell className="text-muted-foreground whitespace-nowrap">
                       {new Date(log.timestamp).toLocaleString('pt-BR')}
                     </TableCell>
                     <TableCell className="font-mono text-sm">{log.cnae || '-'}</TableCell>
@@ -422,7 +454,7 @@ export default function DebugAPI() {
                         </span>
                       ) : (
                         <span className="flex items-center text-destructive font-medium text-sm">
-                          <XCircle className="h-4 w-4 mr-1" /> Falha
+                          <XCircle className="h-4 w-4 mr-1" /> Erro
                         </span>
                       )}
                     </TableCell>

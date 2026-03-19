@@ -17,6 +17,7 @@ Deno.serve(async (req: Request) => {
       situacao_cadastral,
       page = 1,
       limit = 5,
+      bypass_cache = false,
     } = payload
 
     // Sanitization: Ensure CNAE only contains digits
@@ -57,28 +58,30 @@ Deno.serve(async (req: Request) => {
     const hashArray = Array.from(new Uint8Array(hashBuffer))
     const chave_cache = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('')
 
-    const { data: cachedData } = await supabase
-      .from('cache_pesquisas')
-      .select('resultados, total_registros, expira_em')
-      .eq('chave_cache', chave_cache)
-      .maybeSingle()
+    if (!bypass_cache) {
+      const { data: cachedData } = await supabase
+        .from('cache_pesquisas')
+        .select('resultados, total_registros, expira_em')
+        .eq('chave_cache', chave_cache)
+        .maybeSingle()
 
-    if (cachedData && new Date(cachedData.expira_em) > new Date()) {
-      return new Response(
-        JSON.stringify({
-          data: cachedData.resultados,
-          page: page,
-          count: cachedData.total_registros,
-          pages: Math.ceil(cachedData.total_registros / limit) || 1,
-          cached: true,
-          isMock: false,
-          status_http: 200,
-        }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200,
-        },
-      )
+      if (cachedData && new Date(cachedData.expira_em) > new Date()) {
+        return new Response(
+          JSON.stringify({
+            data: cachedData.resultados,
+            page: page,
+            count: cachedData.total_registros,
+            pages: Math.ceil(cachedData.total_registros / limit) || 1,
+            cached: true,
+            isMock: false,
+            status_http: 200,
+          }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200,
+          },
+        )
+      }
     }
 
     const casadosDadosPayload: any = {
@@ -128,6 +131,7 @@ Deno.serve(async (req: Request) => {
 
     let data
     let isMock = false
+    let externalStatus = 200
 
     if (apiKey) {
       try {
@@ -142,6 +146,8 @@ Deno.serve(async (req: Request) => {
           },
           body: JSON.stringify(casadosDadosPayload),
         })
+
+        externalStatus = response.status
 
         if (!response.ok) {
           let errorMsg = `Erro na API: ${response.status} ${response.statusText}`
@@ -203,7 +209,7 @@ Deno.serve(async (req: Request) => {
             pages: 0,
             cached: false,
             isMock: false,
-            status_http: 500,
+            status_http: externalStatus || 500,
           }),
           {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -290,7 +296,8 @@ Deno.serve(async (req: Request) => {
         pages: totalPages,
         cached: false,
         isMock,
-        status_http: 200,
+        status_http: externalStatus || 200,
+        raw_response: data,
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
