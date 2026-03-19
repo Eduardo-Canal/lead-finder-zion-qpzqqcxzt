@@ -38,14 +38,17 @@ export type Database = {
       }
       configuracoes_sistema: {
         Row: {
+          casadosdados_api_token: string | null
           data_ultima_atualizacao_rfb: string | null
           id: number
         }
         Insert: {
+          casadosdados_api_token?: string | null
           data_ultima_atualizacao_rfb?: string | null
           id?: number
         }
         Update: {
+          casadosdados_api_token?: string | null
           data_ultima_atualizacao_rfb?: string | null
           id?: number
         }
@@ -460,6 +463,7 @@ export const Constants = {
 // Table: configuracoes_sistema
 //   id: integer (not null, default: 1)
 //   data_ultima_atualizacao_rfb: timestamp with time zone (nullable)
+//   casadosdados_api_token: text (nullable)
 // Table: contatos_realizados
 //   id: uuid (not null, default: gen_random_uuid())
 //   cnpj: text (not null)
@@ -564,9 +568,9 @@ export const Constants = {
 //     WITH CHECK: true
 //   Policy "Enable SELECT for authenticated users" (SELECT, PERMISSIVE) roles={authenticated}
 //     USING: true
-//   Policy "Enable UPDATE for authenticated users" (UPDATE, PERMISSIVE) roles={authenticated}
-//     USING: true
-//     WITH CHECK: true
+//   Policy "Enable UPDATE for admins only" (UPDATE, PERMISSIVE) roles={authenticated}
+//     USING: (EXISTS ( SELECT 1    FROM (profiles p      JOIN perfis_acesso pa ON ((p.perfil_id = pa.id)))   WHERE ((p.user_id = auth.uid()) AND (pa.nome = 'Administrador'::text))))
+//     WITH CHECK: (EXISTS ( SELECT 1    FROM (profiles p      JOIN perfis_acesso pa ON ((p.perfil_id = pa.id)))   WHERE ((p.user_id = auth.uid()) AND (pa.nome = 'Administrador'::text))))
 // Table: contatos_realizados
 //   Policy "Enable ALL for authenticated users" (ALL, PERMISSIVE) roles={authenticated}
 //     USING: true

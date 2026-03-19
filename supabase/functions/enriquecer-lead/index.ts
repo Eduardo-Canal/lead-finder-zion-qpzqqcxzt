@@ -32,14 +32,10 @@ Deno.serve(async (req: Request) => {
 
     const apiKey = config?.casadosdados_api_token || Deno.env.get('CASADOSDADOS_API_KEY')
 
-    if (!apiKey) {
-      throw new Error('API Indisponível. Token da API Casa dos Dados não configurado.')
-    }
-
     const response = await fetch(`https://publica.cnpj.ws/cnpj/${cleanCnpj}`)
 
     if (!response.ok) {
-      throw new Error('Falha ao buscar dados no provedor externo (CNPJ.ws)')
+      throw new Error('Falha ao buscar dados no provedor externo')
     }
 
     const data = await response.json()

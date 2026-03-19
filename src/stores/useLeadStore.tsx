@@ -70,7 +70,7 @@ const defaultFilters: Filters = {
   ufs: [],
   municipio: '',
   porte: '',
-  situacao: '',
+  situacao: 'ATIVA',
   capitalMinimo: '',
   search: '',
   cityQuick: '',
@@ -132,7 +132,7 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
         uf: null,
         municipio: null,
         porte: null,
-        situacao_cadastral: null,
+        situacao_cadastral: 'ATIVA',
         page: 1,
         limit: defaultFilters.limit,
       }
@@ -173,7 +173,6 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
     if (!user) return
     setIsSearching(true)
 
-    // Ensure we have a clean number and aren't passing React synthetic events which cause circular structure serialization errors
     const isValidPage = typeof pageToFetch === 'number'
     const targetPage = isValidPage ? pageToFetch : 1
 
@@ -181,7 +180,6 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
       setFilters((prev) => ({ ...prev, cityQuick: 'Todos' }))
     }
 
-    // Build a strictly serializable payload with CNAE sanitization (remove non-numeric chars)
     const payload = {
       cnae_fiscal_principal: Array.isArray(filters.cnaes)
         ? filters.cnaes.map((c) => (typeof c === 'string' ? c.replace(/\D/g, '') : c))

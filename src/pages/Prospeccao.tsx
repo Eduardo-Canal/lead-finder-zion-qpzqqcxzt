@@ -1,5 +1,6 @@
 import { QuickFilters } from '@/components/dashboard/QuickFilters'
 import { ResultsTable } from '@/components/dashboard/ResultsTable'
+import { AdvancedFilters } from '@/components/dashboard/AdvancedFilters'
 import useLeadStore from '@/stores/useLeadStore'
 import { Button } from '@/components/ui/button'
 import { Search, Loader2 } from 'lucide-react'
@@ -26,8 +27,15 @@ export default function Prospeccao() {
         </Button>
       </div>
 
-      <QuickFilters />
-      <ResultsTable />
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-start">
+        <div className="md:col-span-1">
+          <AdvancedFilters />
+        </div>
+        <div className="md:col-span-3 space-y-6">
+          <QuickFilters />
+          <ResultsTable />
+        </div>
+      </div>
     </div>
   )
 }
