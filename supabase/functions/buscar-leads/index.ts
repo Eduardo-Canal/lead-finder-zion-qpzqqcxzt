@@ -321,7 +321,7 @@ Deno.serve(async (req: Request) => {
         cnae_fiscal_principal: empresa.cnae_fiscal_principal || empresa.atividade_principal || '',
         municipio: empresa.municipio,
         uf: empresa.uf,
-        porte: empresa.porte || '',
+        porte: empresa.porte_empresa || empresa.porte || '',
         situacao_cadastral: situacao,
         capital_social: empresa.capital_social || 0,
         email: empresa.email || empresa.contato_email || '',

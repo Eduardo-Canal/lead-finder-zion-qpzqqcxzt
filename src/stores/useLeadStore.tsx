@@ -113,27 +113,69 @@ const mapEmpresaToLead = (empresa: any): any => {
     situacaoStr = empresa.situacao
   }
 
+  let porteStr = '-'
+  const porteData = empresa.porte_empresa || empresa.porte
+  if (porteData) {
+    if (typeof porteData === 'object') {
+      const codigo = String(porteData.codigo || '')
+      const desc = String(porteData.descricao || '').toUpperCase()
+      if (codigo === '1' || desc.includes('MICRO')) {
+        porteStr = 'Micro Empresa'
+      } else if (codigo === '3' || desc.includes('PEQUENO')) {
+        porteStr = 'Pequeno Porte'
+      } else if (codigo === '5' || desc.includes('DEMAIS')) {
+        porteStr = 'Demais'
+      } else {
+        porteStr = 'Demais'
+      }
+    } else if (typeof porteData === 'string') {
+      const pUpper = porteData.toUpperCase()
+      if (pUpper.includes('MICRO') || pUpper === 'ME' || pUpper === 'MEI')
+        porteStr = 'Micro Empresa'
+      else if (pUpper.includes('PEQUENO') || pUpper === 'EPP') porteStr = 'Pequeno Porte'
+      else if (pUpper.trim() !== '') porteStr = 'Demais'
+    }
+  }
+
+  let emailStr = '-'
+  if (empresa.email) {
+    if (typeof empresa.email === 'string' && empresa.email.trim() !== '') {
+      emailStr = empresa.email.trim()
+    } else if (
+      Array.isArray(empresa.email) &&
+      empresa.email.length > 0 &&
+      typeof empresa.email[0] === 'string'
+    ) {
+      emailStr = empresa.email[0].trim()
+    } else if (typeof empresa.email === 'object' && empresa.email.endereco) {
+      emailStr = String(empresa.email.endereco).trim()
+    }
+  }
+
+  const municipioStr = safeString(empresa.municipio).trim()
+  const ufStr = safeString(empresa.uf).trim()
+
   return {
     id: safeString(empresa.cnpj),
     cnpj: safeString(empresa.cnpj),
-    razao_social: safeString(empresa.razao_social),
-    cnae_principal: safeString(empresa.cnae_fiscal_principal),
+    razao_social: safeString(empresa.razao_social) || '-',
+    cnae_principal: safeString(empresa.cnae_fiscal_principal) || '-',
     cnaes_secundarios:
       Array.isArray(empresa.cnaes_secundarios) && empresa.cnaes_secundarios.length > 0
         ? empresa.cnaes_secundarios.map(safeString)
         : empresa.cnae_fiscal_secundaria
           ? safeString(empresa.cnae_fiscal_secundaria).split(',').map(safeString)
           : [],
-    municipio: safeString(empresa.municipio),
-    uf: safeString(empresa.uf),
-    porte: safeString(empresa.porte),
-    situacao: situacaoStr,
+    municipio: municipioStr || '-',
+    uf: ufStr || '-',
+    porte: porteStr,
+    situacao: situacaoStr || '-',
     capital_social: empresa.capital_social ? Number(empresa.capital_social) : 0,
     data_abertura: safeString(
       empresa.data_abertura || empresa.data_inicio_atividade || new Date().toISOString(),
     ),
-    email: safeString(empresa.email || ''),
-    telefone: safeString(empresa.telefone || empresa.telefone_1 || ''),
+    email: emailStr,
+    telefone: safeString(empresa.telefone || empresa.telefone_1 || '') || '-',
     socios: typeof empresa.socios === 'string' ? JSON.parse(empresa.socios) : empresa.socios || [],
   }
 }

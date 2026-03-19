@@ -105,19 +105,19 @@ export function ResultsTable() {
                     {formatCnpj(formatObjectField(lead.cnpj))}
                   </TableCell>
                   <TableCell className="font-medium min-w-[200px]">
-                    {formatObjectField(lead.razao_social)}
+                    {formatObjectField(lead.razao_social) || '-'}
                   </TableCell>
                   <TableCell
                     className="max-w-[150px] truncate"
                     title={formatObjectField(lead.cnae_principal)}
                   >
-                    {formatObjectField(lead.cnae_principal)}
+                    {formatObjectField(lead.cnae_principal) || '-'}
                   </TableCell>
-                  <TableCell>{formatObjectField(lead.municipio)}</TableCell>
-                  <TableCell>{formatObjectField(lead.uf)}</TableCell>
+                  <TableCell>{lead.municipio}</TableCell>
+                  <TableCell>{lead.uf}</TableCell>
                   <TableCell>
                     <Badge variant="outline" className="whitespace-nowrap">
-                      {formatObjectField(lead.porte)}
+                      {lead.porte}
                     </Badge>
                   </TableCell>
                   <TableCell>
@@ -133,17 +133,14 @@ export function ResultsTable() {
                           : ''
                       }
                     >
-                      {formatObjectField(lead.situacao)}
+                      {formatObjectField(lead.situacao) || '-'}
                     </Badge>
                   </TableCell>
                   <TableCell className="whitespace-nowrap">
                     {formatCurrency(lead.capital_social)}
                   </TableCell>
-                  <TableCell
-                    className="max-w-[150px] truncate"
-                    title={formatObjectField(lead.email)}
-                  >
-                    {formatObjectField(lead.email) || '-'}
+                  <TableCell className="max-w-[150px] truncate" title={lead.email}>
+                    {lead.email}
                   </TableCell>
                   <TableCell className="whitespace-nowrap">
                     {formatObjectField(lead.telefone) || '-'}
