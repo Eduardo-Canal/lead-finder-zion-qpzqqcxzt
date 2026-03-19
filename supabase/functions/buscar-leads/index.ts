@@ -15,6 +15,7 @@ Deno.serve(async (req: Request) => {
       cnae_fiscal_principal,
       uf,
       municipio,
+      situacao_cadastral,
       limit = 10,
       page = 1,
       bypass_cache = false,
@@ -23,20 +24,6 @@ Deno.serve(async (req: Request) => {
     const cnaes = Array.isArray(cnae_fiscal_principal)
       ? cnae_fiscal_principal.map((c) => (typeof c === 'string' ? c.trim() : c)).filter(Boolean)
       : []
-
-    if (cnaes.length === 0) {
-      return new Response(
-        JSON.stringify({
-          error: 'CNAE é obrigatório para a busca.',
-          data: [],
-          page,
-          count: 0,
-          pages: 0,
-          status_http: 400,
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
-      )
-    }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
     const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY') || ''
@@ -57,7 +44,14 @@ Deno.serve(async (req: Request) => {
 
     const apiKey = config?.casadosdados_api_token?.trim() || ''
 
-    const payloadToHash = { cnaes, uf: uf || null, municipio: municipio || null, limit, page }
+    const payloadToHash = {
+      cnaes,
+      uf: uf || null,
+      municipio: municipio || null,
+      situacao_cadastral: situacao_cadastral || null,
+      limit,
+      page,
+    }
     const msgBuffer = new TextEncoder().encode(JSON.stringify(payloadToHash))
     const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer)
     const hashArray = Array.from(new Uint8Array(hashBuffer))
@@ -75,8 +69,8 @@ Deno.serve(async (req: Request) => {
 
         await supabaseAdmin.from('api_debug_logs').insert({
           cnae: cnaes.join(', ') || null,
-          uf: uf || null,
-          municipio: municipio || null,
+          uf: Array.isArray(uf) ? uf.join(', ') : uf || null,
+          municipio: Array.isArray(municipio) ? municipio.join(', ') : municipio || null,
           limite: limit,
           status_http: 200,
           sucesso: true,
@@ -103,15 +97,22 @@ Deno.serve(async (req: Request) => {
     }
 
     const casadosDadosPayload: any = {
-      codigo_atividade_principal: cnaes,
       limite: limit || 10,
+      page: page || 1,
+    }
+
+    if (cnaes && cnaes.length > 0) {
+      casadosDadosPayload.codigo_atividade_principal = cnaes
     }
 
     if (uf && uf !== 'Todos') {
-      casadosDadosPayload.uf = uf
+      casadosDadosPayload.uf = Array.isArray(uf) ? uf : [uf]
     }
     if (municipio && municipio !== 'Todos') {
-      casadosDadosPayload.municipio = municipio
+      casadosDadosPayload.municipio = Array.isArray(municipio) ? municipio : [municipio]
+    }
+    if (situacao_cadastral && situacao_cadastral !== 'Todos') {
+      casadosDadosPayload.situacao_cadastral = situacao_cadastral
     }
 
     let data
@@ -158,8 +159,8 @@ Deno.serve(async (req: Request) => {
 
           await supabaseAdmin.from('api_debug_logs').insert({
             cnae: cnaes.join(', ') || null,
-            uf: uf || null,
-            municipio: municipio || null,
+            uf: Array.isArray(uf) ? uf.join(', ') : uf || null,
+            municipio: Array.isArray(municipio) ? municipio.join(', ') : municipio || null,
             limite: limit,
             status_http: response.status,
             sucesso: false,
@@ -191,8 +192,8 @@ Deno.serve(async (req: Request) => {
 
         await supabaseAdmin.from('api_debug_logs').insert({
           cnae: cnaes.join(', ') || null,
-          uf: uf || null,
-          municipio: municipio || null,
+          uf: Array.isArray(uf) ? uf.join(', ') : uf || null,
+          municipio: Array.isArray(municipio) ? municipio.join(', ') : municipio || null,
           limite: limit,
           status_http: 500,
           sucesso: false,
@@ -218,8 +219,8 @@ Deno.serve(async (req: Request) => {
       const errObj = { error: 'Token da API Casa dos Dados não configurado.' }
       await supabaseAdmin.from('api_debug_logs').insert({
         cnae: cnaes.join(', ') || null,
-        uf: uf || null,
-        municipio: municipio || null,
+        uf: Array.isArray(uf) ? uf.join(', ') : uf || null,
+        municipio: Array.isArray(municipio) ? municipio.join(', ') : municipio || null,
         limite: limit,
         status_http: 401,
         sucesso: false,
@@ -242,12 +243,12 @@ Deno.serve(async (req: Request) => {
       )
     }
 
-    if (!data || data.error) {
-      const finalError = data?.error || 'Formato de resposta inesperado da API.'
+    if (!data || data.error || data.success === false) {
+      const finalError = data?.error || data?.message || 'Formato de resposta inesperado da API.'
       await supabaseAdmin.from('api_debug_logs').insert({
         cnae: cnaes.join(', ') || null,
-        uf: uf || null,
-        municipio: municipio || null,
+        uf: Array.isArray(uf) ? uf.join(', ') : uf || null,
+        municipio: Array.isArray(municipio) ? municipio.join(', ') : municipio || null,
         limite: limit,
         status_http: externalStatus || 500,
         sucesso: false,
@@ -311,8 +312,8 @@ Deno.serve(async (req: Request) => {
 
     await supabaseAdmin.from('api_debug_logs').insert({
       cnae: cnaes.join(', ') || null,
-      uf: uf || null,
-      municipio: municipio || null,
+      uf: Array.isArray(uf) ? uf.join(', ') : uf || null,
+      municipio: Array.isArray(municipio) ? municipio.join(', ') : municipio || null,
       limite: limit,
       status_http: externalStatus || 200,
       sucesso: true,

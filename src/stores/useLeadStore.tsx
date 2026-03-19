@@ -133,8 +133,8 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
   const searchLeads = async (pageToFetch?: number | any) => {
     if (!user) return
 
-    if (!filters.cnaes || filters.cnaes.length === 0) {
-      toast.error('CNAE é obrigatório para realizar a busca.')
+    if (filters.cnaes.length === 0 && filters.ufs.length === 0 && !filters.municipio) {
+      toast.error('Informe pelo menos um filtro principal (CNAE, UF ou Município) para buscar.')
       return
     }
 
@@ -151,9 +151,11 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
       cnae_fiscal_principal: filters.cnaes.map((c) =>
         typeof c === 'string' ? c.replace(/\D/g, '') : c,
       ),
-      uf: Array.isArray(filters.ufs) && filters.ufs.length > 0 ? filters.ufs[0] : null,
+      uf: filters.ufs.length > 0 ? filters.ufs : null,
       municipio:
-        typeof filters.municipio === 'string' && filters.municipio ? filters.municipio : null,
+        typeof filters.municipio === 'string' && filters.municipio.trim() !== ''
+          ? [filters.municipio.trim()]
+          : null,
       porte: typeof filters.porte === 'string' && filters.porte ? filters.porte : null,
       situacao_cadastral:
         typeof filters.situacao === 'string' && filters.situacao ? filters.situacao : null,
