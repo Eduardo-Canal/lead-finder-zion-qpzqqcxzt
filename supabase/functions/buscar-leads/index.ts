@@ -21,8 +21,11 @@ Deno.serve(async (req: Request) => {
       bypass_cache = false,
     } = payload
 
+    // Strictly sanitize CNAEs to be numeric only as required by Casa dos Dados
     const cnaes = Array.isArray(cnae_fiscal_principal)
-      ? cnae_fiscal_principal.map((c) => (typeof c === 'string' ? c.trim() : c)).filter(Boolean)
+      ? cnae_fiscal_principal
+          .map((c) => (typeof c === 'string' ? c.replace(/\D/g, '') : String(c).replace(/\D/g, '')))
+          .filter(Boolean)
       : []
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
@@ -138,16 +141,17 @@ Deno.serve(async (req: Request) => {
         externalStatus = response.status
 
         if (!response.ok) {
-          let errorMsg = `Erro na API: ${response.status} ${response.statusText}`
+          let errorMsg = `Erro na API da Casa dos Dados (${response.status})`
           if (response.status === 401 || response.status === 403) {
             errorMsg =
-              'Token Inválido ou Não Autorizado. Verifique o token nas Configurações Avançadas.'
+              'Erro ao buscar leads: Verifique sua chave de API nas Configurações Avançadas.'
           } else if (response.status === 429) {
-            errorMsg = 'Limite de Requisições Excedido'
+            errorMsg = 'Erro ao buscar leads: Limite de Requisições Excedido.'
           } else if (response.status === 404) {
-            errorMsg = 'Endpoint não encontrado (verifique a URL)'
+            errorMsg = 'Erro ao buscar leads: Endpoint não encontrado.'
           } else if (response.status === 400) {
-            errorMsg = 'Requisição inválida (verifique os parâmetros da busca)'
+            errorMsg =
+              'Erro ao buscar leads: Verifique o formato do CNAE e os demais filtros aplicados.'
           }
 
           let errorData = null
@@ -231,7 +235,8 @@ Deno.serve(async (req: Request) => {
 
       return new Response(
         JSON.stringify({
-          error: 'Token da API Casa dos Dados não configurado.',
+          error:
+            'Erro ao buscar leads: Token da API não configurado. Adicione nas Configurações Avançadas.',
           data: [],
           page,
           count: 0,

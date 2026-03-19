@@ -147,10 +147,13 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
       setFilters((prev) => ({ ...prev, cityQuick: 'Todos' }))
     }
 
+    // Sanitize CNAEs to contain only numeric characters before sending to API
+    const sanitizedCnaes = filters.cnaes
+      .map((c) => (typeof c === 'string' ? c.replace(/\D/g, '') : String(c).replace(/\D/g, '')))
+      .filter(Boolean)
+
     const payload = {
-      cnae_fiscal_principal: filters.cnaes.map((c) =>
-        typeof c === 'string' ? c.replace(/\D/g, '') : c,
-      ),
+      cnae_fiscal_principal: sanitizedCnaes.length > 0 ? sanitizedCnaes : null,
       uf: filters.ufs.length > 0 ? filters.ufs : null,
       municipio:
         typeof filters.municipio === 'string' && filters.municipio.trim() !== ''
@@ -170,7 +173,9 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
 
       if (error) {
         console.error('Search API Connection Error:', error)
-        toast.error('Erro de rede. Verifique sua conexão e tente novamente.')
+        toast.error('Erro ao conectar com o servidor. Verifique sua conexão.')
+        setLeadsRaw([])
+        setPagination({ page: targetPage, totalPages: 0, totalCount: 0 })
         return
       }
 
@@ -197,6 +202,8 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
     } catch (err: any) {
       console.error('Error searching leads:', err)
       toast.error('Erro inesperado ao buscar leads.')
+      setLeadsRaw([])
+      setPagination({ page: targetPage, totalPages: 0, totalCount: 0 })
     } finally {
       setIsSearching(false)
     }
