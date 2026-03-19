@@ -26,9 +26,8 @@ import {
   Code2,
   Play,
   Hash,
-  HelpCircle,
-  AlertTriangle,
   Info,
+  AlertTriangle,
   ChevronDown,
   ChevronUp,
 } from 'lucide-react'
@@ -101,7 +100,7 @@ const HTTP_ERROR_DICTIONARY: Record<
     title: '❌ Endpoint não encontrado (Erro 404)',
     meaning: 'O servidor da Casa dos Dados não encontrou a rota solicitada.',
     action: [
-      'Confirme se o endpoint na Edge Function está apontando para /v2/public/cnpj/pesquisa.',
+      'Confirme se o endpoint na Edge Function está apontando para /v5/cnpj/pesquisa.',
       'Verifique se não há erros de digitação na URL.',
     ],
   },
@@ -222,7 +221,7 @@ export default function DebugAPI() {
       if (status >= 200 && status < 300 && !data?.error && !data?.isMock) {
         setValidationResult({
           success: true,
-          message: '✅ Conectado à API Casa dos Dados (Novo Endpoint)',
+          message: '✅ Conectado à API Casa dos Dados (Novo Endpoint v5)',
         })
       } else {
         const errorMsg = data?.error || (data?.isMock ? 'Token ausente ou inválido' : status)
@@ -238,6 +237,7 @@ export default function DebugAPI() {
       })
     } finally {
       setIsValidating(false)
+      fetchHistory()
     }
   }
 
@@ -250,7 +250,6 @@ export default function DebugAPI() {
     setTotalResults(null)
 
     const start = performance.now()
-    // Feature: Data Integrity Preservation - Do not strip special characters
     const cleanCnae = cnae.trim()
 
     try {
@@ -291,17 +290,6 @@ export default function DebugAPI() {
       setHttpStatus(status)
       setTotalResults(resultadosQtd)
       setIsJsonOpen(success)
-
-      await supabase.from('api_debug_logs').insert({
-        cnae: cleanCnae || null,
-        uf: uf && uf !== 'Todos' ? uf : null,
-        limite: limit || null,
-        status_http: status,
-        sucesso: success,
-        tempo_resposta_ms: timeTaken,
-        total_resultados: resultadosQtd,
-        resposta_json: respostaJson,
-      } as any)
 
       fetchHistory()
       toast[success ? 'success' : 'error'](
