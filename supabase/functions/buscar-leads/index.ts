@@ -36,13 +36,8 @@ Deno.serve(async (req: Request) => {
       .eq('id', 1)
       .maybeSingle()
 
-    // Dynamic Token Retrieval from config first, fallback to env var
-    let apiKey = config?.casadosdados_api_token
-    if (!apiKey || apiKey.trim() === '') {
-      apiKey = Deno.env.get('CASADOSDADOS_API_KEY')
-    }
-
-    apiKey = apiKey?.trim() || ''
+    // Dynamic Token Retrieval from config, strictly from database for persistence
+    const apiKey = config?.casadosdados_api_token?.trim() || ''
 
     const payloadToHash = { cnaes, uf: uf || null, limit, page }
     const msgBuffer = new TextEncoder().encode(JSON.stringify(payloadToHash))
@@ -151,7 +146,7 @@ Deno.serve(async (req: Request) => {
 
           const finalError = { error: errorMsg, details: errorData }
 
-          // Enhanced Debug Logging
+          // Enhanced Debug Logging - storing full error payload
           await supabaseAdmin.from('api_debug_logs').insert({
             cnae: cnaes.join(', ') || null,
             uf: uf || null,
@@ -160,7 +155,7 @@ Deno.serve(async (req: Request) => {
             sucesso: false,
             tempo_resposta_ms: timeTakenApi,
             total_resultados: 0,
-            resposta_json: finalError,
+            resposta_json: errorData || finalError,
           })
 
           return new Response(
@@ -173,6 +168,7 @@ Deno.serve(async (req: Request) => {
               cached: false,
               isMock: false,
               status_http: response.status,
+              raw_response: errorData,
             }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
           )
