@@ -9,6 +9,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      api_debug_logs: {
+        Row: {
+          cnae: string | null
+          id: string
+          status_http: number | null
+          sucesso: boolean | null
+          timestamp: string
+          uf: string | null
+        }
+        Insert: {
+          cnae?: string | null
+          id?: string
+          status_http?: number | null
+          sucesso?: boolean | null
+          timestamp?: string
+          uf?: string | null
+        }
+        Update: {
+          cnae?: string | null
+          id?: string
+          status_http?: number | null
+          sucesso?: boolean | null
+          timestamp?: string
+          uf?: string | null
+        }
+        Relationships: []
+      }
       cache_pesquisas: {
         Row: {
           chave_cache: string
@@ -453,6 +480,13 @@ export const Constants = {
 // --- COLUMN TYPES (actual PostgreSQL types) ---
 // Use this to know the real database type when writing migrations.
 // "string" in TypeScript types above may be uuid, text, varchar, timestamptz, etc.
+// Table: api_debug_logs
+//   id: uuid (not null, default: gen_random_uuid())
+//   timestamp: timestamp with time zone (not null, default: now())
+//   cnae: text (nullable)
+//   uf: text (nullable)
+//   status_http: integer (nullable)
+//   sucesso: boolean (nullable)
 // Table: cache_pesquisas
 //   id: uuid (not null, default: gen_random_uuid())
 //   chave_cache: text (not null)
@@ -532,6 +566,8 @@ export const Constants = {
 //   ativo: boolean (not null, default: true)
 
 // --- CONSTRAINTS ---
+// Table: api_debug_logs
+//   PRIMARY KEY api_debug_logs_pkey: PRIMARY KEY (id)
 // Table: cache_pesquisas
 //   UNIQUE cache_pesquisas_chave_cache_key: UNIQUE (chave_cache)
 //   PRIMARY KEY cache_pesquisas_pkey: PRIMARY KEY (id)
@@ -553,6 +589,11 @@ export const Constants = {
 //   FOREIGN KEY profiles_user_id_fkey: FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
 
 // --- ROW LEVEL SECURITY POLICIES ---
+// Table: api_debug_logs
+//   Policy "Enable INSERT for authenticated admins" (INSERT, PERMISSIVE) roles={authenticated}
+//     WITH CHECK: (EXISTS ( SELECT 1    FROM (profiles p      JOIN perfis_acesso pa ON ((p.perfil_id = pa.id)))   WHERE ((p.user_id = auth.uid()) AND (pa.nome = 'Administrador'::text))))
+//   Policy "Enable SELECT for authenticated admins" (SELECT, PERMISSIVE) roles={authenticated}
+//     USING: (EXISTS ( SELECT 1    FROM (profiles p      JOIN perfis_acesso pa ON ((p.perfil_id = pa.id)))   WHERE ((p.user_id = auth.uid()) AND (pa.nome = 'Administrador'::text))))
 // Table: cache_pesquisas
 //   Policy "Allow authenticated users to delete cache" (DELETE, PERMISSIVE) roles={authenticated}
 //     USING: true

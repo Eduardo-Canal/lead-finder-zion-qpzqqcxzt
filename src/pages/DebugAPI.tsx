@@ -25,6 +25,7 @@ import {
 } from '@/components/ui/table'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { toast } from 'sonner'
+import { cn } from '@/lib/utils'
 
 const BRAZIL_STATES = [
   'AC',
@@ -71,6 +72,12 @@ export default function DebugAPI() {
   const [httpStatus, setHttpStatus] = useState<number | null>(null)
   const [history, setHistory] = useState<any[]>([])
 
+  const [isValidating, setIsValidating] = useState(false)
+  const [validationResult, setValidationResult] = useState<{
+    success: boolean
+    message: string
+  } | null>(null)
+
   useEffect(() => {
     if (isAdmin === false) {
       navigate('/')
@@ -101,6 +108,51 @@ export default function DebugAPI() {
       .limit(5)
 
     if (data) setHistory(data)
+  }
+
+  const handleValidateConnection = async () => {
+    setIsValidating(true)
+    setValidationResult(null)
+
+    try {
+      const dummyCnae = Math.floor(Math.random() * 9000000 + 1000000).toString()
+      const { data, error } = await supabase.functions.invoke('buscar-leads', {
+        body: {
+          cnae_fiscal_principal: [dummyCnae],
+          limit: 1,
+        },
+      })
+
+      if (error) {
+        setValidationResult({
+          success: false,
+          message: `❌ Erro na conexão: ${error.message || error.status || 'Erro interno'}`,
+        })
+        return
+      }
+
+      const status = data?.status_http || 200
+
+      if (status >= 200 && status < 300 && !data?.error && !data?.isMock) {
+        setValidationResult({
+          success: true,
+          message: '✅ Conectado à API Casa dos Dados',
+        })
+      } else {
+        const errorMsg = data?.error || (data?.isMock ? 'Token ausente ou inválido' : status)
+        setValidationResult({
+          success: false,
+          message: `❌ Erro na conexão: ${errorMsg}`,
+        })
+      }
+    } catch (err: any) {
+      setValidationResult({
+        success: false,
+        message: `❌ Erro na conexão: ${err.message || 'Erro inesperado'}`,
+      })
+    } finally {
+      setIsValidating(false)
+    }
   }
 
   const handleTestAPI = async (e: React.FormEvent) => {
@@ -181,69 +233,102 @@ export default function DebugAPI() {
             <CardDescription>Verificação da Chave de API</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center gap-3 bg-muted/50 p-4 rounded-lg">
-              <Activity className="h-6 w-6 text-muted-foreground" />
-              <div className="flex-1">
-                <p className="text-sm font-medium">Token Casa dos Dados</p>
-                {hasToken === null ? (
-                  <span className="text-sm text-muted-foreground">Verificando...</span>
-                ) : hasToken ? (
-                  <Badge variant="default" className="bg-emerald-500 hover:bg-emerald-600 mt-1">
-                    <CheckCircle2 className="h-3 w-3 mr-1" /> Detectado
-                  </Badge>
-                ) : (
-                  <Badge variant="destructive" className="mt-1">
-                    <XCircle className="h-3 w-3 mr-1" /> Não Detectado
-                  </Badge>
-                )}
+            <div className="flex flex-col gap-4 bg-muted/50 p-4 rounded-lg border">
+              <div className="flex items-center gap-3">
+                <Activity className="h-6 w-6 text-muted-foreground" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium">Token Casa dos Dados</p>
+                  {hasToken === null ? (
+                    <span className="text-sm text-muted-foreground">Verificando...</span>
+                  ) : hasToken ? (
+                    <Badge variant="default" className="bg-emerald-500 hover:bg-emerald-600 mt-1">
+                      ✅ Token detectado
+                    </Badge>
+                  ) : (
+                    <Badge variant="destructive" className="mt-1">
+                      ❌ Token não configurado
+                    </Badge>
+                  )}
+                </div>
               </div>
+
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full"
+                onClick={handleValidateConnection}
+                disabled={isValidating}
+              >
+                {isValidating ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Activity className="h-4 w-4 mr-2" />
+                )}
+                Validar Conexão
+              </Button>
+
+              {validationResult && (
+                <div
+                  className={cn(
+                    'text-sm p-3 rounded-md border flex items-start gap-2 break-words',
+                    validationResult.success
+                      ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600'
+                      : 'bg-destructive/10 border-destructive/20 text-destructive',
+                  )}
+                >
+                  <span className="font-medium leading-relaxed">{validationResult.message}</span>
+                </div>
+              )}
             </div>
 
-            <form onSubmit={handleTestAPI} className="space-y-4 mt-6">
-              <div className="space-y-2">
-                <Label>CNAE (Opcional)</Label>
-                <Input
-                  placeholder="Ex: 4683-4/00"
-                  value={cnae}
-                  onChange={(e) => setCnae(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>UF (Opcional)</Label>
-                <Select value={uf} onValueChange={setUf}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione UF" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Todos">Todas as UFs</SelectItem>
-                    {BRAZIL_STATES.map((state) => (
-                      <SelectItem key={state} value={state}>
-                        {state}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Limite de Resultados</Label>
-                <Input
-                  type="number"
-                  min={1}
-                  max={50}
-                  value={limit}
-                  onChange={(e) => setLimit(e.target.value ? parseInt(e.target.value) : '')}
-                  required
-                />
-              </div>
-              <Button type="submit" className="w-full gap-2" disabled={loading}>
-                {loading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Play className="h-4 w-4" />
-                )}
-                Testar API
-              </Button>
-            </form>
+            <div className="mt-6 pt-6 border-t">
+              <h3 className="text-sm font-medium mb-4">Teste Manual Avançado</h3>
+              <form onSubmit={handleTestAPI} className="space-y-4">
+                <div className="space-y-2">
+                  <Label>CNAE (Opcional)</Label>
+                  <Input
+                    placeholder="Ex: 4683-4/00"
+                    value={cnae}
+                    onChange={(e) => setCnae(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>UF (Opcional)</Label>
+                  <Select value={uf} onValueChange={setUf}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione UF" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Todos">Todas as UFs</SelectItem>
+                      {BRAZIL_STATES.map((state) => (
+                        <SelectItem key={state} value={state}>
+                          {state}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Limite de Resultados</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={50}
+                    value={limit}
+                    onChange={(e) => setLimit(e.target.value ? parseInt(e.target.value) : '')}
+                    required
+                  />
+                </div>
+                <Button type="submit" className="w-full gap-2" disabled={loading}>
+                  {loading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Play className="h-4 w-4" />
+                  )}
+                  Testar API
+                </Button>
+              </form>
+            </div>
           </CardContent>
         </Card>
 
