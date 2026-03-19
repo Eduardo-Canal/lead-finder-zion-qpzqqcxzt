@@ -128,6 +128,13 @@ Deno.serve(async (req: Request) => {
       casadosDadosPayload.municipio = Array.isArray(municipio) ? municipio : [municipio]
     }
 
+    // Inclusion of status filtering in the search request
+    casadosDadosPayload.situacao_cadastral = situacao_cadastral
+      ? Array.isArray(situacao_cadastral)
+        ? situacao_cadastral
+        : [situacao_cadastral]
+      : ['ATIVA']
+
     let data
     let externalStatus = 200
     const fetchStart = performance.now()
@@ -137,15 +144,19 @@ Deno.serve(async (req: Request) => {
       try {
         let tokenRaw = apiKey.replace(/^Bearer\s+/i, '').trim()
 
-        const response = await fetch('https://api.casadosdados.com.br/v5/cnpj/pesquisa', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Accept: 'application/json',
-            'api-key': tokenRaw,
+        // Include the query string parameter tipo_resultado=completo in the request URL
+        const response = await fetch(
+          'https://api.casadosdados.com.br/v5/cnpj/pesquisa?tipo_resultado=completo',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Accept: 'application/json',
+              'api-key': tokenRaw,
+            },
+            body: JSON.stringify(casadosDadosPayload),
           },
-          body: JSON.stringify(casadosDadosPayload),
-        })
+        )
 
         timeTakenApi = Math.round(performance.now() - fetchStart)
         externalStatus = response.status
@@ -295,18 +306,28 @@ Deno.serve(async (req: Request) => {
     let totalPages = data?.pages || 1
     let currentPage = data?.page || page
 
-    const results = rawResults.slice(0, limit).map((empresa: any) => ({
-      cnpj: empresa.cnpj,
-      razao_social: empresa.razao_social || empresa.nome_fantasia || '',
-      cnae_fiscal_principal: empresa.cnae_fiscal_principal || empresa.atividade_principal || '',
-      municipio: empresa.municipio,
-      uf: empresa.uf,
-      porte: empresa.porte || '',
-      situacao_cadastral: empresa.situacao_cadastral,
-      capital_social: empresa.capital_social || 0,
-      email: empresa.email || '',
-      telefone: empresa.telefone || empresa.ddd_telefone_1 || '',
-    }))
+    // Map the returned data, ensuring situacao_cadastral resolves to the proper string
+    const results = rawResults.slice(0, limit).map((empresa: any) => {
+      let situacao = empresa.situacao_cadastral
+      if (typeof situacao === 'object' && situacao?.situacao_atual) {
+        situacao = situacao.situacao_atual
+      } else if (typeof situacao === 'string') {
+        situacao = situacao
+      }
+
+      return {
+        cnpj: empresa.cnpj,
+        razao_social: empresa.razao_social || empresa.nome_fantasia || '',
+        cnae_fiscal_principal: empresa.cnae_fiscal_principal || empresa.atividade_principal || '',
+        municipio: empresa.municipio,
+        uf: empresa.uf,
+        porte: empresa.porte || '',
+        situacao_cadastral: situacao,
+        capital_social: empresa.capital_social || 0,
+        email: empresa.email || empresa.contato_email || '',
+        telefone: empresa.telefone || empresa.ddd_telefone_1 || empresa.contato_telefone || '',
+      }
+    })
 
     if (results && results.length > 0) {
       try {
