@@ -10,7 +10,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import useLeadStore from '@/stores/useLeadStore'
 import useAuthStore from '@/stores/useAuthStore'
 import { LeadDetailsModal } from './LeadDetailsModal'
@@ -226,6 +226,7 @@ export function ResultsTable() {
 
       <Dialog open={!!selectedLead} onOpenChange={(open) => !open && setSelectedLeadCnpj(null)}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogTitle className="sr-only">Detalhes do Lead</DialogTitle>
           {selectedLead && (
             <LeadDetailsModal lead={selectedLead} onClose={() => setSelectedLeadCnpj(null)} />
           )}
