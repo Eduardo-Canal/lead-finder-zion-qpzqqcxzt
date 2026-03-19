@@ -13,25 +13,40 @@ export type Database = {
         Row: {
           cnae: string | null
           id: string
+          limite: number | null
+          municipio: string | null
+          resposta_json: Json | null
           status_http: number | null
           sucesso: boolean | null
+          tempo_resposta_ms: number | null
           timestamp: string
+          total_resultados: number | null
           uf: string | null
         }
         Insert: {
           cnae?: string | null
           id?: string
+          limite?: number | null
+          municipio?: string | null
+          resposta_json?: Json | null
           status_http?: number | null
           sucesso?: boolean | null
+          tempo_resposta_ms?: number | null
           timestamp?: string
+          total_resultados?: number | null
           uf?: string | null
         }
         Update: {
           cnae?: string | null
           id?: string
+          limite?: number | null
+          municipio?: string | null
+          resposta_json?: Json | null
           status_http?: number | null
           sucesso?: boolean | null
+          tempo_resposta_ms?: number | null
           timestamp?: string
+          total_resultados?: number | null
           uf?: string | null
         }
         Relationships: []
@@ -487,6 +502,11 @@ export const Constants = {
 //   uf: text (nullable)
 //   status_http: integer (nullable)
 //   sucesso: boolean (nullable)
+//   municipio: text (nullable)
+//   limite: integer (nullable)
+//   tempo_resposta_ms: integer (nullable)
+//   total_resultados: integer (nullable)
+//   resposta_json: jsonb (nullable)
 // Table: cache_pesquisas
 //   id: uuid (not null, default: gen_random_uuid())
 //   chave_cache: text (not null)

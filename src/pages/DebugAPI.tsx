@@ -14,7 +14,21 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
-import { Loader2, Activity, Clock, CheckCircle2, XCircle, Code2, Play, Hash } from 'lucide-react'
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import {
+  Loader2,
+  Activity,
+  Clock,
+  CheckCircle2,
+  XCircle,
+  Code2,
+  Play,
+  Hash,
+  HelpCircle,
+  AlertTriangle,
+  Info,
+} from 'lucide-react'
 import {
   Table,
   TableBody,
@@ -56,6 +70,61 @@ const BRAZIL_STATES = [
   'SE',
   'TO',
 ]
+
+const HTTP_ERROR_DICTIONARY: Record<number, { title: string; meaning: string; action: string }> = {
+  401: {
+    title: '401 - Não Autorizado',
+    meaning: 'Significa que o token (API Key) é inválido ou expirado.',
+    action: "Revise a chave na tela 'Avançado'.",
+  },
+  403: {
+    title: '403 - Proibido',
+    meaning:
+      'Significa que sua conta não tem permissão para acessar este recurso ou o limite do plano foi atingido.',
+    action: 'Verifique seu saldo ou permissões na Casa dos Dados.',
+  },
+  404: {
+    title: '404 - Não Encontrado',
+    meaning:
+      'Recurso não encontrado. Isso indica que o endereço da API (URL) pode estar incorreto ou que os parâmetros enviados (como um CNAE inexistente) não foram localizados no servidor da Casa dos Dados.',
+    action:
+      '1. Verifique se os campos de CNAE ou UF foram preenchidos corretamente. 2. Confirme se a URL da Edge Function está configurada corretamente no sistema. 3. Tente realizar uma busca mais simples para validar se o serviço está respondendo.',
+  },
+  429: {
+    title: '429 - Muitas Requisições',
+    meaning: 'Significa que você atingiu o limite de velocidade de consultas.',
+    action: 'Aguarde alguns minutos antes de tentar novamente.',
+  },
+  500: {
+    title: '500 - Erro no Servidor',
+    meaning: 'Significa uma instabilidade no servidor da Casa dos Dados.',
+    action: 'Tente novamente em instantes.',
+  },
+  502: {
+    title: '502 - Bad Gateway',
+    meaning: 'Significa uma instabilidade de comunicação com o servidor da Casa dos Dados.',
+    action: 'Tente novamente em instantes.',
+  },
+  503: {
+    title: '503 - Serviço Indisponível',
+    meaning: 'Significa uma instabilidade no servidor da Casa dos Dados.',
+    action: 'Tente novamente em instantes.',
+  },
+}
+
+const getErrorExplanation = (status: number | null) => {
+  if (!status || status < 400) return null
+  if (status >= 500 && status <= 503) {
+    return HTTP_ERROR_DICTIONARY[status] || HTTP_ERROR_DICTIONARY[500]
+  }
+  return (
+    HTTP_ERROR_DICTIONARY[status] || {
+      title: `${status} - Erro Desconhecido`,
+      meaning: 'Ocorreu um erro não catalogado ao processar a requisição.',
+      action: 'Verifique os logs detalhados ou contate o suporte.',
+    }
+  )
+}
 
 export default function DebugAPI() {
   const { user } = useAuthStore()
@@ -220,7 +289,9 @@ export default function DebugAPI() {
       } as any)
 
       fetchHistory()
-      toast.success('Teste concluído')
+      toast[success ? 'success' : 'error'](
+        success ? 'Teste concluído com sucesso' : 'Falha na requisição',
+      )
     } catch (err: any) {
       console.error(err)
       toast.error('Falha ao executar o teste')
@@ -231,14 +302,52 @@ export default function DebugAPI() {
 
   if (!isAdmin) return null
 
+  const errorExplanation = getErrorExplanation(httpStatus)
+
   return (
     <div className="max-w-7xl mx-auto space-y-6 animate-fade-in pb-10">
-      <div>
-        <h2 className="text-2xl font-semibold tracking-tight">Admin - Debug API</h2>
-        <p className="text-muted-foreground mt-1">
-          Monitore o status da integração com a Casa dos Dados, realize testes manuais e analise as
-          respostas.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-semibold tracking-tight">Admin - Debug API</h2>
+          <p className="text-muted-foreground mt-1">
+            Monitore o status da integração com a Casa dos Dados, realize testes manuais e analise
+            as respostas.
+          </p>
+        </div>
+
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" className="gap-2">
+              <HelpCircle className="h-4 w-4" />
+              Guia de Resolução de Erros
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-96 max-h-[80vh] overflow-y-auto" align="end">
+            <div className="space-y-4">
+              <div>
+                <h4 className="font-semibold mb-1">Guia Rápido de Erros</h4>
+                <p className="text-sm text-muted-foreground">
+                  Principais códigos de retorno e o que fazer em cada caso.
+                </p>
+              </div>
+              <div className="space-y-4">
+                {Object.values(HTTP_ERROR_DICTIONARY).map((err, idx) => (
+                  <div key={idx} className="border-b pb-3 last:border-0 last:pb-0">
+                    <p className="font-medium text-sm text-destructive">{err.title}</p>
+                    <p className="text-sm mt-1">
+                      <span className="font-semibold text-muted-foreground">Significa:</span>{' '}
+                      {err.meaning}
+                    </p>
+                    <p className="text-sm mt-1">
+                      <span className="font-semibold text-muted-foreground">Ação:</span>{' '}
+                      {err.action}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -363,7 +472,7 @@ export default function DebugAPI() {
             <CardDescription>Visualizador em tempo real dos dados retornados</CardDescription>
           </CardHeader>
           <CardContent className="flex-1 flex flex-col space-y-4 min-h-[400px]">
-            <div className="flex flex-wrap gap-4">
+            <div className="flex flex-wrap gap-4 mb-2">
               <div className="flex items-center gap-2 border px-3 py-2 rounded-md bg-muted/30">
                 <Code2 className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm font-medium">Status HTTP:</span>
@@ -396,9 +505,35 @@ export default function DebugAPI() {
               </div>
             </div>
 
-            <ScrollArea className="flex-1 w-full rounded-md border bg-slate-950 p-4">
+            {errorExplanation && (
+              <Alert variant="destructive" className="animate-in fade-in slide-in-from-top-2">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle className="font-semibold">{errorExplanation.title}</AlertTitle>
+                <AlertDescription className="mt-2 space-y-2 text-sm leading-relaxed">
+                  <p>
+                    <strong className="font-semibold text-destructive-foreground/90">
+                      O que significa:
+                    </strong>{' '}
+                    {errorExplanation.meaning}
+                  </p>
+                  <p>
+                    <strong className="font-semibold text-destructive-foreground/90">
+                      Ações para corrigir:
+                    </strong>{' '}
+                    {errorExplanation.action}
+                  </p>
+                </AlertDescription>
+              </Alert>
+            )}
+
+            <ScrollArea className="flex-1 w-full rounded-md border bg-slate-950 p-4 min-h-[300px]">
               {lastResponse ? (
-                <pre className="text-emerald-400 text-sm font-mono whitespace-pre-wrap break-all">
+                <pre
+                  className={cn(
+                    'text-sm font-mono whitespace-pre-wrap break-all',
+                    httpStatus && httpStatus < 300 ? 'text-emerald-400' : 'text-destructive/90',
+                  )}
+                >
                   {JSON.stringify(lastResponse, null, 2)}
                 </pre>
               ) : (
@@ -435,31 +570,79 @@ export default function DebugAPI() {
                   </TableCell>
                 </TableRow>
               ) : (
-                history.map((log) => (
-                  <TableRow key={log.id}>
-                    <TableCell className="text-muted-foreground whitespace-nowrap">
-                      {new Date(log.timestamp).toLocaleString('pt-BR')}
-                    </TableCell>
-                    <TableCell className="font-mono text-sm">{log.cnae || '-'}</TableCell>
-                    <TableCell>{log.uf || '-'}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="font-mono">
-                        {log.status_http || '-'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {log.sucesso ? (
-                        <span className="flex items-center text-emerald-600 font-medium text-sm">
-                          <CheckCircle2 className="h-4 w-4 mr-1" /> Sucesso
-                        </span>
-                      ) : (
-                        <span className="flex items-center text-destructive font-medium text-sm">
-                          <XCircle className="h-4 w-4 mr-1" /> Erro
-                        </span>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))
+                history.map((log) => {
+                  const logErrorExplanation = getErrorExplanation(log.status_http)
+
+                  return (
+                    <TableRow key={log.id}>
+                      <TableCell className="text-muted-foreground whitespace-nowrap">
+                        {new Date(log.timestamp).toLocaleString('pt-BR')}
+                      </TableCell>
+                      <TableCell className="font-mono text-sm">{log.cnae || '-'}</TableCell>
+                      <TableCell>{log.uf || '-'}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Badge
+                            variant={
+                              log.status_http && log.status_http < 300 ? 'default' : 'destructive'
+                            }
+                            className={cn(
+                              'font-mono',
+                              log.status_http && log.status_http < 300
+                                ? 'bg-emerald-500 hover:bg-emerald-600'
+                                : '',
+                            )}
+                          >
+                            {log.status_http || '-'}
+                          </Badge>
+
+                          {logErrorExplanation && (
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6 rounded-full hover:bg-destructive/10 text-destructive shrink-0"
+                                >
+                                  <Info className="h-4 w-4" />
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-80" side="top">
+                                <div className="space-y-2 text-sm">
+                                  <p className="font-semibold text-destructive flex items-center gap-2">
+                                    <AlertTriangle className="h-4 w-4" />{' '}
+                                    {logErrorExplanation.title}
+                                  </p>
+                                  <p>
+                                    <span className="font-medium text-muted-foreground">
+                                      Significa:
+                                    </span>{' '}
+                                    {logErrorExplanation.meaning}
+                                  </p>
+                                  <p>
+                                    <span className="font-medium text-muted-foreground">Ação:</span>{' '}
+                                    {logErrorExplanation.action}
+                                  </p>
+                                </div>
+                              </PopoverContent>
+                            </Popover>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {log.sucesso ? (
+                          <span className="flex items-center text-emerald-600 font-medium text-sm">
+                            <CheckCircle2 className="h-4 w-4 mr-1" /> Sucesso
+                          </span>
+                        ) : (
+                          <span className="flex items-center text-destructive font-medium text-sm">
+                            <XCircle className="h-4 w-4 mr-1" /> Erro
+                          </span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  )
+                })
               )}
             </TableBody>
           </Table>
