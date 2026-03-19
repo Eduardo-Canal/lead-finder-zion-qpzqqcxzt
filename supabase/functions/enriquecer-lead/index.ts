@@ -25,20 +25,8 @@ Deno.serve(async (req: Request) => {
 
     const est = data.estabelecimento || {}
 
-    const enderecoParts = [est.tipo_logradouro, est.logradouro].filter(Boolean).join(' ')
-
-    const numero = est.numero || 'S/N'
-    const complemento = est.complemento ? ` - ${est.complemento}` : ''
-
-    const cidadeInfo = est.cidade?.nome ? `${est.cidade.nome} - ${est.estado?.sigla}` : ''
-    const cep = est.cep ? `CEP: ${est.cep}` : ''
-
-    const endereco_completo = [
-      `${enderecoParts}, ${numero}${complemento}`,
-      est.bairro,
-      cidadeInfo,
-      cep,
-    ]
+    const rua = [est.tipo_logradouro, est.logradouro].filter(Boolean).join(' ')
+    const endereco_completo = [rua, est.numero || 'S/N', est.complemento, est.bairro]
       .filter(Boolean)
       .join(', ')
 
@@ -51,11 +39,13 @@ Deno.serve(async (req: Request) => {
 
     const result = {
       razao_social: data.razao_social || '',
+      nome_fantasia: est.nome_fantasia || data.nome_fantasia || '',
       cnae_fiscal_principal: est.atividade_principal
         ? `${est.atividade_principal.id} - ${est.atividade_principal.descricao}`
         : '',
       municipio: est.cidade?.nome || '',
       uf: est.estado?.sigla || '',
+      cep: est.cep || '',
       porte: data.porte?.descricao || '',
       situacao_cadastral:
         est.situacao_cadastral === 'Ativa' ? 'Ativa' : est.situacao_cadastral || '',
