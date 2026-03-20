@@ -323,6 +323,7 @@ export type Database = {
           id: string
           nome: string
           perfil_id: string | null
+          require_password_update: boolean
           user_id: string | null
         }
         Insert: {
@@ -331,6 +332,7 @@ export type Database = {
           id?: string
           nome: string
           perfil_id?: string | null
+          require_password_update?: boolean
           user_id?: string | null
         }
         Update: {
@@ -339,6 +341,7 @@ export type Database = {
           id?: string
           nome?: string
           perfil_id?: string | null
+          require_password_update?: boolean
           user_id?: string | null
         }
         Relationships: [
@@ -588,6 +591,7 @@ export const Constants = {
 //   email: text (not null)
 //   perfil_id: uuid (nullable)
 //   ativo: boolean (not null, default: true)
+//   require_password_update: boolean (not null, default: false)
 
 // --- CONSTRAINTS ---
 // Table: api_debug_logs

@@ -143,7 +143,17 @@ export function AppSidebar() {
                             isActive={location.pathname === '/admin/debug-api'}
                           >
                             <Link to="/admin/debug-api">
-                              <span>Debug API</span>
+                              <span>Debug API Casa dos Dados</span>
+                            </Link>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton
+                            asChild
+                            isActive={location.pathname === '/admin/debug-bitrix'}
+                          >
+                            <Link to="/admin/debug-bitrix">
+                              <span>Debug API Bitrix24</span>
                             </Link>
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>

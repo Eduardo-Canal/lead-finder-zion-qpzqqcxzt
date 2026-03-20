@@ -11,6 +11,7 @@ import MyLeads from '@/pages/MyLeads'
 import UserManagement from '@/pages/UserManagement'
 import ConfiguracoesAvancadas from '@/pages/ConfiguracoesAvancadas'
 import DebugAPI from '@/pages/DebugAPI'
+import DebugBitrix from '@/pages/DebugBitrix'
 import NotFound from '@/pages/NotFound'
 import UpdatePassword from '@/pages/UpdatePassword'
 import useAuthStore, { AuthProvider } from '@/stores/useAuthStore'
@@ -80,6 +81,7 @@ const App = () => (
                   <Route path="/gestao-usuarios" element={<UserManagement />} />
                   <Route path="/configuracoes/avancado" element={<ConfiguracoesAvancadas />} />
                   <Route path="/admin/debug-api" element={<DebugAPI />} />
+                  <Route path="/admin/debug-bitrix" element={<DebugBitrix />} />
                 </Route>
                 <Route path="*" element={<NotFound />} />
               </Routes>
