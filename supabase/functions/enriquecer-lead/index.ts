@@ -7,10 +7,14 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const { cnpj } = await req.json()
+    const payload = await req.json().catch(() => ({}))
+    const { cnpj } = payload
 
     if (!cnpj) {
-      throw new Error('CNPJ não fornecido')
+      return new Response(JSON.stringify({ error: 'CNPJ não fornecido' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      })
     }
 
     const cleanCnpj = cnpj.replace(/\D/g, '')
@@ -18,7 +22,16 @@ Deno.serve(async (req: Request) => {
     const response = await fetch(`https://publica.cnpj.ws/cnpj/${cleanCnpj}`)
 
     if (!response.ok) {
-      throw new Error('Falha ao buscar dados no provedor externo')
+      return new Response(
+        JSON.stringify({
+          error: 'Falha ao buscar dados no provedor externo',
+          details: await response.text().catch(() => ''),
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        },
+      )
     }
 
     const data = await response.json()
@@ -68,7 +81,7 @@ Deno.serve(async (req: Request) => {
   } catch (error: any) {
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 400,
+      status: 200,
     })
   }
 })
