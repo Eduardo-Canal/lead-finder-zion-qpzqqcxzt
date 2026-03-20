@@ -358,6 +358,7 @@ Deno.serve(async (req: Request) => {
             resultados: results,
             total_registros: totalCount,
             expira_em,
+            parametros: payloadToHash,
           },
           { onConflict: 'chave_cache' },
         )
