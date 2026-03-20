@@ -26,8 +26,8 @@ Deno.serve(async (req: Request) => {
     const { data: config } = await supabaseAdmin
       .from('bitrix_rate_limit_config')
       .select('*')
-      .eq('id', 1)
-      .single()
+      .limit(1)
+      .maybeSingle()
 
     const maxReqs = config?.max_requests ?? 2
     const timeWindowMins = config?.time_window_minutes ?? 1
@@ -107,7 +107,13 @@ Deno.serve(async (req: Request) => {
       status_code: fetchStatus,
       response_time_ms: timeTaken,
       error_message: fetchError,
-      request_body: typeof body === 'object' ? body : { raw: body },
+      request_body: typeof body === 'object' ? body : body ? { raw: body } : null,
+      response_body:
+        typeof responseData === 'object'
+          ? responseData
+          : responseData
+            ? { raw: responseData }
+            : null,
     })
 
     // 5. Retornar resposta ao cliente

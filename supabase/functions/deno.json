@@ -5,6 +5,6 @@
     "functions": 6,
     "admin-create-user": 7,
     "admin-delete-user": 1,
-    "bitrix-rate-limiter": 1
+    "bitrix-rate-limiter": 2
   }
 }

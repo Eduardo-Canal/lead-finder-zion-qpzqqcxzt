@@ -51,6 +51,60 @@ export type Database = {
         }
         Relationships: []
       }
+      bitrix_api_logs: {
+        Row: {
+          endpoint: string
+          error_message: string | null
+          id: string
+          method: string
+          request_body: Json | null
+          response_time_ms: number | null
+          status_code: number | null
+          timestamp: string
+        }
+        Insert: {
+          endpoint: string
+          error_message?: string | null
+          id?: string
+          method: string
+          request_body?: Json | null
+          response_time_ms?: number | null
+          status_code?: number | null
+          timestamp?: string
+        }
+        Update: {
+          endpoint?: string
+          error_message?: string | null
+          id?: string
+          method?: string
+          request_body?: Json | null
+          response_time_ms?: number | null
+          status_code?: number | null
+          timestamp?: string
+        }
+        Relationships: []
+      }
+      bitrix_rate_limit_config: {
+        Row: {
+          id: number
+          max_requests: number
+          time_window_minutes: number
+          updated_at: string
+        }
+        Insert: {
+          id: number
+          max_requests?: number
+          time_window_minutes?: number
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          max_requests?: number
+          time_window_minutes?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       cache_pesquisas: {
         Row: {
           chave_cache: string
@@ -513,6 +567,20 @@ export const Constants = {
 //   tempo_resposta_ms: integer (nullable)
 //   total_resultados: integer (nullable)
 //   resposta_json: jsonb (nullable)
+// Table: bitrix_api_logs
+//   id: uuid (not null, default: gen_random_uuid())
+//   timestamp: timestamp with time zone (not null, default: now())
+//   endpoint: text (not null)
+//   method: text (not null)
+//   status_code: integer (nullable)
+//   response_time_ms: integer (nullable)
+//   error_message: text (nullable)
+//   request_body: jsonb (nullable)
+// Table: bitrix_rate_limit_config
+//   id: integer (not null)
+//   max_requests: integer (not null, default: 2)
+//   time_window_minutes: numeric (not null, default: 1)
+//   updated_at: timestamp with time zone (not null, default: now())
 // Table: cache_pesquisas
 //   id: uuid (not null, default: gen_random_uuid())
 //   chave_cache: text (not null)
@@ -596,6 +664,10 @@ export const Constants = {
 // --- CONSTRAINTS ---
 // Table: api_debug_logs
 //   PRIMARY KEY api_debug_logs_pkey: PRIMARY KEY (id)
+// Table: bitrix_api_logs
+//   PRIMARY KEY bitrix_api_logs_pkey: PRIMARY KEY (id)
+// Table: bitrix_rate_limit_config
+//   PRIMARY KEY bitrix_rate_limit_config_pkey: PRIMARY KEY (id)
 // Table: cache_pesquisas
 //   UNIQUE cache_pesquisas_chave_cache_key: UNIQUE (chave_cache)
 //   PRIMARY KEY cache_pesquisas_pkey: PRIMARY KEY (id)
@@ -622,6 +694,17 @@ export const Constants = {
 //     WITH CHECK: (EXISTS ( SELECT 1    FROM (profiles p      JOIN perfis_acesso pa ON ((p.perfil_id = pa.id)))   WHERE ((p.user_id = auth.uid()) AND (pa.nome = 'Administrador'::text))))
 //   Policy "Enable SELECT for authenticated admins" (SELECT, PERMISSIVE) roles={authenticated}
 //     USING: (EXISTS ( SELECT 1    FROM (profiles p      JOIN perfis_acesso pa ON ((p.perfil_id = pa.id)))   WHERE ((p.user_id = auth.uid()) AND (pa.nome = 'Administrador'::text))))
+// Table: bitrix_api_logs
+//   Policy "Enable DELETE for authenticated admins on bitrix_api_logs" (DELETE, PERMISSIVE) roles={authenticated}
+//     USING: (EXISTS ( SELECT 1    FROM (profiles p      JOIN perfis_acesso pa ON ((p.perfil_id = pa.id)))   WHERE ((p.user_id = auth.uid()) AND (pa.nome = 'Administrador'::text))))
+//   Policy "Enable SELECT for authenticated admins on bitrix_api_logs" (SELECT, PERMISSIVE) roles={authenticated}
+//     USING: (EXISTS ( SELECT 1    FROM (profiles p      JOIN perfis_acesso pa ON ((p.perfil_id = pa.id)))   WHERE ((p.user_id = auth.uid()) AND (pa.nome = 'Administrador'::text))))
+// Table: bitrix_rate_limit_config
+//   Policy "Enable SELECT for authenticated admins on bitrix_rate_limit_con" (SELECT, PERMISSIVE) roles={authenticated}
+//     USING: (EXISTS ( SELECT 1    FROM (profiles p      JOIN perfis_acesso pa ON ((p.perfil_id = pa.id)))   WHERE ((p.user_id = auth.uid()) AND (pa.nome = 'Administrador'::text))))
+//   Policy "Enable UPDATE for authenticated admins on bitrix_rate_limit_con" (UPDATE, PERMISSIVE) roles={authenticated}
+//     USING: (EXISTS ( SELECT 1    FROM (profiles p      JOIN perfis_acesso pa ON ((p.perfil_id = pa.id)))   WHERE ((p.user_id = auth.uid()) AND (pa.nome = 'Administrador'::text))))
+//     WITH CHECK: (EXISTS ( SELECT 1    FROM (profiles p      JOIN perfis_acesso pa ON ((p.perfil_id = pa.id)))   WHERE ((p.user_id = auth.uid()) AND (pa.nome = 'Administrador'::text))))
 // Table: cache_pesquisas
 //   Policy "Allow authenticated users to delete cache" (DELETE, PERMISSIVE) roles={authenticated}
 //     USING: true
