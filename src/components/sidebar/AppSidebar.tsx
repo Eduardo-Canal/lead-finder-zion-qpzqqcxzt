@@ -7,7 +7,7 @@ import {
   ShieldCheck,
   Target,
   Settings,
-  TerminalSquare,
+  ChevronRight,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -19,7 +19,11 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
+  SidebarMenuSub,
+  SidebarMenuSubItem,
+  SidebarMenuSubButton,
 } from '@/components/ui/sidebar'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -132,27 +136,47 @@ export function AppSidebar() {
                 </SidebarMenuItem>
               )}
               {user?.perfis_acesso?.nome === 'Administrador' && (
-                <>
+                <Collapsible
+                  defaultOpen={
+                    location.pathname.includes('/configuracoes') ||
+                    location.pathname.includes('/admin')
+                  }
+                  className="group/collapsible"
+                >
                   <SidebarMenuItem>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={location.pathname === '/configuracoes/avancado'}
-                    >
-                      <Link to="/configuracoes/avancado">
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuButton tooltip="Configurações">
                         <Settings />
-                        <span>Avançado</span>
-                      </Link>
-                    </SidebarMenuButton>
+                        <span>Configurações</span>
+                        <ChevronRight className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-90" />
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <SidebarMenuSub>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton
+                            asChild
+                            isActive={location.pathname === '/configuracoes/avancado'}
+                          >
+                            <Link to="/configuracoes/avancado">
+                              <span>Avançado</span>
+                            </Link>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton
+                            asChild
+                            isActive={location.pathname === '/admin/debug-api'}
+                          >
+                            <Link to="/admin/debug-api">
+                              <span>Debug API</span>
+                            </Link>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      </SidebarMenuSub>
+                    </CollapsibleContent>
                   </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={location.pathname === '/admin/debug-api'}>
-                      <Link to="/admin/debug-api">
-                        <TerminalSquare />
-                        <span>Debug API</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                </>
+                </Collapsible>
               )}
             </SidebarMenu>
           </SidebarGroupContent>
@@ -168,9 +192,13 @@ export function AppSidebar() {
                     placeholder="Ex: 6201-5/01"
                     value={cnaeInput}
                     onChange={(e) => setCnaeInput(e.target.value)}
-                    className="bg-sidebar-accent text-sidebar-foreground border-sidebar-border"
+                    className="bg-sidebar-accent text-sidebar-foreground border-sidebar-border focus-visible:ring-sidebar-ring"
                   />
-                  <Button type="submit" variant="secondary">
+                  <Button
+                    type="submit"
+                    variant="secondary"
+                    className="bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary/90"
+                  >
                     Adicionar
                   </Button>
                 </form>
@@ -179,11 +207,11 @@ export function AppSidebar() {
                     <Badge
                       key={cnae}
                       variant="secondary"
-                      className="bg-sidebar-accent text-sidebar-foreground flex items-center gap-1 animate-in fade-in slide-in-from-left-2"
+                      className="bg-sidebar-accent text-sidebar-foreground flex items-center gap-1 animate-in fade-in slide-in-from-left-2 border border-sidebar-border"
                     >
                       {cnae}
                       <X
-                        className="h-3 w-3 cursor-pointer hover:text-destructive"
+                        className="h-3 w-3 cursor-pointer hover:text-sidebar-primary"
                         onClick={() => removeCnae(cnae)}
                       />
                     </Badge>
@@ -201,7 +229,7 @@ export function AppSidebar() {
                     <DropdownMenuTrigger asChild>
                       <Button
                         variant="outline"
-                        className="w-full justify-between bg-sidebar-accent text-sidebar-foreground border-sidebar-border"
+                        className="w-full justify-between bg-sidebar-accent text-sidebar-foreground border-sidebar-border hover:bg-sidebar-accent/80 hover:text-sidebar-foreground"
                       >
                         {filters.ufs.length > 0
                           ? `${filters.ufs.length} selecionados`
@@ -229,7 +257,7 @@ export function AppSidebar() {
                     placeholder="Ex: São Paulo"
                     value={filters.municipio}
                     onChange={(e) => setFilter('municipio', e.target.value)}
-                    className="bg-sidebar-accent text-sidebar-foreground border-sidebar-border"
+                    className="bg-sidebar-accent text-sidebar-foreground border-sidebar-border focus-visible:ring-sidebar-ring"
                   />
                 </div>
               </SidebarGroupContent>
@@ -244,7 +272,7 @@ export function AppSidebar() {
                     value={filters.porte}
                     onValueChange={(v) => setFilter('porte', v === 'Todos' ? '' : v)}
                   >
-                    <SelectTrigger className="bg-sidebar-accent text-sidebar-foreground border-sidebar-border">
+                    <SelectTrigger className="bg-sidebar-accent text-sidebar-foreground border-sidebar-border focus-visible:ring-sidebar-ring">
                       <SelectValue placeholder="Selecione..." />
                     </SelectTrigger>
                     <SelectContent>
@@ -263,7 +291,7 @@ export function AppSidebar() {
                     value={filters.situacao}
                     onValueChange={(v) => setFilter('situacao', v === 'Todas' ? '' : v)}
                   >
-                    <SelectTrigger className="bg-sidebar-accent text-sidebar-foreground border-sidebar-border">
+                    <SelectTrigger className="bg-sidebar-accent text-sidebar-foreground border-sidebar-border focus-visible:ring-sidebar-ring">
                       <SelectValue placeholder="Selecione..." />
                     </SelectTrigger>
                     <SelectContent>
@@ -283,7 +311,7 @@ export function AppSidebar() {
                     placeholder="Ex: 50000"
                     value={filters.capitalMinimo}
                     onChange={(e) => setFilter('capitalMinimo', e.target.value)}
-                    className="bg-sidebar-accent text-sidebar-foreground border-sidebar-border"
+                    className="bg-sidebar-accent text-sidebar-foreground border-sidebar-border focus-visible:ring-sidebar-ring"
                   />
                 </div>
               </SidebarGroupContent>

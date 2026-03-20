@@ -14,14 +14,14 @@ export default function Layout() {
       <SidebarInset className="bg-background min-h-screen flex flex-col">
         <header className="flex h-16 shrink-0 items-center justify-between px-6 border-b bg-white shadow-sm sticky top-0 z-10">
           <div className="flex items-center gap-4">
-            <SidebarTrigger className="text-primary hover:bg-accent/10 hover:text-accent" />
-            <h1 className="font-bold text-xl text-primary tracking-tight hidden sm:block">
+            <SidebarTrigger className="text-[#0066CC] hover:bg-[#0066CC]/10 hover:text-[#0066CC]" />
+            <h1 className="font-bold text-xl text-[#0066CC] tracking-tight hidden sm:block">
               Lead Finder Zion
             </h1>
           </div>
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground bg-slate-100 py-1.5 px-3 rounded-full">
-              <User className="h-4 w-4 text-accent" />
+              <User className="h-4 w-4 text-[#0066CC]" />
               <span>{user?.nome || 'Visitante'}</span>
             </div>
             <Button

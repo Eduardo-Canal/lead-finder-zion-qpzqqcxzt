@@ -48,10 +48,10 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
       <div className="w-full max-w-md bg-white rounded-xl shadow-lg border p-8 animate-fade-in-up">
         <div className="text-center mb-8 flex flex-col items-center">
-          <div className="bg-primary/10 p-3 rounded-full mb-4">
-            <ShieldCheck className="w-8 h-8 text-primary" />
+          <div className="bg-[#0066CC]/10 p-3 rounded-full mb-4">
+            <ShieldCheck className="w-8 h-8 text-[#0066CC]" />
           </div>
-          <h1 className="text-3xl font-bold text-primary tracking-tight">Lead Finder Zion</h1>
+          <h1 className="text-3xl font-bold text-[#0066CC] tracking-tight">Lead Finder Zion</h1>
           <p className="text-muted-foreground mt-2">Acesse sua conta para continuar</p>
         </div>
 
