@@ -93,10 +93,11 @@ Deno.serve(async (req: Request) => {
     })
 
     if (createError) {
-      return new Response(JSON.stringify({ error: createError.message }), {
-        status: 400,
-        headers: corsHeaders,
-      })
+      let errMsg = createError.message
+      if (errMsg.includes('already been registered') || errMsg.includes('already registered')) {
+        errMsg = 'Já existe um usuário cadastrado com este e-mail.'
+      }
+      return new Response(JSON.stringify({ error: errMsg }), { status: 400, headers: corsHeaders })
     }
 
     if (!newAuthUser?.user) {

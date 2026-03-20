@@ -109,7 +109,14 @@ export function UserManagementStoreProvider({ children }: { children: ReactNode 
         } else if (res.status !== 404) {
           // Se não retornou 404 (endpoint existe mas falhou), mostramos o erro
           const errData = await res.json().catch(() => null)
-          if (errData?.error) throw new Error(errData.error)
+          let errorMsg = errData?.error || 'Erro desconhecido ao criar usuário.'
+          if (
+            errorMsg.includes('already been registered') ||
+            errorMsg.includes('already registered')
+          ) {
+            errorMsg = 'Já existe um usuário cadastrado com este e-mail.'
+          }
+          throw new Error(errorMsg)
         }
       }
     } catch (e: any) {
@@ -148,7 +155,14 @@ export function UserManagementStoreProvider({ children }: { children: ReactNode 
           if (authError.status === 429 || authError.message.includes('rate limit')) {
             throw new Error('RATE_LIMIT')
           }
-          throw new Error(authError.message)
+          let errorMsg = authError.message
+          if (
+            errorMsg.includes('already been registered') ||
+            errorMsg.includes('already registered')
+          ) {
+            errorMsg = 'Já existe um usuário cadastrado com este e-mail.'
+          }
+          throw new Error(errorMsg)
         }
 
         if (!authData.user) throw new Error('Erro ao criar usuário na autenticação')
