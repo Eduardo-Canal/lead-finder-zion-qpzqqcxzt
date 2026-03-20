@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import useAuthStore from '@/stores/useAuthStore'
+import { supabase } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -25,7 +26,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { toast } from 'sonner'
-import { Play, Copy, Clock, Code2, Globe, Terminal, Loader2 } from 'lucide-react'
+import { Play, Copy, Clock, Code2, Globe, Terminal, Loader2, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 type HistoryItem = {
@@ -36,33 +37,6 @@ type HistoryItem = {
   status: number | null
   time: number
 }
-
-const mockHistory: HistoryItem[] = [
-  {
-    id: '1',
-    timestamp: new Date(Date.now() - 60000).toISOString(),
-    endpoint: 'https://zionlogtec.bitrix24.com.br/rest/5/eiyn7hzhaeu2lcm0/crm.lead.list',
-    method: 'GET',
-    status: 200,
-    time: 245,
-  },
-  {
-    id: '2',
-    timestamp: new Date(Date.now() - 3600000).toISOString(),
-    endpoint: 'https://zionlogtec.bitrix24.com.br/rest/5/eiyn7hzhaeu2lcm0/crm.deal.add',
-    method: 'POST',
-    status: 200,
-    time: 512,
-  },
-  {
-    id: '3',
-    timestamp: new Date(Date.now() - 86400000).toISOString(),
-    endpoint: 'https://zionlogtec.bitrix24.com.br/rest/5/eiyn7hzhaeu2lcm0/crm.contact.get',
-    method: 'GET',
-    status: 400,
-    time: 120,
-  },
-]
 
 export default function DebugBitrix() {
   const { user } = useAuthStore()
@@ -82,11 +56,34 @@ export default function DebugBitrix() {
     resHeaders: Record<string, string> | null
   }>({ status: null, time: null, data: null, resHeaders: null })
 
-  const [history, setHistory] = useState<HistoryItem[]>(mockHistory)
+  const [history, setHistory] = useState<HistoryItem[]>([])
+
+  const fetchHistory = async () => {
+    const { data } = await supabase
+      .from('bitrix_api_logs')
+      .select('*')
+      .order('timestamp', { ascending: false })
+      .limit(10)
+
+    if (data) {
+      setHistory(
+        data.map((item: any) => ({
+          id: item.id,
+          timestamp: item.timestamp,
+          endpoint: item.endpoint,
+          method: item.method,
+          status: item.status_code,
+          time: item.response_time_ms,
+        })),
+      )
+    }
+  }
 
   useEffect(() => {
     if (isAdmin === false) {
       navigate('/')
+    } else {
+      fetchHistory()
     }
   }, [isAdmin, navigate])
 
@@ -100,7 +97,6 @@ export default function DebugBitrix() {
 
     setLoading(true)
     setResponse({ status: null, time: null, data: null, resHeaders: null })
-    const startTime = performance.now()
 
     let parsedHeaders: Record<string, string> = {}
     try {
@@ -114,11 +110,9 @@ export default function DebugBitrix() {
     }
 
     let parsedBody = null
-    if (method !== 'GET' && body.trim()) {
+    if (method !== 'GET' && method !== 'DELETE' && body.trim()) {
       try {
-        // Just validate it's proper JSON, but send as string
-        JSON.parse(body)
-        parsedBody = body
+        parsedBody = JSON.parse(body)
       } catch (e) {
         toast.error('Formato JSON inválido no Body.')
         setLoading(false)
@@ -127,68 +121,58 @@ export default function DebugBitrix() {
     }
 
     try {
-      const fetchOptions: RequestInit = {
-        method,
-        headers: parsedHeaders,
-      }
-      if (parsedBody) fetchOptions.body = parsedBody
+      const { data: session } = await supabase.auth.getSession()
+      const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/bitrix-rate-limiter`
 
-      const res = await fetch(url, fetchOptions)
-      const timeTaken = Math.round(performance.now() - startTime)
-
-      const extractedHeaders: Record<string, string> = {}
-      res.headers.forEach((value, key) => {
-        extractedHeaders[key] = value
+      const res = await fetch(functionUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.session?.access_token}`,
+        },
+        body: JSON.stringify({
+          endpoint: url,
+          method,
+          headers: parsedHeaders,
+          body: parsedBody,
+        }),
       })
 
-      let responseData
-      try {
-        responseData = await res.json()
-      } catch {
-        responseData = await res.text()
+      const resData = await res.json()
+
+      if (res.status === 429) {
+        toast.error(resData.message || 'Rate limit atingido')
+        setResponse({
+          status: 429,
+          time: null,
+          resHeaders: {},
+          data: resData,
+        })
+        return
       }
 
       setResponse({
-        status: res.status,
-        time: timeTaken,
-        resHeaders: extractedHeaders,
-        data: responseData,
+        status: resData.status_code || res.status,
+        time: resData.time_ms || 0,
+        resHeaders: resData.response_headers || {},
+        data: resData.data || resData,
       })
 
-      const newLog: HistoryItem = {
-        id: Date.now().toString(),
-        timestamp: new Date().toISOString(),
-        endpoint: url,
-        method,
-        status: res.status,
-        time: timeTaken,
+      if (resData.success) {
+        toast.success('Requisição finalizada')
+      } else {
+        toast.error(resData.message || 'Falha na requisição')
       }
-      setHistory((prev) => [newLog, ...prev].slice(0, 10))
-      toast.success('Requisição finalizada')
+
+      fetchHistory()
     } catch (err: any) {
-      const timeTaken = Math.round(performance.now() - startTime)
-      const errorMsg =
-        err.message === 'Failed to fetch'
-          ? 'Erro de CORS ou rede. O Bitrix24 pode bloquear chamadas diretas do navegador. Use "Copiar cURL" para testar.'
-          : err.message
-
+      toast.error('Falha ao conectar com o serviço: ' + err.message)
       setResponse({
         status: 0,
-        time: timeTaken,
+        time: null,
         resHeaders: {},
-        data: { error: errorMsg },
+        data: { error: err.message },
       })
-
-      const newLog: HistoryItem = {
-        id: Date.now().toString(),
-        timestamp: new Date().toISOString(),
-        endpoint: url,
-        method,
-        status: 0,
-        time: timeTaken,
-      }
-      setHistory((prev) => [newLog, ...prev].slice(0, 10))
-      toast.error('Falha ao executar requisição')
     } finally {
       setLoading(false)
     }
@@ -217,12 +201,25 @@ export default function DebugBitrix() {
     toast.success('Comando cURL copiado com sucesso!')
   }
 
+  const handleClearHistory = async () => {
+    const { error } = await supabase
+      .from('bitrix_api_logs')
+      .delete()
+      .neq('id', '00000000-0000-0000-0000-000000000000')
+    if (error) {
+      toast.error('Erro ao limpar histórico')
+    } else {
+      toast.success('Histórico limpo com sucesso')
+      setHistory([])
+    }
+  }
+
   return (
     <div className="max-w-7xl mx-auto space-y-6 animate-fade-in pb-10">
       <div>
         <h2 className="text-2xl font-semibold tracking-tight">Admin - Debug Bitrix</h2>
         <p className="text-muted-foreground mt-1">
-          Ferramenta para testar e auditar endpoints da API do Bitrix24 diretamente do painel.
+          Ferramenta para testar e auditar endpoints da API do Bitrix24 passando pelo Rate Limiter.
         </p>
       </div>
 
@@ -308,7 +305,7 @@ export default function DebugBitrix() {
               <Terminal className="w-5 h-5" />
               Resultado da Requisição
             </CardTitle>
-            <CardDescription>Retorno do servidor para a chamada atual.</CardDescription>
+            <CardDescription>Retorno do servidor via Proxy Rate Limiter.</CardDescription>
           </CardHeader>
           <CardContent className="flex-1 flex flex-col">
             <div className="flex flex-wrap gap-4 mb-4">
@@ -317,16 +314,20 @@ export default function DebugBitrix() {
                 <span className="text-sm font-medium">Status:</span>
                 <Badge
                   variant={
-                    response.status && response.status >= 200 && response.status < 300
-                      ? 'default'
-                      : response.status
-                        ? 'destructive'
-                        : 'secondary'
+                    response.status === 429
+                      ? 'destructive'
+                      : response.status && response.status >= 200 && response.status < 300
+                        ? 'default'
+                        : response.status
+                          ? 'destructive'
+                          : 'secondary'
                   }
                   className={
-                    response.status && response.status >= 200 && response.status < 300
-                      ? 'bg-emerald-500 hover:bg-emerald-600'
-                      : ''
+                    response.status === 429
+                      ? 'bg-amber-500 hover:bg-amber-600'
+                      : response.status && response.status >= 200 && response.status < 300
+                        ? 'bg-emerald-500 hover:bg-emerald-600'
+                        : ''
                   }
                 >
                   {response.status || '-'}
@@ -362,9 +363,11 @@ export default function DebugBitrix() {
                     <pre
                       className={cn(
                         'text-sm font-mono whitespace-pre-wrap break-all',
-                        response.status >= 200 && response.status < 300
-                          ? 'text-emerald-400'
-                          : 'text-destructive/90',
+                        response.status === 429
+                          ? 'text-amber-400'
+                          : response.status >= 200 && response.status < 300
+                            ? 'text-emerald-400'
+                            : 'text-destructive/90',
                       )}
                     >
                       {typeof response.data === 'object'
@@ -395,14 +398,15 @@ export default function DebugBitrix() {
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle className="text-lg">Histórico de Testes</CardTitle>
-            <CardDescription>Últimas 10 requisições realizadas nesta sessão.</CardDescription>
+            <CardDescription>Últimas 10 requisições realizadas através do Proxy.</CardDescription>
           </div>
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setHistory([])}
-            className="text-muted-foreground"
+            onClick={handleClearHistory}
+            className="text-muted-foreground hover:text-destructive"
           >
+            <Trash2 className="w-4 h-4 mr-2" />
             Limpar Histórico
           </Button>
         </CardHeader>
@@ -445,14 +449,18 @@ export default function DebugBitrix() {
                     <TableCell>
                       <Badge
                         variant={
-                          item.status && item.status >= 200 && item.status < 300
-                            ? 'default'
-                            : 'destructive'
+                          item.status === 429
+                            ? 'destructive'
+                            : item.status && item.status >= 200 && item.status < 300
+                              ? 'default'
+                              : 'destructive'
                         }
                         className={
-                          item.status && item.status >= 200 && item.status < 300
-                            ? 'bg-emerald-500 hover:bg-emerald-600'
-                            : ''
+                          item.status === 429
+                            ? 'bg-amber-500 hover:bg-amber-600'
+                            : item.status && item.status >= 200 && item.status < 300
+                              ? 'bg-emerald-500 hover:bg-emerald-600'
+                              : ''
                         }
                       >
                         {item.status === 0 ? 'FALHA' : item.status}
