@@ -673,7 +673,8 @@ export const Constants = {
 //       v_cnae_clean text;
 //   BEGIN
 //       IF p_cnae IS NULL OR trim(p_cnae) = '' THEN
-//           DELETE FROM public.cache_pesquisas;
+//           -- Adicionado WHERE id IS NOT NULL para evitar o erro "DELETE requires a WHERE clause"
+//           DELETE FROM public.cache_pesquisas WHERE id IS NOT NULL;
 //           GET DIAGNOSTICS v_count = ROW_COUNT;
 //       ELSE
 //           -- Clean up formatting from the input CNAE

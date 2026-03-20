@@ -307,39 +307,77 @@ Deno.serve(async (req: Request) => {
     let currentPage = data?.page || page
 
     // Map the returned data, ensuring situacao_cadastral resolves to the proper string
+    // and correctly extracting data from nested objects (e.g. endereco, contatos) for API v5
     const results = rawResults.slice(0, limit).map((empresa: any) => {
       let situacao = empresa.situacao_cadastral
-      if (typeof situacao === 'object' && situacao?.situacao_atual) {
+      if (typeof situacao === 'object' && situacao !== null && situacao.situacao_atual) {
         situacao = situacao.situacao_atual
       } else if (typeof situacao === 'string') {
         situacao = situacao
       }
 
+      // Handle nested Endereco
+      const endereco = empresa.endereco || {}
+      let municipioRaw = empresa.municipio || endereco.municipio || ''
+      let ufRaw = empresa.uf || endereco.uf || ''
+
+      if (typeof municipioRaw === 'object' && municipioRaw !== null) {
+        municipioRaw = municipioRaw.nome || municipioRaw.descricao || municipioRaw.codigo || ''
+      }
+      if (typeof ufRaw === 'object' && ufRaw !== null) {
+        ufRaw = ufRaw.sigla || ufRaw.nome || ''
+      }
+
+      // Handle Telefone (could be array, object, string)
       let telefoneFormatado = ''
-      if (empresa.telefone) {
-        telefoneFormatado = String(empresa.telefone)
+      const rawTel = empresa.telefone || empresa.telefones || empresa.contato_telefone
+      if (Array.isArray(rawTel)) {
+        telefoneFormatado = rawTel
+          .map((t: any) => {
+            if (typeof t === 'string') return t
+            if (t && typeof t === 'object') {
+              if (t.ddd && t.numero) return `(${t.ddd}) ${t.numero}`
+              if (t.telefone) return String(t.telefone)
+            }
+            return ''
+          })
+          .filter(Boolean)
+          .join(' / ')
+      } else if (typeof rawTel === 'object' && rawTel !== null) {
+        if (rawTel.ddd && rawTel.numero) telefoneFormatado = `(${rawTel.ddd}) ${rawTel.numero}`
+        else if (rawTel.telefone) telefoneFormatado = String(rawTel.telefone)
+      } else if (typeof rawTel === 'string') {
+        telefoneFormatado = rawTel
       } else if (empresa.ddd_telefone_1 || empresa.telefone_1) {
         const ddd = empresa.ddd_telefone_1 ? `(${empresa.ddd_telefone_1}) ` : ''
         const num = empresa.telefone_1 || ''
         telefoneFormatado = `${ddd}${num}`.trim()
-      } else if (empresa.contato_telefone) {
-        telefoneFormatado = String(empresa.contato_telefone)
       }
 
+      // Handle Email (could be array, object, string)
       let emailFormatado = ''
-      if (empresa.email) {
-        emailFormatado =
-          typeof empresa.email === 'string' ? empresa.email : JSON.stringify(empresa.email)
-      } else if (empresa.contato_email) {
-        emailFormatado = String(empresa.contato_email)
+      const rawEmail = empresa.email || empresa.emails || empresa.contato_email
+      if (Array.isArray(rawEmail)) {
+        emailFormatado = rawEmail
+          .map((e: any) => {
+            if (typeof e === 'string') return e
+            if (e && typeof e === 'object' && e.email) return e.email
+            return ''
+          })
+          .filter(Boolean)
+          .join(' / ')
+      } else if (typeof rawEmail === 'object' && rawEmail !== null) {
+        emailFormatado = rawEmail.email || ''
+      } else if (typeof rawEmail === 'string') {
+        emailFormatado = rawEmail
       }
 
       return {
         cnpj: empresa.cnpj,
         razao_social: empresa.razao_social || empresa.nome_fantasia || '',
         cnae_fiscal_principal: empresa.cnae_fiscal_principal || empresa.atividade_principal || '',
-        municipio: empresa.municipio || '',
-        uf: empresa.uf || '',
+        municipio: String(municipioRaw || ''),
+        uf: String(ufRaw || ''),
         porte: empresa.porte_empresa || empresa.porte || '',
         situacao_cadastral: situacao,
         capital_social: empresa.capital_social || 0,

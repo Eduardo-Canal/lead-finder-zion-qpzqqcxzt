@@ -84,10 +84,17 @@ const LeadContext = createContext<LeadStoreContextType | null>(null)
 const safeString = (val: any): string => {
   if (val === null || val === undefined) return ''
   if (typeof val === 'string' || typeof val === 'number') return String(val)
+  if (Array.isArray(val)) {
+    return val.map(safeString).join(', ')
+  }
   if (typeof val === 'object') {
+    if ('email' in val && typeof val.email === 'string') return val.email
+    if ('telefone' in val && typeof val.telefone === 'string') return val.telefone
     if ('codigo' in val && 'descricao' in val) return `${val.codigo} - ${val.descricao}`
     if ('id' in val && 'descricao' in val) return `${val.id} - ${val.descricao}`
     if ('text' in val) return String(val.text)
+    if ('nome' in val) return String(val.nome)
+    if ('sigla' in val) return String(val.sigla)
     try {
       return JSON.stringify(val)
     } catch {
@@ -148,14 +155,14 @@ const mapEmpresaToLead = (empresa: any): any => {
         : empresa.cnae_fiscal_secundaria
           ? safeString(empresa.cnae_fiscal_secundaria).split(',').map(safeString)
           : [],
-    municipio: empresa.municipio || '-',
-    uf: empresa.uf || '-',
+    municipio: safeString(empresa.municipio || empresa.endereco?.municipio) || '-',
+    uf: safeString(empresa.uf || empresa.endereco?.uf) || '-',
     porte: porteStr,
     situacao: situacaoStr || '-',
     capital_social: empresa.capital_social ? Number(empresa.capital_social) : 0,
-    data_abertura: empresa.data_inicio_atividade || empresa.data_abertura || '-',
-    email: empresa.email || '-',
-    telefone: empresa.telefone || '-',
+    data_abertura: safeString(empresa.data_inicio_atividade || empresa.data_abertura) || '-',
+    email: safeString(empresa.email || empresa.contato_email) || '-',
+    telefone: safeString(empresa.telefone || empresa.contato_telefone) || '-',
     socios: typeof empresa.socios === 'string' ? JSON.parse(empresa.socios) : empresa.socios || [],
   }
 }

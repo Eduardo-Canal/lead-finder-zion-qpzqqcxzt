@@ -32,40 +32,59 @@ const formatCurrency = (value: number | string) => {
 const formatDate = (date: string) => {
   if (!date || date === '-') return '-'
   try {
-    if (date.includes('-')) {
-      const parts = date.split('-')
+    const dStr = String(date)
+    // Extrai e foca apenas no yyyy-mm-dd para evitar fuso horário maluco se houver "T"
+    if (dStr.includes('T')) {
+      const raw = dStr.split('T')[0]
+      const parts = raw.split('-')
       if (parts.length === 3 && parts[0].length === 4) {
         return `${parts[2]}/${parts[1]}/${parts[0]}`
       }
     }
-    const d = new Date(date)
-    if (!isNaN(d.getTime())) {
-      return d.toLocaleDateString('pt-BR')
+    // Formato puro yyyy-mm-dd
+    if (dStr.includes('-')) {
+      const parts = dStr.split('-')
+      if (parts.length === 3 && parts[0].length === 4) {
+        return `${parts[2]}/${parts[1]}/${parts[0]}`
+      }
     }
-    return date
+
+    // Fallback genérico para data
+    const d = new Date(dStr)
+    if (!isNaN(d.getTime())) {
+      // timeZone: 'UTC' previne que o dia mude devido à conversão local
+      return d.toLocaleDateString('pt-BR', { timeZone: 'UTC' })
+    }
+    return dStr
   } catch {
     return date
   }
 }
 
 const formatObjectField = (val: any): string => {
-  if (val === null || val === undefined) return ''
-  if (typeof val === 'string' || typeof val === 'number') return String(val)
+  if (val === null || val === undefined || val === '') return '-'
+  if (typeof val === 'string' || typeof val === 'number') {
+    const s = String(val).trim()
+    return s === '' ? '-' : s
+  }
+  if (Array.isArray(val)) {
+    const s = val
+      .map(formatObjectField)
+      .filter((v) => v !== '-')
+      .join(', ')
+    return s === '' ? '-' : s
+  }
   if (typeof val === 'object') {
-    if ('email' in val && typeof val.email === 'string') {
-      return val.email
-    }
-    if ('codigo' in val && 'descricao' in val) {
-      return `${val.codigo} - ${val.descricao}`
-    }
-    if ('id' in val && 'descricao' in val) {
-      return `${val.id} - ${val.descricao}`
-    }
-    if ('text' in val) {
-      return String(val.text)
-    }
+    if ('email' in val && typeof val.email === 'string') return val.email
+    if ('telefone' in val && typeof val.telefone === 'string') return val.telefone
+    if ('codigo' in val && 'descricao' in val) return `${val.codigo} - ${val.descricao}`
+    if ('id' in val && 'descricao' in val) return `${val.id} - ${val.descricao}`
+    if ('text' in val) return String(val.text)
+    if ('nome' in val) return String(val.nome)
+    if ('sigla' in val) return String(val.sigla)
     try {
-      return JSON.stringify(val)
+      const str = JSON.stringify(val)
+      return str === '{}' ? '-' : str
     } catch {
       return String(val)
     }
@@ -136,11 +155,11 @@ export function ResultsTable() {
                   >
                     {formatObjectField(lead.cnae_principal) || '-'}
                   </TableCell>
-                  <TableCell>{lead.municipio}</TableCell>
-                  <TableCell>{lead.uf}</TableCell>
+                  <TableCell>{formatObjectField(lead.municipio)}</TableCell>
+                  <TableCell>{formatObjectField(lead.uf)}</TableCell>
                   <TableCell>
                     <Badge variant="outline" className="whitespace-nowrap">
-                      {lead.porte}
+                      {formatObjectField(lead.porte)}
                     </Badge>
                   </TableCell>
                   <TableCell>
@@ -169,9 +188,11 @@ export function ResultsTable() {
                     className="max-w-[150px] truncate"
                     title={formatObjectField(lead.email)}
                   >
-                    {formatObjectField(lead.email) || '-'}
+                    {formatObjectField(lead.email)}
                   </TableCell>
-                  <TableCell className="whitespace-nowrap">{lead.telefone || '-'}</TableCell>
+                  <TableCell className="whitespace-nowrap">
+                    {formatObjectField(lead.telefone)}
+                  </TableCell>
                   <TableCell>
                     {lead.contatado ? (
                       <Badge
