@@ -38,7 +38,9 @@ Deno.serve(async (req: Request) => {
         JSON.stringify({
           success: false,
           error:
-            rateLimiterData.message || 'Erro ao comunicar com a API do Bitrix via Rate Limiter',
+            rateLimiterData.message ||
+            rateLimiterData.error ||
+            'Erro ao comunicar com a API do Bitrix via Rate Limiter',
         }),
         {
           status: 200,
@@ -64,7 +66,7 @@ Deno.serve(async (req: Request) => {
     }
 
     // 3. Mapear e extrair os dados solicitados
-    const mappedClients = companies.map((c: any) => {
+    const extractedClients = companies.map((c: any) => {
       // Helper para extrair o valor principal de campos de contato do Bitrix
       const getPrimaryValue = (field: any) => {
         if (Array.isArray(field) && field.length > 0) {
@@ -75,30 +77,41 @@ Deno.serve(async (req: Request) => {
       }
 
       return {
-        bitrix_id: String(c.ID),
-        company_name: c.TITLE || '',
-        cnpj: c.UF_CRM_1742992784 || '',
-        cnae_principal: c.UF_CRM_1771423651 || '',
-        email: getPrimaryValue(c.EMAIL),
-        phone: getPrimaryValue(c.TELEFONE || c.PHONE),
-        city: c.ADDRESS_CITY || '',
-        state: c.ADDRESS_PROVINCE || '',
-        synced_at: new Date().toISOString(),
+        ID: String(c.ID),
+        TITLE: c.TITLE || '',
+        UF_CRM_1742992784: c.UF_CRM_1742992784 || '',
+        UF_CRM_1771423651: c.UF_CRM_1771423651 || '',
+        EMAIL: getPrimaryValue(c.EMAIL),
+        TELEFONE: getPrimaryValue(c.TELEFONE || c.PHONE),
+        ADDRESS_CITY: c.ADDRESS_CITY || '',
+        ADDRESS_PROVINCE: c.ADDRESS_PROVINCE || '',
       }
     })
 
     // 4. Salvar (Upsert) os dados extraídos no banco de dados local
-    if (mappedClients.length > 0) {
+    const dbClients = extractedClients.map((c) => ({
+      bitrix_id: c.ID,
+      company_name: c.TITLE,
+      cnpj: c.UF_CRM_1742992784,
+      cnae_principal: c.UF_CRM_1771423651,
+      email: c.EMAIL,
+      phone: c.TELEFONE,
+      city: c.ADDRESS_CITY,
+      state: c.ADDRESS_PROVINCE,
+      synced_at: new Date().toISOString(),
+    }))
+
+    if (dbClients.length > 0) {
       const { error: upsertError } = await supabaseAdmin
         .from('bitrix_clients_zion')
-        .upsert(mappedClients, { onConflict: 'bitrix_id' })
+        .upsert(dbClients, { onConflict: 'bitrix_id' })
 
       if (upsertError) {
         console.error('Erro ao salvar no banco:', upsertError)
         return new Response(
           JSON.stringify({
             success: false,
-            error: 'Erro ao salvar clientes no banco de dados local',
+            error: 'Erro ao salvar clientes no banco de dados local: ' + upsertError.message,
           }),
           {
             status: 200,
@@ -112,7 +125,7 @@ Deno.serve(async (req: Request) => {
     return new Response(
       JSON.stringify({
         success: true,
-        data: mappedClients,
+        clients: extractedClients,
       }),
       {
         status: 200,
