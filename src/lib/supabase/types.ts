@@ -57,6 +57,7 @@ export type Database = {
           criado_em: string
           expira_em: string
           id: string
+          parametros: Json | null
           resultados: Json
           total_registros: number
         }
@@ -65,6 +66,7 @@ export type Database = {
           criado_em?: string
           expira_em?: string
           id?: string
+          parametros?: Json | null
           resultados?: Json
           total_registros?: number
         }
@@ -73,6 +75,7 @@ export type Database = {
           criado_em?: string
           expira_em?: string
           id?: string
+          parametros?: Json | null
           resultados?: Json
           total_registros?: number
         }
@@ -353,7 +356,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      limpar_cache_pesquisas: { Args: { p_cnae?: string }; Returns: number }
     }
     Enums: {
       [_ in never]: never
@@ -514,6 +517,7 @@ export const Constants = {
 //   total_registros: integer (not null, default: 0)
 //   criado_em: timestamp with time zone (not null, default: now())
 //   expira_em: timestamp with time zone (not null, default: (now() + '30 days'::interval))
+//   parametros: jsonb (nullable, default: '{}'::jsonb)
 // Table: configuracoes_sistema
 //   id: integer (not null, default: 1)
 //   data_ultima_atualizacao_rfb: timestamp with time zone (nullable)
@@ -656,6 +660,42 @@ export const Constants = {
 //   Policy "Enable ALL for authenticated users" (ALL, PERMISSIVE) roles={authenticated}
 //     USING: true
 //     WITH CHECK: true
+
+// --- DATABASE FUNCTIONS ---
+// FUNCTION limpar_cache_pesquisas(text)
+//   CREATE OR REPLACE FUNCTION public.limpar_cache_pesquisas(p_cnae text DEFAULT NULL::text)
+//    RETURNS integer
+//    LANGUAGE plpgsql
+//    SECURITY DEFINER
+//   AS $function$
+//   DECLARE
+//       v_count int;
+//       v_cnae_clean text;
+//   BEGIN
+//       IF p_cnae IS NULL OR trim(p_cnae) = '' THEN
+//           DELETE FROM public.cache_pesquisas;
+//           GET DIAGNOSTICS v_count = ROW_COUNT;
+//       ELSE
+//           -- Clean up formatting from the input CNAE
+//           v_cnae_clean := regexp_replace(p_cnae, '\D', '', 'g');
+//
+//           -- Delete cache entries where:
+//           -- 1. The input CNAE is present in the 'parametros->cnaes' JSON array (new way)
+//           -- 2. OR the results text contains the cleaned CNAE (fallback for older cache entries)
+//           -- 3. OR the results text contains the formatted input CNAE (fallback for older cache entries)
+//           DELETE FROM public.cache_pesquisas
+//           WHERE
+//               (parametros->'cnaes')::jsonb ? v_cnae_clean
+//               OR resultados::text LIKE '%' || v_cnae_clean || '%'
+//               OR resultados::text LIKE '%' || p_cnae || '%';
+//
+//           GET DIAGNOSTICS v_count = ROW_COUNT;
+//       END IF;
+//
+//       RETURN v_count;
+//   END;
+//   $function$
+//
 
 // --- INDEXES ---
 // Table: cache_pesquisas
