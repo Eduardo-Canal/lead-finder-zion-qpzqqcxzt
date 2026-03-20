@@ -1,14 +1,5 @@
-import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import {
-  X,
-  LayoutDashboard,
-  Users,
-  ShieldCheck,
-  Target,
-  Settings,
-  ChevronRight,
-} from 'lucide-react'
+import { LayoutDashboard, Users, ShieldCheck, Target, Settings, ChevronRight } from 'lucide-react'
 import {
   Sidebar,
   SidebarContent,
@@ -24,82 +15,23 @@ import {
   SidebarMenuSubButton,
 } from '@/components/ui/sidebar'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import useLeadStore from '@/stores/useLeadStore'
 import useAuthStore from '@/stores/useAuthStore'
 
-const BRAZIL_STATES = [
-  'AC',
-  'AL',
-  'AP',
-  'AM',
-  'BA',
-  'CE',
-  'DF',
-  'ES',
-  'GO',
-  'MA',
-  'MT',
-  'MS',
-  'MG',
-  'PA',
-  'PB',
-  'PR',
-  'PE',
-  'PI',
-  'RJ',
-  'RN',
-  'RS',
-  'RO',
-  'RR',
-  'SC',
-  'SP',
-  'SE',
-  'TO',
-]
-
 export function AppSidebar() {
-  const { filters, setFilter, addCnae, removeCnae, toggleUf } = useLeadStore()
   const { hasPermission, user } = useAuthStore()
-  const [cnaeInput, setCnaeInput] = useState('')
   const location = useLocation()
-
-  const isProspeccao = location.pathname === '/prospeccao'
-
-  const handleAddCnae = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (cnaeInput.trim()) {
-      addCnae(cnaeInput.trim())
-      setCnaeInput('')
-    }
-  }
 
   return (
     <Sidebar>
       <SidebarHeader className="pt-6 pb-2 px-4">
-        <h2 className="text-xl font-bold text-sidebar-foreground">Navegação</h2>
+        <h2 className="text-xl font-bold text-sidebar-foreground tracking-tight">Navegação</h2>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Menu Principal</SidebarGroupLabel>
-          <SidebarGroupContent>
+          <SidebarGroupLabel className="text-sidebar-foreground/70 uppercase tracking-wider font-semibold">
+            Menu Principal
+          </SidebarGroupLabel>
+          <SidebarGroupContent className="pt-2">
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={location.pathname === '/'}>
@@ -125,6 +57,7 @@ export function AppSidebar() {
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+
               {hasPermission('Acessar Admin') && (
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild isActive={location.pathname === '/gestao-usuarios'}>
@@ -135,6 +68,7 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               )}
+
               {user?.perfis_acesso?.nome === 'Administrador' && (
                 <Collapsible
                   defaultOpen={
@@ -181,143 +115,6 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-
-        {isProspeccao && (
-          <>
-            <SidebarGroup className="animate-fade-in-up">
-              <SidebarGroupLabel>Filtros Avançados (Painel)</SidebarGroupLabel>
-              <SidebarGroupContent className="px-2">
-                <form onSubmit={handleAddCnae} className="flex gap-2 mt-2">
-                  <Input
-                    placeholder="Ex: 6201-5/01"
-                    value={cnaeInput}
-                    onChange={(e) => setCnaeInput(e.target.value)}
-                    className="bg-sidebar-accent text-sidebar-foreground border-sidebar-border focus-visible:ring-sidebar-ring"
-                  />
-                  <Button
-                    type="submit"
-                    variant="secondary"
-                    className="bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary/90"
-                  >
-                    Adicionar
-                  </Button>
-                </form>
-                <div className="flex flex-wrap gap-2 mt-3">
-                  {filters.cnaes.map((cnae) => (
-                    <Badge
-                      key={cnae}
-                      variant="secondary"
-                      className="bg-sidebar-accent text-sidebar-foreground flex items-center gap-1 animate-in fade-in slide-in-from-left-2 border border-sidebar-border"
-                    >
-                      {cnae}
-                      <X
-                        className="h-3 w-3 cursor-pointer hover:text-sidebar-primary"
-                        onClick={() => removeCnae(cnae)}
-                      />
-                    </Badge>
-                  ))}
-                </div>
-              </SidebarGroupContent>
-            </SidebarGroup>
-
-            <SidebarGroup className="animate-fade-in-up">
-              <SidebarGroupLabel>Localização</SidebarGroupLabel>
-              <SidebarGroupContent className="px-2 space-y-4 mt-2">
-                <div className="space-y-2">
-                  <Label className="text-sidebar-foreground/80">UF</Label>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className="w-full justify-between bg-sidebar-accent text-sidebar-foreground border-sidebar-border hover:bg-sidebar-accent/80 hover:text-sidebar-foreground"
-                      >
-                        {filters.ufs.length > 0
-                          ? `${filters.ufs.length} selecionados`
-                          : 'Selecione UFs'}
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent className="w-56">
-                      <ScrollArea className="h-72">
-                        {BRAZIL_STATES.map((uf) => (
-                          <DropdownMenuCheckboxItem
-                            key={uf}
-                            checked={filters.ufs.includes(uf)}
-                            onCheckedChange={(c) => toggleUf(uf, c)}
-                          >
-                            {uf}
-                          </DropdownMenuCheckboxItem>
-                        ))}
-                      </ScrollArea>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-sidebar-foreground/80">Município</Label>
-                  <Input
-                    placeholder="Ex: São Paulo"
-                    value={filters.municipio}
-                    onChange={(e) => setFilter('municipio', e.target.value)}
-                    className="bg-sidebar-accent text-sidebar-foreground border-sidebar-border focus-visible:ring-sidebar-ring"
-                  />
-                </div>
-              </SidebarGroupContent>
-            </SidebarGroup>
-
-            <SidebarGroup className="animate-fade-in-up">
-              <SidebarGroupLabel>Dados da Empresa</SidebarGroupLabel>
-              <SidebarGroupContent className="px-2 space-y-4 mt-2">
-                <div className="space-y-2">
-                  <Label className="text-sidebar-foreground/80">Porte</Label>
-                  <Select
-                    value={filters.porte}
-                    onValueChange={(v) => setFilter('porte', v === 'Todos' ? '' : v)}
-                  >
-                    <SelectTrigger className="bg-sidebar-accent text-sidebar-foreground border-sidebar-border focus-visible:ring-sidebar-ring">
-                      <SelectValue placeholder="Selecione..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Todos">Todos</SelectItem>
-                      <SelectItem value="MEI">MEI</SelectItem>
-                      <SelectItem value="ME">ME</SelectItem>
-                      <SelectItem value="EPP">EPP</SelectItem>
-                      <SelectItem value="Demais">Demais</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-sidebar-foreground/80">Situação Cadastral</Label>
-                  <Select
-                    value={filters.situacao}
-                    onValueChange={(v) => setFilter('situacao', v === 'Todas' ? '' : v)}
-                  >
-                    <SelectTrigger className="bg-sidebar-accent text-sidebar-foreground border-sidebar-border focus-visible:ring-sidebar-ring">
-                      <SelectValue placeholder="Selecione..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Todas">Todas</SelectItem>
-                      <SelectItem value="Ativa">Ativa</SelectItem>
-                      <SelectItem value="Inapta">Inapta</SelectItem>
-                      <SelectItem value="Baixada">Baixada</SelectItem>
-                      <SelectItem value="Suspensa">Suspensa</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-sidebar-foreground/80">Capital Social Mínimo</Label>
-                  <Input
-                    type="number"
-                    placeholder="Ex: 50000"
-                    value={filters.capitalMinimo}
-                    onChange={(e) => setFilter('capitalMinimo', e.target.value)}
-                    className="bg-sidebar-accent text-sidebar-foreground border-sidebar-border focus-visible:ring-sidebar-ring"
-                  />
-                </div>
-              </SidebarGroupContent>
-            </SidebarGroup>
-          </>
-        )}
       </SidebarContent>
     </Sidebar>
   )

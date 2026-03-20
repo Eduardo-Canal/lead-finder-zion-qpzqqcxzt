@@ -60,6 +60,7 @@ type LeadStoreContextType = {
   addCnae: (cnae: string) => void
   removeCnae: (cnae: string) => void
   toggleUf: (uf: string, checked: boolean) => void
+  clearFilters: () => void
   toggleContact: (cnpj: string) => Promise<void>
   searchLeads: (page?: number) => Promise<void>
   isSearching: boolean
@@ -73,8 +74,8 @@ const defaultFilters: Filters = {
   situacao: 'ATIVA',
   capitalMinimo: '',
   search: '',
-  cityQuick: '',
-  sizeQuick: '',
+  cityQuick: 'Todos',
+  sizeQuick: 'Todos',
   contactStatus: 'Todos',
   limit: 10,
 }
@@ -295,6 +296,12 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
     })
   }
 
+  const clearFilters = () => {
+    setFilters(defaultFilters)
+    setLeadsRaw([])
+    setPagination({ page: 1, totalPages: 1, totalCount: 0 })
+  }
+
   const toggleContact = async (cnpj: string) => {
     if (!user) return
     const existing = contatos.find((c) => c.cnpj === cnpj)
@@ -366,6 +373,7 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
         addCnae,
         removeCnae,
         toggleUf,
+        clearFilters,
         toggleContact,
         searchLeads,
         isSearching,

@@ -1,45 +1,37 @@
-import { AdvancedFilters } from '@/components/dashboard/AdvancedFilters'
-import { QuickFilters } from '@/components/dashboard/QuickFilters'
+import { FilterPanel } from '@/components/dashboard/FilterPanel'
 import { ResultsTable } from '@/components/dashboard/ResultsTable'
-import { Button } from '@/components/ui/button'
-import { Search } from 'lucide-react'
 import useLeadStore from '@/stores/useLeadStore'
 
 export default function Prospeccao() {
-  const { searchLeads, filters, isSearching } = useLeadStore()
+  const { filters } = useLeadStore()
 
   const isSearchDisabled = filters.cnaes.length === 0
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6 animate-fade-in pb-10">
-      <div>
-        <h2 className="text-2xl font-semibold tracking-tight">Prospecção de Leads</h2>
-        <p className="text-muted-foreground mt-1">
-          Busque e filtre novas empresas para adicionar ao seu funil.
+    <div className="max-w-7xl mx-auto space-y-8 animate-fade-in pb-12">
+      {/* Page Header */}
+      <div className="flex flex-col space-y-1.5">
+        <h2 className="text-3xl font-bold tracking-tight text-[#0066CC]">Prospecção de Leads</h2>
+        <p className="text-muted-foreground text-base max-w-3xl">
+          Utilize o painel abaixo para buscar, filtrar e organizar novas empresas. Lembre-se de que
+          o CNAE Principal é obrigatório para iniciar a busca na base de dados.
         </p>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-6">
-        <div className="w-full md:w-64 shrink-0 space-y-4">
-          <AdvancedFilters />
-          <Button
-            className="w-full gap-2"
-            onClick={() => searchLeads(1)}
-            disabled={isSearching || isSearchDisabled}
-          >
-            <Search className="w-4 h-4" />
-            Buscar Leads
-          </Button>
-          {isSearchDisabled && (
-            <p className="text-xs text-muted-foreground text-center font-medium mt-1">
-              O filtro de CNAE Principal é obrigatório
-            </p>
-          )}
+      {/* Unified Filter Panel */}
+      <FilterPanel />
+
+      {/* Warning if no search criteria is valid */}
+      {isSearchDisabled && (
+        <div className="bg-blue-50 text-blue-800 p-4 rounded-lg border border-blue-100 flex items-center justify-center text-sm shadow-sm">
+          Por favor, adicione ao menos um <strong>CNAE Principal</strong> no painel de filtros acima
+          para começar a prospecção.
         </div>
-        <div className="flex-1 space-y-6 min-w-0">
-          <QuickFilters />
-          <ResultsTable />
-        </div>
+      )}
+
+      {/* Results */}
+      <div className="space-y-4">
+        <ResultsTable />
       </div>
     </div>
   )
