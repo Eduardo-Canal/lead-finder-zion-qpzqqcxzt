@@ -11,11 +11,13 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import useLeadStore from '@/stores/useLeadStore'
 import useAuthStore from '@/stores/useAuthStore'
 import { LeadDetailsModal } from './LeadDetailsModal'
 import { cn } from '@/lib/utils'
-import { Loader2, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Loader2, ChevronLeft, ChevronRight, Copy } from 'lucide-react'
+import { toast } from 'sonner'
 
 const formatCnpj = (cnpj: string) => {
   if (!cnpj) return ''
@@ -33,7 +35,6 @@ const formatDate = (date: string) => {
   if (!date || date === '-') return '-'
   try {
     const dStr = String(date)
-    // Extrai e foca apenas no yyyy-mm-dd para evitar fuso horário maluco se houver "T"
     if (dStr.includes('T')) {
       const raw = dStr.split('T')[0]
       const parts = raw.split('-')
@@ -41,7 +42,6 @@ const formatDate = (date: string) => {
         return `${parts[2]}/${parts[1]}/${parts[0]}`
       }
     }
-    // Formato puro yyyy-mm-dd
     if (dStr.includes('-')) {
       const parts = dStr.split('-')
       if (parts.length === 3 && parts[0].length === 4) {
@@ -49,10 +49,8 @@ const formatDate = (date: string) => {
       }
     }
 
-    // Fallback genérico para data
     const d = new Date(dStr)
     if (!isNaN(d.getTime())) {
-      // timeZone: 'UTC' previne que o dia mude devido à conversão local
       return d.toLocaleDateString('pt-BR', { timeZone: 'UTC' })
     }
     return dStr
@@ -92,6 +90,12 @@ const formatObjectField = (val: any): string => {
   return String(val)
 }
 
+const copyToClipboard = (text: string, label: string) => {
+  if (!text || text === '-') return
+  navigator.clipboard.writeText(text)
+  toast.success(`${label} copiado para a área de transferência!`)
+}
+
 export function ResultsTable() {
   const { filteredLeads, toggleContact, isSearching, pagination, searchLeads } = useLeadStore()
   const { hasPermission } = useAuthStore()
@@ -103,22 +107,22 @@ export function ResultsTable() {
   return (
     <>
       <div className="bg-white rounded-lg shadow-sm border overflow-hidden flex flex-col w-full overflow-x-auto">
-        <Table className="min-w-[1200px]">
+        <Table className="min-w-[1600px]">
           <TableHeader>
             <TableRow className="bg-muted/50">
-              <TableHead>CNPJ</TableHead>
-              <TableHead>Razão Social</TableHead>
-              <TableHead>CNAE Principal</TableHead>
-              <TableHead>Município</TableHead>
-              <TableHead>UF</TableHead>
-              <TableHead>Porte</TableHead>
-              <TableHead>Situação Cadastral</TableHead>
-              <TableHead>Capital Social</TableHead>
-              <TableHead>Data de Abertura</TableHead>
-              <TableHead>E-mail</TableHead>
-              <TableHead>Telefone</TableHead>
-              <TableHead className="w-[150px]">Contatado</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
+              <TableHead className="w-[160px]">CNPJ</TableHead>
+              <TableHead className="w-[200px]">Razão Social</TableHead>
+              <TableHead className="w-[180px]">CNAE Principal</TableHead>
+              <TableHead className="w-[120px]">Município</TableHead>
+              <TableHead className="w-[60px]">UF</TableHead>
+              <TableHead className="w-[100px]">Porte</TableHead>
+              <TableHead className="w-[120px]">Situação Cadastral</TableHead>
+              <TableHead className="w-[120px]">Capital Social</TableHead>
+              <TableHead className="w-[120px]">Data de Abertura</TableHead>
+              <TableHead className="w-[250px]">E-mail</TableHead>
+              <TableHead className="w-[200px]">Telefone</TableHead>
+              <TableHead className="w-[120px]">Contatado</TableHead>
+              <TableHead className="text-right w-[100px]">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -146,16 +150,46 @@ export function ResultsTable() {
                   <TableCell className="font-medium whitespace-nowrap">
                     {formatCnpj(formatObjectField(lead.cnpj))}
                   </TableCell>
-                  <TableCell className="font-medium min-w-[200px]">
-                    {formatObjectField(lead.razao_social) || '-'}
+                  <TableCell className="font-medium max-w-[200px]">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="block truncate w-full cursor-help hover:text-primary transition-colors">
+                          {formatObjectField(lead.razao_social) || '-'}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent
+                        side="top"
+                        align="start"
+                        className="max-w-[400px] break-words bg-slate-900 text-slate-50"
+                      >
+                        <p className="font-medium text-sm">
+                          {formatObjectField(lead.razao_social) || '-'}
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TableCell>
+                  <TableCell className="max-w-[180px]">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="block truncate w-full cursor-help hover:text-primary transition-colors">
+                          {formatObjectField(lead.cnae_principal) || '-'}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent
+                        side="top"
+                        align="start"
+                        className="max-w-[400px] break-words bg-slate-900 text-slate-50"
+                      >
+                        <p className="text-sm">{formatObjectField(lead.cnae_principal) || '-'}</p>
+                      </TooltipContent>
+                    </Tooltip>
                   </TableCell>
                   <TableCell
-                    className="max-w-[150px] truncate"
-                    title={formatObjectField(lead.cnae_principal)}
+                    className="whitespace-nowrap truncate max-w-[120px]"
+                    title={formatObjectField(lead.municipio)}
                   >
-                    {formatObjectField(lead.cnae_principal) || '-'}
+                    {formatObjectField(lead.municipio)}
                   </TableCell>
-                  <TableCell>{formatObjectField(lead.municipio)}</TableCell>
                   <TableCell>{formatObjectField(lead.uf)}</TableCell>
                   <TableCell>
                     <Badge variant="outline" className="whitespace-nowrap">
@@ -184,14 +218,39 @@ export function ResultsTable() {
                   <TableCell className="whitespace-nowrap">
                     {formatDate(lead.data_abertura)}
                   </TableCell>
-                  <TableCell
-                    className="max-w-[150px] truncate"
-                    title={formatObjectField(lead.email)}
-                  >
-                    {formatObjectField(lead.email)}
+                  <TableCell className="min-w-[250px] whitespace-normal break-all">
+                    <div className="flex items-center justify-between gap-2 group/copy">
+                      <span>{formatObjectField(lead.email)}</span>
+                      {formatObjectField(lead.email) !== '-' && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 opacity-0 group-hover/copy:opacity-100 shrink-0 text-muted-foreground hover:text-primary transition-all"
+                          onClick={() => copyToClipboard(formatObjectField(lead.email), 'E-mail')}
+                          title="Copiar E-mail"
+                        >
+                          <Copy className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </div>
                   </TableCell>
-                  <TableCell className="whitespace-nowrap">
-                    {formatObjectField(lead.telefone)}
+                  <TableCell className="min-w-[200px] whitespace-normal">
+                    <div className="flex items-center justify-between gap-2 group/copy">
+                      <span>{formatObjectField(lead.telefone)}</span>
+                      {formatObjectField(lead.telefone) !== '-' && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 opacity-0 group-hover/copy:opacity-100 shrink-0 text-muted-foreground hover:text-primary transition-all"
+                          onClick={() =>
+                            copyToClipboard(formatObjectField(lead.telefone), 'Telefone')
+                          }
+                          title="Copiar Telefone"
+                        >
+                          <Copy className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell>
                     {lead.contatado ? (
@@ -244,7 +303,7 @@ export function ResultsTable() {
         </Table>
 
         {!isSearching && filteredLeads.length > 0 && pagination.totalPages > 0 && (
-          <div className="flex flex-col sm:flex-row items-center justify-between px-4 py-3 bg-slate-50 border-t mt-auto gap-4">
+          <div className="flex flex-col sm:flex-row items-center justify-between px-4 py-3 bg-slate-50 border-t mt-auto gap-4 sticky left-0 right-0">
             <div className="text-sm text-muted-foreground text-center sm:text-left">
               Página <span className="font-medium text-foreground">{pagination.page}</span> de{' '}
               <span className="font-medium text-foreground">{pagination.totalPages}</span> (
