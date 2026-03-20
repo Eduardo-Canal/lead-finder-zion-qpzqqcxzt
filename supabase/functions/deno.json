@@ -2,6 +2,7 @@
   "_versions": {
     "buscar-leads": 35,
     "enriquecer-lead": 10,
-    "functions": 6
+    "functions": 6,
+    "admin-create-user": 1
   }
 }
