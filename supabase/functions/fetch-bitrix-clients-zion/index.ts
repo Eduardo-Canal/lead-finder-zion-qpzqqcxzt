@@ -39,10 +39,9 @@ Deno.serve(async (req: Request) => {
           success: false,
           error:
             rateLimiterData.message || 'Erro ao comunicar com a API do Bitrix via Rate Limiter',
-          details: rateLimiterData,
         }),
         {
-          status: rateLimiterRes.status === 429 ? 429 : 500,
+          status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         },
       )
@@ -56,9 +55,11 @@ Deno.serve(async (req: Request) => {
         JSON.stringify({
           success: false,
           error: 'Formato de resposta inesperado do Bitrix',
-          data: bitrixData,
         }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        },
       )
     }
 
@@ -79,7 +80,7 @@ Deno.serve(async (req: Request) => {
         cnpj: c.UF_CRM_1742992784 || '',
         cnae_principal: c.UF_CRM_1771423651 || '',
         email: getPrimaryValue(c.EMAIL),
-        phone: getPrimaryValue(c.PHONE || c.TELEFONE),
+        phone: getPrimaryValue(c.TELEFONE || c.PHONE),
         city: c.ADDRESS_CITY || '',
         state: c.ADDRESS_PROVINCE || '',
         synced_at: new Date().toISOString(),
@@ -87,13 +88,10 @@ Deno.serve(async (req: Request) => {
     })
 
     // 4. Salvar (Upsert) os dados extraídos no banco de dados local
-    let savedCount = 0
-
     if (mappedClients.length > 0) {
-      const { data: savedData, error: upsertError } = await supabaseAdmin
+      const { error: upsertError } = await supabaseAdmin
         .from('bitrix_clients_zion')
         .upsert(mappedClients, { onConflict: 'bitrix_id' })
-        .select('id')
 
       if (upsertError) {
         console.error('Erro ao salvar no banco:', upsertError)
@@ -101,20 +99,19 @@ Deno.serve(async (req: Request) => {
           JSON.stringify({
             success: false,
             error: 'Erro ao salvar clientes no banco de dados local',
-            details: upsertError,
           }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+          {
+            status: 200,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          },
         )
       }
-
-      savedCount = savedData?.length || mappedClients.length
     }
 
     // 5. Retornar JSON com o sucesso e a lista dos clientes processados
     return new Response(
       JSON.stringify({
         success: true,
-        message: `${savedCount} clientes extraídos e sincronizados com sucesso.`,
         data: mappedClients,
       }),
       {
@@ -126,10 +123,10 @@ Deno.serve(async (req: Request) => {
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message,
+        error: error.message || 'Erro interno na Edge Function',
       }),
       {
-        status: 500,
+        status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       },
     )

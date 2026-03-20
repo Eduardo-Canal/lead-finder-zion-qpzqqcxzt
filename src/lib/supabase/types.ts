@@ -90,6 +90,45 @@ export type Database = {
         }
         Relationships: []
       }
+      bitrix_clients_zion: {
+        Row: {
+          bitrix_id: string
+          city: string | null
+          cnae_principal: string | null
+          cnpj: string | null
+          company_name: string | null
+          email: string | null
+          id: string
+          phone: string | null
+          state: string | null
+          synced_at: string | null
+        }
+        Insert: {
+          bitrix_id: string
+          city?: string | null
+          cnae_principal?: string | null
+          cnpj?: string | null
+          company_name?: string | null
+          email?: string | null
+          id?: string
+          phone?: string | null
+          state?: string | null
+          synced_at?: string | null
+        }
+        Update: {
+          bitrix_id?: string
+          city?: string | null
+          cnae_principal?: string | null
+          cnpj?: string | null
+          company_name?: string | null
+          email?: string | null
+          id?: string
+          phone?: string | null
+          state?: string | null
+          synced_at?: string | null
+        }
+        Relationships: []
+      }
       bitrix_rate_limit_config: {
         Row: {
           id: string
@@ -611,6 +650,17 @@ export const Constants = {
 //   request_body: jsonb (nullable)
 //   response_body: jsonb (nullable)
 //   created_at: timestamp with time zone (nullable, default: now())
+// Table: bitrix_clients_zion
+//   id: uuid (not null, default: gen_random_uuid())
+//   bitrix_id: text (not null)
+//   company_name: text (nullable)
+//   cnpj: text (nullable)
+//   cnae_principal: text (nullable)
+//   email: text (nullable)
+//   phone: text (nullable)
+//   city: text (nullable)
+//   state: text (nullable)
+//   synced_at: timestamp with time zone (nullable, default: now())
 // Table: bitrix_rate_limit_config
 //   id: uuid (not null, default: gen_random_uuid())
 //   max_requests: integer (nullable, default: 2)
@@ -708,6 +758,9 @@ export const Constants = {
 //   PRIMARY KEY api_debug_logs_pkey: PRIMARY KEY (id)
 // Table: bitrix_api_logs
 //   PRIMARY KEY bitrix_api_logs_pkey: PRIMARY KEY (id)
+// Table: bitrix_clients_zion
+//   UNIQUE bitrix_clients_zion_bitrix_id_key: UNIQUE (bitrix_id)
+//   PRIMARY KEY bitrix_clients_zion_pkey: PRIMARY KEY (id)
 // Table: bitrix_rate_limit_config
 //   PRIMARY KEY bitrix_rate_limit_config_pkey: PRIMARY KEY (id)
 // Table: bitrix_webhook_events
@@ -740,6 +793,10 @@ export const Constants = {
 //     USING: (EXISTS ( SELECT 1    FROM (profiles p      JOIN perfis_acesso pa ON ((p.perfil_id = pa.id)))   WHERE ((p.user_id = auth.uid()) AND (pa.nome = 'Administrador'::text))))
 // Table: bitrix_api_logs
 //   Policy "Allow authenticated users all on bitrix_api_logs" (ALL, PERMISSIVE) roles={authenticated}
+//     USING: true
+//     WITH CHECK: true
+// Table: bitrix_clients_zion
+//   Policy "Allow authenticated users all on bitrix_clients_zion" (ALL, PERMISSIVE) roles={authenticated}
 //     USING: true
 //     WITH CHECK: true
 // Table: bitrix_rate_limit_config
@@ -834,6 +891,9 @@ export const Constants = {
 // Table: bitrix_api_logs
 //   CREATE INDEX idx_bitrix_api_logs_endpoint ON public.bitrix_api_logs USING btree (endpoint)
 //   CREATE INDEX idx_bitrix_api_logs_timestamp ON public.bitrix_api_logs USING btree ("timestamp")
+// Table: bitrix_clients_zion
+//   CREATE UNIQUE INDEX bitrix_clients_zion_bitrix_id_key ON public.bitrix_clients_zion USING btree (bitrix_id)
+//   CREATE INDEX idx_bitrix_clients_zion_bitrix_id ON public.bitrix_clients_zion USING btree (bitrix_id)
 // Table: bitrix_webhook_events
 //   CREATE INDEX idx_bitrix_webhook_events_event_type ON public.bitrix_webhook_events USING btree (event_type)
 // Table: cache_pesquisas
