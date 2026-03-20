@@ -1,5 +1,14 @@
 import { Link, useLocation } from 'react-router-dom'
-import { LayoutDashboard, Users, ShieldCheck, Target, Settings, ChevronRight } from 'lucide-react'
+import {
+  LayoutDashboard,
+  Users,
+  ShieldCheck,
+  Target,
+  Settings,
+  ChevronRight,
+  PanelLeftClose,
+  PanelLeft,
+} from 'lucide-react'
 import {
   Sidebar,
   SidebarContent,
@@ -13,28 +22,47 @@ import {
   SidebarMenuSub,
   SidebarMenuSubItem,
   SidebarMenuSubButton,
+  SidebarRail,
+  useSidebar,
 } from '@/components/ui/sidebar'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { Button } from '@/components/ui/button'
 import useAuthStore from '@/stores/useAuthStore'
 
 export function AppSidebar() {
   const { hasPermission, user } = useAuthStore()
   const location = useLocation()
+  const { toggleSidebar, state } = useSidebar()
 
   return (
-    <Sidebar>
-      <SidebarHeader className="pt-6 pb-2 px-4">
-        <h2 className="text-xl font-bold text-sidebar-foreground tracking-tight">Navegação</h2>
+    <Sidebar collapsible="icon">
+      <SidebarHeader className="flex h-16 shrink-0 items-center justify-between px-4 group-data-[collapsible=icon]:px-2 flex-row border-b border-sidebar-border/20">
+        <h2 className="text-lg font-bold text-sidebar-foreground tracking-tight group-data-[collapsible=icon]:hidden truncate">
+          Menu Principal
+        </h2>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={toggleSidebar}
+          className="text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent h-8 w-8 shrink-0 group-data-[collapsible=icon]:mx-auto"
+          title={state === 'expanded' ? 'Recolher Menu' : 'Expandir Menu'}
+        >
+          {state === 'expanded' ? (
+            <PanelLeftClose className="h-5 w-5" />
+          ) : (
+            <PanelLeft className="h-5 w-5" />
+          )}
+        </Button>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className="text-sidebar-foreground/70 uppercase tracking-wider font-semibold">
-            Menu Principal
+          <SidebarGroupLabel className="text-sidebar-foreground/70 uppercase tracking-wider font-semibold group-data-[collapsible=icon]:hidden">
+            Navegação
           </SidebarGroupLabel>
           <SidebarGroupContent className="pt-2">
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={location.pathname === '/'}>
+                <SidebarMenuButton asChild isActive={location.pathname === '/'} tooltip="Dashboard">
                   <Link to="/">
                     <LayoutDashboard />
                     <span>Dashboard</span>
@@ -42,7 +70,11 @@ export function AppSidebar() {
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={location.pathname === '/prospeccao'}>
+                <SidebarMenuButton
+                  asChild
+                  isActive={location.pathname === '/prospeccao'}
+                  tooltip="Painel de Prospecção"
+                >
                   <Link to="/prospeccao">
                     <Target />
                     <span>Painel de Prospecção</span>
@@ -50,7 +82,11 @@ export function AppSidebar() {
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={location.pathname === '/meus-leads'}>
+                <SidebarMenuButton
+                  asChild
+                  isActive={location.pathname === '/meus-leads'}
+                  tooltip="Meus Leads"
+                >
                   <Link to="/meus-leads">
                     <Users />
                     <span>Meus Leads</span>
@@ -60,7 +96,11 @@ export function AppSidebar() {
 
               {hasPermission('Acessar Admin') && (
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={location.pathname === '/gestao-usuarios'}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={location.pathname === '/gestao-usuarios'}
+                    tooltip="Gestão de Usuários"
+                  >
                     <Link to="/gestao-usuarios">
                       <ShieldCheck />
                       <span>Gestão de Usuários</span>
@@ -116,6 +156,7 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+      <SidebarRail />
     </Sidebar>
   )
 }
