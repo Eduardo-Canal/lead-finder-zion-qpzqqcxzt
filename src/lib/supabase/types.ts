@@ -53,31 +53,37 @@ export type Database = {
       }
       bitrix_api_logs: {
         Row: {
+          created_at: string | null
           endpoint: string
           error_message: string | null
           id: string
           method: string
           request_body: Json | null
+          response_body: Json | null
           response_time_ms: number | null
           status_code: number | null
           timestamp: string
         }
         Insert: {
+          created_at?: string | null
           endpoint: string
           error_message?: string | null
           id?: string
           method: string
           request_body?: Json | null
+          response_body?: Json | null
           response_time_ms?: number | null
           status_code?: number | null
           timestamp?: string
         }
         Update: {
+          created_at?: string | null
           endpoint?: string
           error_message?: string | null
           id?: string
           method?: string
           request_body?: Json | null
+          response_body?: Json | null
           response_time_ms?: number | null
           status_code?: number | null
           timestamp?: string
@@ -86,22 +92,49 @@ export type Database = {
       }
       bitrix_rate_limit_config: {
         Row: {
-          id: number
-          max_requests: number
-          time_window_minutes: number
-          updated_at: string
+          id: string
+          max_requests: number | null
+          time_window_minutes: number | null
+          updated_at: string | null
         }
         Insert: {
-          id: number
-          max_requests?: number
-          time_window_minutes?: number
-          updated_at?: string
+          id?: string
+          max_requests?: number | null
+          time_window_minutes?: number | null
+          updated_at?: string | null
         }
         Update: {
-          id?: number
-          max_requests?: number
-          time_window_minutes?: number
-          updated_at?: string
+          id?: string
+          max_requests?: number | null
+          time_window_minutes?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      bitrix_webhook_events: {
+        Row: {
+          created_at: string | null
+          event_type: string | null
+          id: string
+          payload: Json | null
+          processed: boolean | null
+          processed_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          event_type?: string | null
+          id?: string
+          payload?: Json | null
+          processed?: boolean | null
+          processed_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          event_type?: string | null
+          id?: string
+          payload?: Json | null
+          processed?: boolean | null
+          processed_at?: string | null
         }
         Relationships: []
       }
@@ -576,11 +609,20 @@ export const Constants = {
 //   response_time_ms: integer (nullable)
 //   error_message: text (nullable)
 //   request_body: jsonb (nullable)
+//   response_body: jsonb (nullable)
+//   created_at: timestamp with time zone (nullable, default: now())
 // Table: bitrix_rate_limit_config
-//   id: integer (not null)
-//   max_requests: integer (not null, default: 2)
-//   time_window_minutes: numeric (not null, default: 1)
-//   updated_at: timestamp with time zone (not null, default: now())
+//   id: uuid (not null, default: gen_random_uuid())
+//   max_requests: integer (nullable, default: 2)
+//   time_window_minutes: integer (nullable, default: 1)
+//   updated_at: timestamp with time zone (nullable, default: now())
+// Table: bitrix_webhook_events
+//   id: uuid (not null, default: gen_random_uuid())
+//   event_type: text (nullable)
+//   payload: jsonb (nullable)
+//   processed: boolean (nullable, default: false)
+//   processed_at: timestamp with time zone (nullable)
+//   created_at: timestamp with time zone (nullable, default: now())
 // Table: cache_pesquisas
 //   id: uuid (not null, default: gen_random_uuid())
 //   chave_cache: text (not null)
@@ -668,6 +710,8 @@ export const Constants = {
 //   PRIMARY KEY bitrix_api_logs_pkey: PRIMARY KEY (id)
 // Table: bitrix_rate_limit_config
 //   PRIMARY KEY bitrix_rate_limit_config_pkey: PRIMARY KEY (id)
+// Table: bitrix_webhook_events
+//   PRIMARY KEY bitrix_webhook_events_pkey: PRIMARY KEY (id)
 // Table: cache_pesquisas
 //   UNIQUE cache_pesquisas_chave_cache_key: UNIQUE (chave_cache)
 //   PRIMARY KEY cache_pesquisas_pkey: PRIMARY KEY (id)
@@ -695,16 +739,17 @@ export const Constants = {
 //   Policy "Enable SELECT for authenticated admins" (SELECT, PERMISSIVE) roles={authenticated}
 //     USING: (EXISTS ( SELECT 1    FROM (profiles p      JOIN perfis_acesso pa ON ((p.perfil_id = pa.id)))   WHERE ((p.user_id = auth.uid()) AND (pa.nome = 'Administrador'::text))))
 // Table: bitrix_api_logs
-//   Policy "Enable DELETE for authenticated admins on bitrix_api_logs" (DELETE, PERMISSIVE) roles={authenticated}
-//     USING: (EXISTS ( SELECT 1    FROM (profiles p      JOIN perfis_acesso pa ON ((p.perfil_id = pa.id)))   WHERE ((p.user_id = auth.uid()) AND (pa.nome = 'Administrador'::text))))
-//   Policy "Enable SELECT for authenticated admins on bitrix_api_logs" (SELECT, PERMISSIVE) roles={authenticated}
-//     USING: (EXISTS ( SELECT 1    FROM (profiles p      JOIN perfis_acesso pa ON ((p.perfil_id = pa.id)))   WHERE ((p.user_id = auth.uid()) AND (pa.nome = 'Administrador'::text))))
+//   Policy "Allow authenticated users all on bitrix_api_logs" (ALL, PERMISSIVE) roles={authenticated}
+//     USING: true
+//     WITH CHECK: true
 // Table: bitrix_rate_limit_config
-//   Policy "Enable SELECT for authenticated admins on bitrix_rate_limit_con" (SELECT, PERMISSIVE) roles={authenticated}
-//     USING: (EXISTS ( SELECT 1    FROM (profiles p      JOIN perfis_acesso pa ON ((p.perfil_id = pa.id)))   WHERE ((p.user_id = auth.uid()) AND (pa.nome = 'Administrador'::text))))
-//   Policy "Enable UPDATE for authenticated admins on bitrix_rate_limit_con" (UPDATE, PERMISSIVE) roles={authenticated}
-//     USING: (EXISTS ( SELECT 1    FROM (profiles p      JOIN perfis_acesso pa ON ((p.perfil_id = pa.id)))   WHERE ((p.user_id = auth.uid()) AND (pa.nome = 'Administrador'::text))))
-//     WITH CHECK: (EXISTS ( SELECT 1    FROM (profiles p      JOIN perfis_acesso pa ON ((p.perfil_id = pa.id)))   WHERE ((p.user_id = auth.uid()) AND (pa.nome = 'Administrador'::text))))
+//   Policy "Allow authenticated users all on bitrix_rate_limit_config" (ALL, PERMISSIVE) roles={authenticated}
+//     USING: true
+//     WITH CHECK: true
+// Table: bitrix_webhook_events
+//   Policy "Allow authenticated users all on bitrix_webhook_events" (ALL, PERMISSIVE) roles={authenticated}
+//     USING: true
+//     WITH CHECK: true
 // Table: cache_pesquisas
 //   Policy "Allow authenticated users to delete cache" (DELETE, PERMISSIVE) roles={authenticated}
 //     USING: true
@@ -786,5 +831,10 @@ export const Constants = {
 //
 
 // --- INDEXES ---
+// Table: bitrix_api_logs
+//   CREATE INDEX idx_bitrix_api_logs_endpoint ON public.bitrix_api_logs USING btree (endpoint)
+//   CREATE INDEX idx_bitrix_api_logs_timestamp ON public.bitrix_api_logs USING btree ("timestamp")
+// Table: bitrix_webhook_events
+//   CREATE INDEX idx_bitrix_webhook_events_event_type ON public.bitrix_webhook_events USING btree (event_type)
 // Table: cache_pesquisas
 //   CREATE UNIQUE INDEX cache_pesquisas_chave_cache_key ON public.cache_pesquisas USING btree (chave_cache)
