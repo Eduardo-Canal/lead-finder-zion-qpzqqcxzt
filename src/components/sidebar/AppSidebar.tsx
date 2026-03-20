@@ -8,6 +8,7 @@ import {
   ChevronRight,
   PanelLeftClose,
   PanelLeft,
+  PieChart,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -66,6 +67,18 @@ export function AppSidebar() {
                   <Link to="/">
                     <LayoutDashboard />
                     <span>Dashboard</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={location.pathname === '/inteligencia-zion'}
+                  tooltip="Inteligência Zion"
+                >
+                  <Link to="/inteligencia-zion">
+                    <PieChart />
+                    <span>Inteligência Zion</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

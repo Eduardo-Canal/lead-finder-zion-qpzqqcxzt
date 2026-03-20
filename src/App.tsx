@@ -13,6 +13,7 @@ import ConfiguracoesAvancadas from '@/pages/ConfiguracoesAvancadas'
 import DebugAPI from '@/pages/DebugAPI'
 import DebugBitrix from '@/pages/DebugBitrix'
 import MonitoramentoBitrix from '@/pages/MonitoramentoBitrix'
+import InteligenciaZion from '@/pages/InteligenciaZion'
 import NotFound from '@/pages/NotFound'
 import UpdatePassword from '@/pages/UpdatePassword'
 import useAuthStore, { AuthProvider } from '@/stores/useAuthStore'
@@ -77,6 +78,7 @@ const App = () => (
                   }
                 >
                   <Route path="/" element={<Index />} />
+                  <Route path="/inteligencia-zion" element={<InteligenciaZion />} />
                   <Route path="/prospeccao" element={<Prospeccao />} />
                   <Route path="/meus-leads" element={<MyLeads />} />
                   <Route path="/gestao-usuarios" element={<UserManagement />} />
