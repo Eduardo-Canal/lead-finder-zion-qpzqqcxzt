@@ -22,15 +22,24 @@ Deno.serve(async (req: Request) => {
     // Client com Service Role Key para contornar RLS e permitir createUser com email_confirm auto
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey)
 
+    const token = authHeader.replace(/^Bearer\s+/i, '').trim()
+
     // Client padrão validado com o token recebido
     const supabaseAuth = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY') || '', {
-      global: { headers: { Authorization: authHeader } },
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
+      },
     })
 
-    const { data: userData, error: userError } = await supabaseAuth.auth.getUser()
+    const { data: userData, error: userError } = await supabaseAuth.auth.getUser(token)
     if (userError || !userData?.user) {
       return new Response(
-        JSON.stringify({ error: 'Acesso negado: Usuário solicitante inválido' }),
+        JSON.stringify({
+          error: 'Acesso negado: Usuário solicitante inválido',
+          details: userError?.message,
+        }),
         { status: 401, headers: corsHeaders },
       )
     }
