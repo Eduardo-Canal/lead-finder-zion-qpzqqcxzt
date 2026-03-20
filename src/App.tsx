@@ -12,12 +12,19 @@ import UserManagement from '@/pages/UserManagement'
 import ConfiguracoesAvancadas from '@/pages/ConfiguracoesAvancadas'
 import DebugAPI from '@/pages/DebugAPI'
 import NotFound from '@/pages/NotFound'
+import UpdatePassword from '@/pages/UpdatePassword'
 import useAuthStore, { AuthProvider } from '@/stores/useAuthStore'
 import { LeadStoreProvider } from '@/stores/useLeadStore'
 import { MyLeadsStoreProvider } from '@/stores/useMyLeadsStore'
 import { UserManagementStoreProvider } from '@/stores/useUserManagementStore'
 
-const ProtectedRoute = ({ children }: { children: ReactNode }) => {
+const ProtectedRoute = ({
+  children,
+  isPasswordReset = false,
+}: {
+  children: ReactNode
+  isPasswordReset?: boolean
+}) => {
   const { user, loading } = useAuthStore()
   const location = useLocation()
 
@@ -27,7 +34,16 @@ const ProtectedRoute = ({ children }: { children: ReactNode }) => {
         Carregando...
       </div>
     )
+
   if (!user) return <Navigate to="/login" state={{ from: location }} replace />
+
+  if (user.require_password_update && !isPasswordReset) {
+    return <Navigate to="/atualizar-senha" replace />
+  }
+
+  if (!user.require_password_update && isPasswordReset) {
+    return <Navigate to="/" replace />
+  }
 
   return <>{children}</>
 }
@@ -43,6 +59,14 @@ const App = () => (
               <Sonner />
               <Routes>
                 <Route path="/login" element={<Login />} />
+                <Route
+                  path="/atualizar-senha"
+                  element={
+                    <ProtectedRoute isPasswordReset>
+                      <UpdatePassword />
+                    </ProtectedRoute>
+                  }
+                />
                 <Route
                   element={
                     <ProtectedRoute>

@@ -35,6 +35,7 @@ const formSchema = z.object({
   senha: z.string().min(6, 'A senha deve ter pelo menos 6 caracteres'),
   perfil_id: z.string().min(1, 'Selecione um perfil'),
   ativo: z.boolean().default(true),
+  require_password_update: z.boolean().default(true),
 })
 
 type FormValues = z.infer<typeof formSchema>
@@ -55,6 +56,7 @@ export function AddUserModal({ open, onOpenChange }: AddUserModalProps) {
       senha: '',
       perfil_id: '',
       ativo: true,
+      require_password_update: true,
     },
   })
 
@@ -146,23 +148,44 @@ export function AddUserModal({ open, onOpenChange }: AddUserModalProps) {
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="ativo"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-                  <div className="space-y-0.5">
-                    <FormLabel>Status</FormLabel>
-                    <div className="text-[0.8rem] text-muted-foreground">
-                      Definir conta como ativa
+
+            <div className="space-y-3 pt-2">
+              <FormField
+                control={form.control}
+                name="require_password_update"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm bg-slate-50">
+                    <div className="space-y-0.5">
+                      <FormLabel>Exigir troca de senha</FormLabel>
+                      <div className="text-[0.8rem] text-muted-foreground">
+                        Força atualização da senha no próximo login
+                      </div>
                     </div>
-                  </div>
-                  <FormControl>
-                    <Switch checked={field.value} onCheckedChange={field.onChange} />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
+                    <FormControl>
+                      <Switch checked={field.value} onCheckedChange={field.onChange} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="ativo"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                    <div className="space-y-0.5">
+                      <FormLabel>Status</FormLabel>
+                      <div className="text-[0.8rem] text-muted-foreground">
+                        Definir conta como ativa
+                      </div>
+                    </div>
+                    <FormControl>
+                      <Switch checked={field.value} onCheckedChange={field.onChange} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+            </div>
+
             <DialogFooter className="pt-4">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancelar

@@ -28,6 +28,7 @@ export type ProfileTable = {
   email: string
   perfil_id: string
   ativo: boolean
+  require_password_update: boolean
 }
 
 export type PerfilTable = {
@@ -43,6 +44,7 @@ type UserManagementStoreContextType = {
   updateUser: (id: string, data: Partial<ProfileTable>) => Promise<void>
   createProfile: (nome: string, permissoes: Permission[]) => Promise<void>
   createUser: (data: any) => Promise<void>
+  deleteUser: (id: string, user_id: string) => Promise<void>
 }
 
 const UserManagementContext = createContext<UserManagementStoreContextType | null>(null)
@@ -56,8 +58,8 @@ export function UserManagementStoreProvider({ children }: { children: ReactNode 
     const { data: pData } = await supabase.from('profiles').select('*')
     const { data: pfData } = await supabase.from('perfis_acesso').select('*')
 
-    if (pData) setUsers(pData)
-    if (pfData) setProfiles(pfData)
+    if (pData) setUsers(pData as any)
+    if (pfData) setProfiles(pfData as any)
   }, [])
 
   useEffect(() => {
@@ -80,6 +82,32 @@ export function UserManagementStoreProvider({ children }: { children: ReactNode 
   const createProfile = async (nome: string, permissoes: Permission[]) => {
     await supabase.from('perfis_acesso').insert({ nome, permissoes })
     await fetchData()
+  }
+
+  const deleteUser = async (id: string, authUserId: string) => {
+    const { data: sessionData } = await supabase.auth.getSession()
+    const token = sessionData?.session?.access_token
+
+    if (!token) throw new Error('Não autenticado')
+
+    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-delete-user`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ user_id: authUserId }),
+    })
+
+    if (res.ok) {
+      const result = await res.json()
+      if (result.error) throw new Error(result.error)
+      await fetchData()
+      return
+    } else {
+      const errData = await res.json().catch(() => null)
+      throw new Error(errData?.error || 'Erro desconhecido ao excluir usuário.')
+    }
   }
 
   const createUser = async (data: any) => {
@@ -173,6 +201,7 @@ export function UserManagementStoreProvider({ children }: { children: ReactNode 
           email: data.email,
           perfil_id: data.perfil_id,
           ativo: data.ativo,
+          require_password_update: data.require_password_update,
         })
 
         if (profileError) throw new Error(profileError.message)
@@ -207,6 +236,7 @@ export function UserManagementStoreProvider({ children }: { children: ReactNode 
         updateUser,
         createProfile,
         createUser,
+        deleteUser,
       },
     },
     children,

@@ -3,6 +3,7 @@
     "buscar-leads": 35,
     "enriquecer-lead": 10,
     "functions": 6,
-    "admin-create-user": 5
+    "admin-create-user": 6,
+    "admin-delete-user": 1
   }
 }

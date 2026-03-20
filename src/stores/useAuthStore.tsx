@@ -8,6 +8,7 @@ export type AuthUser = {
   email: string
   perfil_id: string
   ativo: boolean
+  require_password_update: boolean
   perfis_acesso: {
     nome: string
     permissoes: string[]
@@ -20,6 +21,7 @@ type AuthStoreContextType = {
   login: (email: string, pass: string) => Promise<{ error: any }>
   logout: () => Promise<void>
   hasPermission: (perm: string) => boolean
+  forceUpdatePassword: (password: string) => Promise<{ error: any }>
 }
 
 const AuthContext = createContext<AuthStoreContextType | null>(null)
@@ -83,6 +85,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return user?.perfis_acesso?.permissoes?.includes(perm) || false
   }
 
+  const forceUpdatePassword = async (password: string) => {
+    if (!user) return { error: new Error('Usuário não autenticado') }
+
+    const { error: authError } = await supabase.auth.updateUser({ password })
+    if (authError) return { error: authError }
+
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .update({ require_password_update: false })
+      .eq('id', user.id)
+
+    if (profileError) return { error: profileError }
+
+    setUser({ ...user, require_password_update: false } as AuthUser)
+    return { error: null }
+  }
+
   return React.createElement(
     AuthContext.Provider,
     {
@@ -92,6 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         login,
         logout,
         hasPermission,
+        forceUpdatePassword,
       },
     },
     children,

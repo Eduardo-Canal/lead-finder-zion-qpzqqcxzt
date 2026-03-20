@@ -9,9 +9,10 @@ import useUserManagementStore, {
   PERMISSIONS_LIST,
 } from '@/stores/useUserManagementStore'
 import { toast } from 'sonner'
+import { Users, Shield } from 'lucide-react'
 
 export function ProfilesTab() {
-  const { profiles, createProfile } = useUserManagementStore()
+  const { profiles, users, createProfile } = useUserManagementStore()
   const [nome, setNome] = useState('')
   const [perms, setPerms] = useState<Permission[]>([])
 
@@ -37,17 +38,28 @@ export function ProfilesTab() {
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-fade-in">
       <div className="md:col-span-1 space-y-4">
         <h3 className="text-lg font-medium tracking-tight">Perfis Existentes</h3>
-        {profiles.map((p) => (
-          <Card key={p.id} className="shadow-sm">
-            <CardHeader className="p-4">
-              <CardTitle className="text-base">{p.nome}</CardTitle>
-              <CardDescription>
-                {p.permissoes?.length || 0}{' '}
-                {p.permissoes?.length === 1 ? 'permissão ativa' : 'permissões ativas'}
-              </CardDescription>
-            </CardHeader>
-          </Card>
-        ))}
+        {profiles.map((p) => {
+          const userCount = users.filter((u) => u.perfil_id === p.id).length
+
+          return (
+            <Card key={p.id} className="shadow-sm transition-all hover:shadow-md">
+              <CardHeader className="p-4">
+                <CardTitle className="text-base text-primary mb-1">{p.nome}</CardTitle>
+                <CardDescription className="flex flex-col gap-1.5 mt-2">
+                  <span className="flex items-center text-slate-700 bg-slate-100 w-max px-2 py-0.5 rounded-full text-xs font-medium">
+                    <Users className="w-3.5 h-3.5 mr-1.5" />
+                    {userCount} {userCount === 1 ? 'usuário vinculado' : 'usuários vinculados'}
+                  </span>
+                  <span className="flex items-center text-muted-foreground text-xs mt-1">
+                    <Shield className="w-3.5 h-3.5 mr-1.5" />
+                    {p.permissoes?.length || 0}{' '}
+                    {p.permissoes?.length === 1 ? 'permissão ativa' : 'permissões ativas'}
+                  </span>
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          )
+        })}
       </div>
 
       <div className="md:col-span-2">

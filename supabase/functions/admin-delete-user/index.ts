@@ -19,7 +19,7 @@ Deno.serve(async (req: Request) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
 
-    // Client com Service Role Key para contornar RLS e permitir createUser com email_confirm auto
+    // Client com Service Role Key para contornar RLS e permitir admin.deleteUser
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey)
 
     const token = authHeader.replace(/^Bearer\s+/i, '').trim()
@@ -44,7 +44,7 @@ Deno.serve(async (req: Request) => {
       )
     }
 
-    // Verifica de fato se o chamador possui nível de permissão Administrador
+    // Verifica se o chamador possui permissão de Admin
     const { data: profile } = await supabaseAdmin
       .from('profiles')
       .select('*, perfis_acesso(*)')
@@ -68,64 +68,32 @@ Deno.serve(async (req: Request) => {
       return new Response(
         JSON.stringify({
           error: 'Acesso negado: Permissão insuficiente',
-          details: { profile_encontrado: !!profile, email: userEmail },
         }),
         { status: 403, headers: corsHeaders },
       )
     }
 
     const body = await req.json()
-    const { email, senha, nome, perfil_id, ativo, require_password_update } = body
+    const { user_id } = body
 
-    if (!email || !senha || !nome) {
+    if (!user_id) {
       return new Response(
-        JSON.stringify({ error: 'Dados obrigatórios faltando (email, senha ou nome)' }),
+        JSON.stringify({ error: 'ID do usuário de autenticação não fornecido' }),
         { status: 400, headers: corsHeaders },
       )
     }
 
-    // A criação por Admin bypassa o limite de rate-limit de email confirmation comum.
-    const { data: newAuthUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
-      email,
-      password: senha,
-      email_confirm: true,
-      user_metadata: { nome },
-    })
+    // A exclusão no auth.users vai apagar em cascata o registro correspondente em public.profiles
+    const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(user_id)
 
-    if (createError) {
-      let errMsg = createError.message
-      if (errMsg.includes('already been registered') || errMsg.includes('already registered')) {
-        errMsg = 'Já existe um usuário cadastrado com este e-mail.'
-      }
-      return new Response(JSON.stringify({ error: errMsg }), { status: 400, headers: corsHeaders })
-    }
-
-    if (!newAuthUser?.user) {
-      return new Response(
-        JSON.stringify({ error: 'Falha ao criar o usuário de autenticação no provedor' }),
-        { status: 500, headers: corsHeaders },
-      )
-    }
-
-    const { error: profileError } = await supabaseAdmin.from('profiles').insert({
-      user_id: newAuthUser.user.id,
-      email,
-      nome,
-      perfil_id: perfil_id || null,
-      ativo: ativo ?? true,
-      require_password_update: require_password_update ?? false,
-    })
-
-    if (profileError) {
-      // Rollback na auth caso a inserção do profile dê ruim por qualquer motivo
-      await supabaseAdmin.auth.admin.deleteUser(newAuthUser.user.id)
-      return new Response(JSON.stringify({ error: profileError.message }), {
+    if (deleteError) {
+      return new Response(JSON.stringify({ error: deleteError.message }), {
         status: 400,
         headers: corsHeaders,
       })
     }
 
-    return new Response(JSON.stringify({ success: true, user: newAuthUser.user }), {
+    return new Response(JSON.stringify({ success: true }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     })

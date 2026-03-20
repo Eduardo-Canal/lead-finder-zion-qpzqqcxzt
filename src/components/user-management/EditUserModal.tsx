@@ -9,6 +9,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
 import {
   Select,
   SelectContent,
@@ -31,12 +32,14 @@ export function EditUserModal({ userId, onClose }: EditUserModalProps) {
   const [nome, setNome] = useState('')
   const [email, setEmail] = useState('')
   const [perfilId, setPerfilId] = useState('')
+  const [requirePasswordUpdate, setRequirePasswordUpdate] = useState(false)
 
   useEffect(() => {
     if (user) {
       setNome(user.nome)
       setEmail(user.email)
       setPerfilId(user.perfil_id)
+      setRequirePasswordUpdate(user.require_password_update || false)
     }
   }, [user])
 
@@ -47,7 +50,12 @@ export function EditUserModal({ userId, onClose }: EditUserModalProps) {
       return
     }
 
-    updateUser(userId, { nome, email, perfil_id: perfilId })
+    updateUser(userId, {
+      nome,
+      email,
+      perfil_id: perfilId,
+      require_password_update: requirePasswordUpdate,
+    })
     toast.success('Usuário atualizado com sucesso!')
     onClose()
   }
@@ -86,6 +94,16 @@ export function EditUserModal({ userId, onClose }: EditUserModalProps) {
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm bg-slate-50 mt-4">
+            <div className="space-y-0.5">
+              <Label className="text-sm font-medium">Exigir troca de senha</Label>
+              <div className="text-[0.8rem] text-muted-foreground">
+                Força atualização da senha no próximo login
+              </div>
+            </div>
+            <Switch checked={requirePasswordUpdate} onCheckedChange={setRequirePasswordUpdate} />
           </div>
         </div>
         <DialogFooter>
