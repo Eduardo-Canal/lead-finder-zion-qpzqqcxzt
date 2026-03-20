@@ -43,7 +43,9 @@ export default function DebugBitrix() {
   const navigate = useNavigate()
   const isAdmin = user?.perfis_acesso?.nome === 'Administrador'
 
-  const [url, setUrl] = useState('https://zionlogtec.bitrix24.com.br/rest/5/eiyn7hzhaeu2lcm0/')
+  const [url, setUrl] = useState(
+    'https://zionlogtec.bitrix24.com.br/rest/5/eiyn7hzhaeu2lcm0/crm.company.list.json?filter[UF_CRM_1B70E8F8]=675',
+  )
   const [method, setMethod] = useState('GET')
   const [headers, setHeaders] = useState('{\n  "Content-Type": "application/json"\n}')
   const [body, setBody] = useState('{\n  \n}')
