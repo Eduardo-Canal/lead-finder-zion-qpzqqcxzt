@@ -83,32 +83,104 @@ export function UserManagementStoreProvider({ children }: { children: ReactNode 
   }
 
   const createUser = async (data: any) => {
-    // Uses a secondary client to sign up the new user without affecting the current admin's session
+    // 1. Tentar criar o usuário pela Edge Function (evita limite de e-mail e bypassa confirmação)
+    try {
+      const { data: sessionData } = await supabase.auth.getSession()
+      const token = sessionData?.session?.access_token
+
+      if (token) {
+        const res = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-create-user`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(data),
+          },
+        )
+
+        if (res.ok) {
+          const result = await res.json()
+          if (result.error) throw new Error(result.error)
+          await fetchData()
+          return
+        } else if (res.status !== 404) {
+          // Se não retornou 404 (endpoint existe mas falhou), mostramos o erro
+          const errData = await res.json().catch(() => null)
+          if (errData?.error) throw new Error(errData.error)
+        }
+      }
+    } catch (e: any) {
+      // Repassa os erros reais de validação para a UI, mascara problemas de conectividade no fallback
+      if (
+        e.message &&
+        !e.message.includes('Failed to fetch') &&
+        !e.message.includes('fetch is not defined')
+      ) {
+        throw e
+      }
+      console.warn(
+        'Edge function admin-create-user indisponível ou inacessível. Tentando via Client Frontend...',
+        e.message,
+      )
+    }
+
+    // 2. Fallback: usar o client secundário + Retry Lógico e UX de Erro
     const secondaryClient = createClient(
       import.meta.env.VITE_SUPABASE_URL as string,
       import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string,
       { auth: { storageKey: 'temp-auth-admin', persistSession: false } },
     )
 
-    const { data: authData, error: authError } = await secondaryClient.auth.signUp({
-      email: data.email,
-      password: data.senha,
-    })
+    let retryCount = 0
+    const maxRetries = 2
 
-    if (authError) throw new Error(authError.message)
-    if (!authData.user) throw new Error('Erro ao criar usuário na autenticação')
+    while (retryCount <= maxRetries) {
+      try {
+        const { data: authData, error: authError } = await secondaryClient.auth.signUp({
+          email: data.email,
+          password: data.senha,
+        })
 
-    const { error: profileError } = await supabase.from('profiles').insert({
-      user_id: authData.user.id,
-      nome: data.nome,
-      email: data.email,
-      perfil_id: data.perfil_id,
-      ativo: data.ativo,
-    })
+        if (authError) {
+          if (authError.status === 429 || authError.message.includes('rate limit')) {
+            throw new Error('RATE_LIMIT')
+          }
+          throw new Error(authError.message)
+        }
 
-    if (profileError) throw new Error(profileError.message)
+        if (!authData.user) throw new Error('Erro ao criar usuário na autenticação')
 
-    await fetchData()
+        const { error: profileError } = await supabase.from('profiles').insert({
+          user_id: authData.user.id,
+          nome: data.nome,
+          email: data.email,
+          perfil_id: data.perfil_id,
+          ativo: data.ativo,
+        })
+
+        if (profileError) throw new Error(profileError.message)
+
+        await fetchData()
+        return
+      } catch (error: any) {
+        if (error.message === 'RATE_LIMIT') {
+          retryCount++
+          if (retryCount <= maxRetries) {
+            // Delay progressivo antes da nova tentativa (backoff)
+            await new Promise((res) => setTimeout(res, 1500 * retryCount))
+            continue
+          } else {
+            throw new Error(
+              'Limite de segurança de envio de e-mails atingido pela provedora de acesso. Aguarde alguns instantes antes de criar um novo usuário.',
+            )
+          }
+        }
+        throw error
+      }
+    }
   }
 
   return React.createElement(
