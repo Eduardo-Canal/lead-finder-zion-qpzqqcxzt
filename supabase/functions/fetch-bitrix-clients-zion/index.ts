@@ -8,6 +8,20 @@ Deno.serve(async (req: Request) => {
     return new Response('ok', { headers: corsHeaders })
   }
 
+  // Ensure it only accepts GET requests as requested
+  if (req.method !== 'GET') {
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: 'Apenas requisições GET são permitidas.',
+      }),
+      {
+        status: 405,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      },
+    )
+  }
+
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
