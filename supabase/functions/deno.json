@@ -5,7 +5,7 @@
     "functions": 6,
     "admin-create-user": 7,
     "admin-delete-user": 1,
-    "bitrix-rate-limiter": 7,
-    "fetch-bitrix-clients-zion": 5
+    "bitrix-rate-limiter": 8,
+    "fetch-bitrix-clients-zion": 6
   }
 }

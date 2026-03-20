@@ -80,30 +80,32 @@ Deno.serve(async (req: Request) => {
     }
 
     // 3. Mapear e extrair os dados solicitados
-    const extractedClients = companies.map((c: any) => {
-      // Helper para extrair o valor principal de campos de contato do Bitrix
-      const getPrimaryValue = (field: any) => {
-        if (Array.isArray(field) && field.length > 0) {
-          return field[0].VALUE || ''
+    const extractedClients = companies
+      .map((c: any) => {
+        // Helper para extrair o valor principal de campos de contato do Bitrix
+        const getPrimaryValue = (field: any) => {
+          if (Array.isArray(field) && field.length > 0) {
+            return field[0].VALUE || ''
+          }
+          if (typeof field === 'string') return field
+          return ''
         }
-        if (typeof field === 'string') return field
-        return ''
-      }
 
-      return {
-        ID: String(c.ID),
-        TITLE: c.TITLE || '',
-        UF_CRM_1742992784: c.UF_CRM_1742992784 || '',
-        UF_CRM_1771423651: c.UF_CRM_1771423651 || '',
-        EMAIL: getPrimaryValue(c.EMAIL),
-        TELEFONE: getPrimaryValue(c.TELEFONE || c.PHONE),
-        ADDRESS_CITY: c.ADDRESS_CITY || '',
-        ADDRESS_PROVINCE: c.ADDRESS_PROVINCE || '',
-      }
-    })
+        return {
+          ID: parseInt(c.ID, 10) || 0,
+          TITLE: c.TITLE || '',
+          UF_CRM_1742992784: c.UF_CRM_1742992784 || '',
+          UF_CRM_1771423651: c.UF_CRM_1771423651 || '',
+          EMAIL: getPrimaryValue(c.EMAIL),
+          TELEFONE: getPrimaryValue(c.TELEFONE || c.PHONE),
+          ADDRESS_CITY: c.ADDRESS_CITY || '',
+          ADDRESS_PROVINCE: c.ADDRESS_PROVINCE || '',
+        }
+      })
+      .filter((c: any) => c.ID > 0) // Ensure only valid integer IDs are processed
 
     // 4. Salvar (Upsert) os dados extraídos no banco de dados local
-    const dbClients = extractedClients.map((c) => ({
+    const dbClients = extractedClients.map((c: any) => ({
       bitrix_id: c.ID,
       company_name: c.TITLE,
       cnpj: c.UF_CRM_1742992784,
@@ -113,6 +115,7 @@ Deno.serve(async (req: Request) => {
       city: c.ADDRESS_CITY,
       state: c.ADDRESS_PROVINCE,
       synced_at: new Date().toISOString(),
+      // created_at is handled by DEFAULT now() in the database layer
     }))
 
     if (dbClients.length > 0) {
