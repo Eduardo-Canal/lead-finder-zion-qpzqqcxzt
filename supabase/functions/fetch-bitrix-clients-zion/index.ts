@@ -8,12 +8,12 @@ Deno.serve(async (req: Request) => {
     return new Response('ok', { headers: corsHeaders })
   }
 
-  // Ensure it only accepts GET requests as requested
-  if (req.method !== 'GET') {
+  // Permitir GET (chamado pelo frontend) ou POST (chamado pelo supabase.functions.invoke sem method explícito)
+  if (req.method !== 'GET' && req.method !== 'POST') {
     return new Response(
       JSON.stringify({
         success: false,
-        error: 'Apenas requisições GET são permitidas.',
+        error: 'Apenas requisições GET ou POST são permitidas.',
       }),
       {
         status: 405,
@@ -27,8 +27,22 @@ Deno.serve(async (req: Request) => {
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey)
 
-    const endpoint =
-      'https://zionlogtec.bitrix24.com.br/rest/5/eiyn7hzhaeu2lcm0/crm.company.list.json?filter[UF_CRM_1B70E8F8]=675'
+    // Aplicando os DOIS filtros solicitados:
+    // 1) filter[UF_CRM_1B70E8F8]=675 (Apenas clientes Zion)
+    // 2) select[]=... (Filtro de colunas para forçar o Bitrix a retornar os Custom Fields corretamente)
+    const selectFields = [
+      'ID',
+      'TITLE',
+      'UF_CRM_1742992784',
+      'UF_CRM_1771423651',
+      'EMAIL',
+      'PHONE',
+      'ADDRESS_CITY',
+      'ADDRESS_PROVINCE',
+    ]
+    const selectQuery = selectFields.map((f) => `select[]=${f}`).join('&')
+    const endpoint = `https://zionlogtec.bitrix24.com.br/rest/5/eiyn7hzhaeu2lcm0/crm.company.list.json?filter[UF_CRM_1B70E8F8]=675&${selectQuery}`
+
     const rateLimiterUrl = `${supabaseUrl}/functions/v1/bitrix-rate-limiter`
 
     // 1. Chamar o rate limiter existente para fazer a requisição de forma segura
@@ -79,30 +93,30 @@ Deno.serve(async (req: Request) => {
       )
     }
 
-    // 3. Mapear e extrair os dados solicitados
+    // Helper para extrair o valor principal de campos de contato do Bitrix
+    const getPrimaryValue = (field: any) => {
+      if (Array.isArray(field) && field.length > 0) {
+        return field[0].VALUE || ''
+      }
+      if (typeof field === 'string') return field
+      return ''
+    }
+
+    // 3. Mapear e extrair os dados solicitados, garantindo que o CNAE seja lido corretamente
     const extractedClients = companies
       .map((c: any) => {
-        // Helper para extrair o valor principal de campos de contato do Bitrix
-        const getPrimaryValue = (field: any) => {
-          if (Array.isArray(field) && field.length > 0) {
-            return field[0].VALUE || ''
-          }
-          if (typeof field === 'string') return field
-          return ''
-        }
-
         return {
           ID: parseInt(c.ID, 10) || 0,
           TITLE: c.TITLE || '',
           UF_CRM_1742992784: c.UF_CRM_1742992784 || '',
           UF_CRM_1771423651: c.UF_CRM_1771423651 || '',
           EMAIL: getPrimaryValue(c.EMAIL),
-          TELEFONE: getPrimaryValue(c.TELEFONE || c.PHONE),
+          TELEFONE: getPrimaryValue(c.PHONE || c.TELEFONE),
           ADDRESS_CITY: c.ADDRESS_CITY || '',
           ADDRESS_PROVINCE: c.ADDRESS_PROVINCE || '',
         }
       })
-      .filter((c: any) => c.ID > 0) // Ensure only valid integer IDs are processed
+      .filter((c: any) => c.ID > 0)
 
     // 4. Salvar (Upsert) os dados extraídos no banco de dados local
     const dbClients = extractedClients.map((c: any) => ({
@@ -115,7 +129,6 @@ Deno.serve(async (req: Request) => {
       city: c.ADDRESS_CITY,
       state: c.ADDRESS_PROVINCE,
       synced_at: new Date().toISOString(),
-      // created_at is handled by DEFAULT now() in the database layer
     }))
 
     if (dbClients.length > 0) {
