@@ -11,7 +11,7 @@ import useMyLeadsStore from '@/stores/useMyLeadsStore'
 import { useMemo } from 'react'
 
 export function MyLeadsFilters() {
-  const { filters, setFilter, myLeads } = useMyLeadsStore()
+  const { filters, setFilter, myLeads, executives } = useMyLeadsStore()
 
   const availableCities = useMemo(() => {
     const cities = new Set(myLeads.map((l) => l.municipio))
@@ -19,9 +19,9 @@ export function MyLeadsFilters() {
   }, [myLeads])
 
   const availableExecutives = useMemo(() => {
-    const execs = new Set(myLeads.map((l) => l.executivo_nome))
+    const execs = new Set([...executives, ...myLeads.map((l) => l.executivo_nome)])
     return Array.from(execs).sort()
-  }, [myLeads])
+  }, [myLeads, executives])
 
   return (
     <div className="bg-white p-4 rounded-lg shadow-sm border mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">

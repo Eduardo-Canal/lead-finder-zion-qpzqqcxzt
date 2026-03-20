@@ -39,6 +39,7 @@ export type MyLeadsFilters = {
 type MyLeadsStoreContextType = {
   myLeads: LeadSalvo[]
   filteredLeads: LeadSalvo[]
+  executives: string[]
   filters: MyLeadsFilters
   setFilter: (key: keyof MyLeadsFilters, value: string) => void
   updateStatus: (id: string, status: string) => Promise<void>
@@ -57,6 +58,7 @@ const MyLeadsContext = createContext<MyLeadsStoreContextType | null>(null)
 
 export function MyLeadsStoreProvider({ children }: { children: ReactNode }) {
   const [myLeads, setMyLeads] = useState<LeadSalvo[]>([])
+  const [executives, setExecutives] = useState<string[]>([])
   const [filters, setFilters] = useState<MyLeadsFilters>(defaultFilters)
   const { user } = useAuthStore()
 
@@ -81,13 +83,26 @@ export function MyLeadsStoreProvider({ children }: { children: ReactNode }) {
     setMyLeads(enriched)
   }, [])
 
-  useEffect(() => {
-    if (user) fetchLeads()
+  const fetchExecutives = useCallback(async () => {
+    const { data, error } = await supabase.from('profiles').select('nome').eq('ativo', true)
+    if (!error && data) {
+      setExecutives(Array.from(new Set(data.map((p) => p.nome))).sort())
+    }
+  }, [])
 
-    const handleRefetch = () => fetchLeads()
+  useEffect(() => {
+    if (user) {
+      fetchLeads()
+      fetchExecutives()
+    }
+
+    const handleRefetch = () => {
+      fetchLeads()
+      fetchExecutives()
+    }
     window.addEventListener('refetch-my-leads', handleRefetch)
     return () => window.removeEventListener('refetch-my-leads', handleRefetch)
-  }, [user, fetchLeads])
+  }, [user, fetchLeads, fetchExecutives])
 
   const setFilter = (key: keyof MyLeadsFilters, value: string) => {
     setFilters((prev) => ({ ...prev, [key]: value }))
@@ -187,6 +202,7 @@ export function MyLeadsStoreProvider({ children }: { children: ReactNode }) {
       value: {
         myLeads,
         filteredLeads,
+        executives,
         filters,
         setFilter,
         updateStatus,
