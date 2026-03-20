@@ -28,7 +28,24 @@ import {
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Loader2, RefreshCw, Search, Users, MapPin, Building2, BrainCircuit } from 'lucide-react'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog'
+import {
+  Loader2,
+  RefreshCw,
+  Search,
+  Users,
+  MapPin,
+  Building2,
+  BrainCircuit,
+  Eye,
+  Copy,
+} from 'lucide-react'
 import { toast } from 'sonner'
 import useLeadStore from '@/stores/useLeadStore'
 
@@ -51,6 +68,8 @@ export default function InteligenciaZion() {
   const [syncing, setSyncing] = useState(false)
   const [selectedState, setSelectedState] = useState<string>('Todos')
   const [selectedCity, setSelectedCity] = useState<string>('Todas')
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [selectedModalCnae, setSelectedModalCnae] = useState<string | null>(null)
 
   const navigate = useNavigate()
   const { clearFilters, addCnae } = useLeadStore()
@@ -125,6 +144,11 @@ export default function InteligenciaZion() {
     toast.info(`Filtro CNAE (${cleanCnae}) aplicado. Inicie sua busca.`)
   }
 
+  const handleOpenModal = (cnae: string) => {
+    setSelectedModalCnae(cnae)
+    setIsModalOpen(true)
+  }
+
   // Derived state for filters
   const uniqueStates = useMemo(() => {
     const states = new Set(clients.map((c) => c.state).filter(Boolean))
@@ -195,6 +219,30 @@ export default function InteligenciaZion() {
     })
     return config
   }, [chartData])
+
+  const top8Cnaes = useMemo(() => {
+    return tableData.slice(0, 8).map((x) => x.cnae)
+  }, [tableData])
+
+  const modalClients = useMemo(() => {
+    if (!selectedModalCnae) return []
+    return filteredClients.filter((c) => {
+      const cnae = c.cnae_principal?.trim() || 'Não Informado'
+      if (selectedModalCnae === 'Outros Setores') {
+        return !top8Cnaes.includes(cnae)
+      }
+      return cnae === selectedModalCnae
+    })
+  }, [filteredClients, selectedModalCnae, top8Cnaes])
+
+  const handleCopyContacts = () => {
+    if (!modalClients.length) return
+    const text = modalClients
+      .map((c) => `${c.company_name} - ${c.email || 'Sem e-mail'}`)
+      .join('\n')
+    navigator.clipboard.writeText(text)
+    toast.success('Contatos copiados para a área de transferência!')
+  }
 
   const totalFiltered = filteredClients.length
 
@@ -334,7 +382,12 @@ export default function InteligenciaZion() {
                     paddingAngle={2}
                   >
                     {chartData.map((entry) => (
-                      <Cell key={`cell-${entry.cnae}`} fill={chartConfig[entry.cnae]?.color} />
+                      <Cell
+                        key={`cell-${entry.cnae}`}
+                        fill={chartConfig[entry.cnae]?.color}
+                        className="cursor-pointer hover:opacity-80 transition-opacity outline-none"
+                        onClick={() => handleOpenModal(entry.cnae)}
+                      />
                     ))}
                   </Pie>
                   <ChartTooltip
@@ -365,9 +418,9 @@ export default function InteligenciaZion() {
               <Table>
                 <TableHeader className="bg-slate-50 sticky top-0 z-10 shadow-sm">
                   <TableRow>
-                    <TableHead className="w-[60%]">CNAE Principal</TableHead>
-                    <TableHead className="text-center">Qtd. Clientes</TableHead>
-                    <TableHead className="text-right pr-6">Ação</TableHead>
+                    <TableHead className="w-[50%]">CNAE Principal</TableHead>
+                    <TableHead className="text-center w-[20%]">Qtd. Clientes</TableHead>
+                    <TableHead className="text-right pr-6 w-[30%]">Ação</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -403,16 +456,27 @@ export default function InteligenciaZion() {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right pr-4">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-[#0066CC] hover:bg-[#0066CC]/10 hover:text-[#0066CC] gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity focus:opacity-100"
-                            onClick={() => handleBuscarLeads(row.cnae)}
-                            disabled={row.cnae === 'Não Informado'}
-                          >
-                            <Search className="h-3.5 w-3.5" />
-                            <span className="hidden sm:inline">Buscar Semelhantes</span>
-                          </Button>
+                          <div className="flex justify-end items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity focus-within:opacity-100">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-slate-500 hover:bg-slate-200 gap-1.5 h-8 px-2"
+                              onClick={() => handleOpenModal(row.cnae)}
+                            >
+                              <Eye className="h-3.5 w-3.5" />
+                              <span className="hidden xl:inline">Ver Clientes</span>
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-[#0066CC] hover:bg-[#0066CC]/10 hover:text-[#0066CC] gap-1.5 h-8 px-2"
+                              onClick={() => handleBuscarLeads(row.cnae)}
+                              disabled={row.cnae === 'Não Informado'}
+                            >
+                              <Search className="h-3.5 w-3.5" />
+                              <span className="hidden xl:inline">Buscar Semelhantes</span>
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))
@@ -423,6 +487,67 @@ export default function InteligenciaZion() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Modal - Detalhamento de Clientes */}
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="max-w-4xl h-[85vh] flex flex-col p-0 overflow-hidden">
+          <div className="p-6 pb-4 border-b shrink-0 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+            <div>
+              <DialogTitle className="text-xl">Segmento: {selectedModalCnae}</DialogTitle>
+              <DialogDescription className="mt-1.5 text-base">
+                <span className="font-semibold text-slate-800">{modalClients.length}</span>{' '}
+                {modalClients.length === 1
+                  ? 'cliente Zion neste segmento'
+                  : 'clientes Zion neste segmento'}
+              </DialogDescription>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleCopyContacts}
+              className="gap-2 shrink-0 bg-slate-50 hover:bg-slate-100"
+            >
+              <Copy className="h-4 w-4" />
+              Copiar Contatos
+            </Button>
+          </div>
+
+          <div className="flex-1 overflow-hidden p-0 relative">
+            <ScrollArea className="h-full w-full">
+              <Table>
+                <TableHeader className="bg-slate-50 sticky top-0 shadow-sm z-10">
+                  <TableRow>
+                    <TableHead>Empresa</TableHead>
+                    <TableHead>CNPJ</TableHead>
+                    <TableHead>E-mail</TableHead>
+                    <TableHead>Telefone</TableHead>
+                    <TableHead>Localização</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {modalClients.map((client) => (
+                    <TableRow key={client.id} className="hover:bg-slate-50/50">
+                      <TableCell className="font-medium text-slate-700">
+                        {client.company_name}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground whitespace-nowrap">
+                        {client.cnpj || '-'}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">{client.email || '-'}</TableCell>
+                      <TableCell className="text-muted-foreground whitespace-nowrap">
+                        {client.phone || '-'}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {[client.city, client.state].filter(Boolean).join(' - ') || '-'}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </ScrollArea>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
