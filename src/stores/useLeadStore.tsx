@@ -35,7 +35,7 @@ export type Filters = {
   cnaes: string[]
   ufs: string[]
   municipio: string
-  porte: string
+  porte: string[]
   situacao: string
   capitalMinimo: string
   search: string
@@ -60,6 +60,7 @@ type LeadStoreContextType = {
   addCnae: (cnae: string) => void
   removeCnae: (cnae: string) => void
   toggleUf: (uf: string, checked: boolean) => void
+  togglePorte: (porte: string, checked: boolean) => void
   clearFilters: () => void
   toggleContact: (cnpj: string) => Promise<void>
   searchLeads: (page?: number) => Promise<void>
@@ -70,7 +71,7 @@ const defaultFilters: Filters = {
   cnaes: [],
   ufs: [],
   municipio: '',
-  porte: '',
+  porte: [],
   situacao: 'ATIVA',
   capitalMinimo: '',
   search: '',
@@ -223,9 +224,11 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
         typeof filters.municipio === 'string' && filters.municipio.trim() !== ''
           ? [filters.municipio.trim()]
           : null,
-      porte: typeof filters.porte === 'string' && filters.porte ? filters.porte : null,
+      porte: filters.porte.length > 0 ? filters.porte : null,
       situacao_cadastral:
-        typeof filters.situacao === 'string' && filters.situacao ? filters.situacao : null,
+        typeof filters.situacao === 'string' && filters.situacao && filters.situacao !== 'Todas'
+          ? filters.situacao
+          : null,
       page: targetPage,
       limit: typeof filters.limit === 'number' ? filters.limit : 10,
     }
@@ -293,6 +296,13 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
     setFilters((prev) => {
       const ufs = checked ? [...prev.ufs, uf] : prev.ufs.filter((u) => u !== uf)
       return { ...prev, ufs }
+    })
+  }
+
+  const togglePorte = (porte: string, checked: boolean) => {
+    setFilters((prev) => {
+      const portes = checked ? [...prev.porte, porte] : prev.porte.filter((p) => p !== porte)
+      return { ...prev, porte: portes }
     })
   }
 
@@ -373,6 +383,7 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
         addCnae,
         removeCnae,
         toggleUf,
+        togglePorte,
         clearFilters,
         toggleContact,
         searchLeads,

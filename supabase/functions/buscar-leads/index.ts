@@ -16,6 +16,7 @@ Deno.serve(async (req: Request) => {
       uf,
       municipio,
       situacao_cadastral,
+      porte,
       limit = 10,
       page = 1,
       bypass_cache = false,
@@ -67,6 +68,7 @@ Deno.serve(async (req: Request) => {
       uf: uf || null,
       municipio: municipio || null,
       situacao_cadastral: situacao_cadastral || null,
+      porte: porte || null,
       limit,
       page,
     }
@@ -126,6 +128,11 @@ Deno.serve(async (req: Request) => {
     }
     if (municipio && municipio !== 'Todos') {
       casadosDadosPayload.municipio = Array.isArray(municipio) ? municipio : [municipio]
+    }
+    if (porte && porte.length > 0) {
+      casadosDadosPayload.porte = Array.isArray(porte)
+        ? porte.map((p: any) => String(p).toUpperCase())
+        : [String(porte).toUpperCase()]
     }
 
     // Inclusion of status filtering in the search request

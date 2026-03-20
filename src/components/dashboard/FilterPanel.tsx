@@ -54,6 +54,13 @@ const BRAZIL_STATES = [
   'TO',
 ]
 
+const COMPANY_SIZES = [
+  { label: 'MEI', value: 'MEI' },
+  { label: 'ME', value: 'ME' },
+  { label: 'EPP', value: 'EPP' },
+  { label: 'Demais', value: 'DEMAIS' },
+]
+
 export function FilterPanel() {
   const {
     filters,
@@ -61,6 +68,7 @@ export function FilterPanel() {
     addCnae,
     removeCnae,
     toggleUf,
+    togglePorte,
     clearFilters,
     searchLeads,
     isSearching,
@@ -218,21 +226,33 @@ export function FilterPanel() {
             {/* Porte */}
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">Porte da Empresa</Label>
-              <Select
-                value={filters.porte || 'Todos'}
-                onValueChange={(v) => setFilter('porte', v === 'Todos' ? '' : v)}
-              >
-                <SelectTrigger className="bg-slate-50/50">
-                  <SelectValue placeholder="Qualquer" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Todos">Qualquer</SelectItem>
-                  <SelectItem value="MEI">MEI</SelectItem>
-                  <SelectItem value="ME">ME</SelectItem>
-                  <SelectItem value="EPP">EPP</SelectItem>
-                  <SelectItem value="Demais">Demais</SelectItem>
-                </SelectContent>
-              </Select>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-between font-normal bg-slate-50/50"
+                  >
+                    <span className="truncate">
+                      {filters.porte.length > 0
+                        ? `${filters.porte.length} porte(s) selecionado(s)`
+                        : 'Qualquer Porte'}
+                    </span>
+                    <ChevronDown className="h-4 w-4 opacity-50 shrink-0" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56 p-2">
+                  {COMPANY_SIZES.map((size) => (
+                    <DropdownMenuCheckboxItem
+                      key={size.value}
+                      checked={filters.porte.includes(size.value)}
+                      onCheckedChange={(c) => togglePorte(size.value, c)}
+                      className="cursor-pointer"
+                    >
+                      {size.label}
+                    </DropdownMenuCheckboxItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
 
             {/* Situação */}
