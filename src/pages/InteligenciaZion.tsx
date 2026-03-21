@@ -28,6 +28,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from '@/components/ui/dialog'
 import {
   Loader2,
@@ -537,6 +538,14 @@ export default function InteligenciaZion() {
                 })}
               </div>
             </ScrollArea>
+          </div>
+
+          <div className="p-4 border-t bg-white shrink-0 mt-auto">
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsModalOpen(false)}>
+                Fechar
+              </Button>
+            </DialogFooter>
           </div>
         </DialogContent>
       </Dialog>
