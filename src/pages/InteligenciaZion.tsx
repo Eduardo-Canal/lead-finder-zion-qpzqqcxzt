@@ -58,6 +58,17 @@ type Client = {
   synced_at: string
 }
 
+const mapCurvaABC = (code: string | null) => {
+  if (!code) return 'Não classificado'
+  const map: Record<string, string> = {
+    '7592': 'A+',
+    '7594': 'A',
+    '7596': 'B',
+    '7598': 'C',
+  }
+  return map[code] || code
+}
+
 export default function InteligenciaZion() {
   const [clients, setClients] = useState<Client[]>([])
   const [loading, setLoading] = useState(true)
@@ -486,7 +497,7 @@ export default function InteligenciaZion() {
 
       {/* Modal - Detalhamento de Clientes */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-6xl h-[85vh] flex flex-col p-0 overflow-hidden">
+        <DialogContent className="max-w-4xl h-[85vh] flex flex-col p-0 overflow-hidden">
           <DialogHeader className="p-6 pb-4 border-b shrink-0 flex flex-row items-start justify-between gap-4 space-y-0">
             <div>
               <DialogTitle className="text-xl">Segmento: {selectedModalCnae}</DialogTitle>
@@ -514,9 +525,7 @@ export default function InteligenciaZion() {
                 <TableHeader className="bg-slate-50 sticky top-0 shadow-sm z-10">
                   <TableRow>
                     <TableHead>Empresa</TableHead>
-                    <TableHead>Classificação</TableHead>
-                    <TableHead>Contatos</TableHead>
-                    <TableHead>Localização</TableHead>
+                    <TableHead>Curva ABC</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -529,23 +538,9 @@ export default function InteligenciaZion() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="flex flex-col gap-1">
-                          <Badge variant="outline" className="w-fit text-[10px] uppercase">
-                            {client.segmento || 'Não informado'}
-                          </Badge>
-                          <span className="text-xs text-muted-foreground font-medium">
-                            Curva: {client.curva_abc || 'Não classificado'}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-sm text-slate-600">{client.email || '-'}</div>
-                        <div className="text-xs text-muted-foreground mt-0.5 whitespace-nowrap">
-                          {client.phone || '-'}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-sm">
-                        {[client.city, client.state].filter(Boolean).join(' - ') || '-'}
+                        <Badge variant="outline" className="w-fit text-xs font-semibold">
+                          {mapCurvaABC(client.curva_abc)}
+                        </Badge>
                       </TableCell>
                     </TableRow>
                   ))}

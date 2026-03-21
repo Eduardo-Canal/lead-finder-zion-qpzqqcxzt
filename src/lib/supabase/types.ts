@@ -98,6 +98,7 @@ export type Database = {
           cnpj: string | null
           company_name: string | null
           created_at: string | null
+          curva_abc: string | null
           email: string | null
           id: string
           phone: string | null
@@ -112,6 +113,7 @@ export type Database = {
           cnpj?: string | null
           company_name?: string | null
           created_at?: string | null
+          curva_abc?: string | null
           email?: string | null
           id?: string
           phone?: string | null
@@ -126,6 +128,7 @@ export type Database = {
           cnpj?: string | null
           company_name?: string | null
           created_at?: string | null
+          curva_abc?: string | null
           email?: string | null
           id?: string
           phone?: string | null
@@ -669,6 +672,7 @@ export const Constants = {
 //   synced_at: timestamp with time zone (nullable, default: now())
 //   created_at: timestamp with time zone (nullable, default: now())
 //   segmento: text (nullable)
+//   curva_abc: text (nullable)
 // Table: bitrix_rate_limit_config
 //   id: uuid (not null, default: gen_random_uuid())
 //   max_requests: integer (nullable, default: 2)
