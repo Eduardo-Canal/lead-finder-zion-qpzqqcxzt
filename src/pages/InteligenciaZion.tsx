@@ -492,7 +492,7 @@ export default function InteligenciaZion() {
       {/* Modal - Detalhamento de Clientes */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="max-w-3xl h-[600px] max-h-[90vh] flex flex-col p-0 overflow-hidden bg-slate-50/50">
-          <DialogHeader className="p-6 pb-4 border-b bg-white shrink-0 flex flex-col items-start gap-1 space-y-0 sticky top-0 z-10 shadow-sm">
+          <DialogHeader className="p-6 pb-4 border-b bg-white shrink-0 flex flex-col items-start gap-1 space-y-0 sticky top-0 z-20 shadow-sm">
             <DialogTitle className="text-xl">Segmento: {selectedModalCnae}</DialogTitle>
             <DialogDescription className="text-base text-muted-foreground">
               <span className="font-semibold text-slate-800">{modalClients.length}</span>{' '}
@@ -502,7 +502,13 @@ export default function InteligenciaZion() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex-1 overflow-hidden p-6 relative">
+          {/* Fixed Header Row for List */}
+          <div className="flex items-center justify-between bg-slate-800 text-white pl-10 pr-12 py-3 shrink-0 z-10 shadow-md">
+            <span className="font-semibold text-sm tracking-wide">Empresa</span>
+            <span className="font-semibold text-sm tracking-wide">Curva ABC</span>
+          </div>
+
+          <div className="flex-1 overflow-hidden p-6 pt-4 relative">
             <ScrollArea className="h-full w-full pr-4 -mr-4">
               <div className="space-y-3 pb-6">
                 {modalClients.map((client) => {
