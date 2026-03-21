@@ -18,14 +18,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-  ChartLegend,
-  ChartLegendContent,
-} from '@/components/ui/chart'
-import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts'
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
+import { PieChart, Pie, Cell } from 'recharts'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import {
@@ -55,6 +49,8 @@ type Client = {
   company_name: string
   cnpj: string
   cnae_principal: string
+  segmento: string
+  curva_abc: string
   email: string
   phone: string
   city: string
@@ -131,7 +127,7 @@ export default function InteligenciaZion() {
   }
 
   const handleBuscarLeads = (cnae: string) => {
-    if (!cnae || cnae === 'Não Informado') {
+    if (!cnae || cnae.toLowerCase() === 'não informado') {
       toast.warning('Este agrupamento não possui um código CNAE válido.')
       return
     }
@@ -186,7 +182,7 @@ export default function InteligenciaZion() {
   const tableData = useMemo(() => {
     const groups: Record<string, number> = {}
     filteredClients.forEach((c) => {
-      const cnae = c.cnae_principal?.trim() || 'Não Informado'
+      const cnae = c.cnae_principal?.trim() || 'Não informado'
       groups[cnae] = (groups[cnae] || 0) + 1
     })
 
@@ -227,7 +223,7 @@ export default function InteligenciaZion() {
   const modalClients = useMemo(() => {
     if (!selectedModalCnae) return []
     return filteredClients.filter((c) => {
-      const cnae = c.cnae_principal?.trim() || 'Não Informado'
+      const cnae = c.cnae_principal?.trim() || 'Não informado'
       if (selectedModalCnae === 'Outros Setores') {
         return !top8Cnaes.includes(cnae)
       }
@@ -471,7 +467,7 @@ export default function InteligenciaZion() {
                               size="sm"
                               className="text-[#0066CC] hover:bg-[#0066CC]/10 hover:text-[#0066CC] gap-1.5 h-8 px-2"
                               onClick={() => handleBuscarLeads(row.cnae)}
-                              disabled={row.cnae === 'Não Informado'}
+                              disabled={row.cnae.toLowerCase() === 'não informado'}
                             >
                               <Search className="h-3.5 w-3.5" />
                               <span className="hidden xl:inline">Buscar Semelhantes</span>
@@ -490,8 +486,8 @@ export default function InteligenciaZion() {
 
       {/* Modal - Detalhamento de Clientes */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-4xl h-[85vh] flex flex-col p-0 overflow-hidden">
-          <div className="p-6 pb-4 border-b shrink-0 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+        <DialogContent className="max-w-6xl h-[85vh] flex flex-col p-0 overflow-hidden">
+          <DialogHeader className="p-6 pb-4 border-b shrink-0 flex flex-row items-start justify-between gap-4 space-y-0">
             <div>
               <DialogTitle className="text-xl">Segmento: {selectedModalCnae}</DialogTitle>
               <DialogDescription className="mt-1.5 text-base">
@@ -510,7 +506,7 @@ export default function InteligenciaZion() {
               <Copy className="h-4 w-4" />
               Copiar Contatos
             </Button>
-          </div>
+          </DialogHeader>
 
           <div className="flex-1 overflow-hidden p-0 relative">
             <ScrollArea className="h-full w-full">
@@ -518,26 +514,37 @@ export default function InteligenciaZion() {
                 <TableHeader className="bg-slate-50 sticky top-0 shadow-sm z-10">
                   <TableRow>
                     <TableHead>Empresa</TableHead>
-                    <TableHead>CNPJ</TableHead>
-                    <TableHead>E-mail</TableHead>
-                    <TableHead>Telefone</TableHead>
+                    <TableHead>Classificação</TableHead>
+                    <TableHead>Contatos</TableHead>
                     <TableHead>Localização</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {modalClients.map((client) => (
                     <TableRow key={client.id} className="hover:bg-slate-50/50">
-                      <TableCell className="font-medium text-slate-700">
-                        {client.company_name}
+                      <TableCell>
+                        <div className="font-medium text-slate-800">{client.company_name}</div>
+                        <div className="text-xs text-muted-foreground mt-0.5 font-mono">
+                          {client.cnpj || '-'}
+                        </div>
                       </TableCell>
-                      <TableCell className="text-muted-foreground whitespace-nowrap">
-                        {client.cnpj || '-'}
+                      <TableCell>
+                        <div className="flex flex-col gap-1">
+                          <Badge variant="outline" className="w-fit text-[10px] uppercase">
+                            {client.segmento || 'Não informado'}
+                          </Badge>
+                          <span className="text-xs text-muted-foreground font-medium">
+                            Curva: {client.curva_abc || 'Não classificado'}
+                          </span>
+                        </div>
                       </TableCell>
-                      <TableCell className="text-muted-foreground">{client.email || '-'}</TableCell>
-                      <TableCell className="text-muted-foreground whitespace-nowrap">
-                        {client.phone || '-'}
+                      <TableCell>
+                        <div className="text-sm text-slate-600">{client.email || '-'}</div>
+                        <div className="text-xs text-muted-foreground mt-0.5 whitespace-nowrap">
+                          {client.phone || '-'}
+                        </div>
                       </TableCell>
-                      <TableCell className="text-muted-foreground">
+                      <TableCell className="text-muted-foreground text-sm">
                         {[client.city, client.state].filter(Boolean).join(' - ') || '-'}
                       </TableCell>
                     </TableRow>

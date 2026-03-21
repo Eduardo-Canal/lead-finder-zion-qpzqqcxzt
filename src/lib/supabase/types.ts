@@ -101,6 +101,7 @@ export type Database = {
           email: string | null
           id: string
           phone: string | null
+          segmento: string | null
           state: string | null
           synced_at: string | null
         }
@@ -114,6 +115,7 @@ export type Database = {
           email?: string | null
           id?: string
           phone?: string | null
+          segmento?: string | null
           state?: string | null
           synced_at?: string | null
         }
@@ -127,6 +129,7 @@ export type Database = {
           email?: string | null
           id?: string
           phone?: string | null
+          segmento?: string | null
           state?: string | null
           synced_at?: string | null
         }
@@ -665,6 +668,7 @@ export const Constants = {
 //   state: text (nullable)
 //   synced_at: timestamp with time zone (nullable, default: now())
 //   created_at: timestamp with time zone (nullable, default: now())
+//   segmento: text (nullable)
 // Table: bitrix_rate_limit_config
 //   id: uuid (not null, default: gen_random_uuid())
 //   max_requests: integer (nullable, default: 2)
