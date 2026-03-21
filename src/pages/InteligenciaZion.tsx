@@ -38,7 +38,6 @@ import {
   Building2,
   BrainCircuit,
   Eye,
-  Copy,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import useLeadStore from '@/stores/useLeadStore'
@@ -58,15 +57,19 @@ type Client = {
   synced_at: string
 }
 
-const mapCurvaABC = (code: string | null) => {
-  if (!code) return 'Não classificado'
-  const map: Record<string, string> = {
-    '7592': 'A+',
-    '7594': 'A',
-    '7596': 'B',
-    '7598': 'C',
+const getCurvaABCProps = (code: string | null) => {
+  const map: Record<string, { label: string; colorClass: string }> = {
+    '7592': { label: 'A+', colorClass: 'bg-blue-100 text-blue-800 border-blue-200' },
+    '7594': { label: 'A', colorClass: 'bg-green-100 text-green-800 border-green-200' },
+    '7596': { label: 'B', colorClass: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
+    '7598': { label: 'C', colorClass: 'bg-red-100 text-red-800 border-red-200' },
   }
-  return map[code] || code
+  return (
+    map[code || ''] || {
+      label: 'Não classificado',
+      colorClass: 'bg-slate-100 text-slate-600 border-slate-200',
+    }
+  )
 }
 
 export default function InteligenciaZion() {
@@ -241,15 +244,6 @@ export default function InteligenciaZion() {
       return cnae === selectedModalCnae
     })
   }, [filteredClients, selectedModalCnae, top8Cnaes])
-
-  const handleCopyContacts = () => {
-    if (!modalClients.length) return
-    const text = modalClients
-      .map((c) => `${c.company_name} - ${c.email || 'Sem e-mail'}`)
-      .join('\n')
-    navigator.clipboard.writeText(text)
-    toast.success('Contatos copiados para a área de transferência!')
-  }
 
   const totalFiltered = filteredClients.length
 
@@ -497,55 +491,45 @@ export default function InteligenciaZion() {
 
       {/* Modal - Detalhamento de Clientes */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-4xl h-[85vh] flex flex-col p-0 overflow-hidden">
-          <DialogHeader className="p-6 pb-4 border-b shrink-0 flex flex-row items-start justify-between gap-4 space-y-0">
-            <div>
-              <DialogTitle className="text-xl">Segmento: {selectedModalCnae}</DialogTitle>
-              <DialogDescription className="mt-1.5 text-base">
-                <span className="font-semibold text-slate-800">{modalClients.length}</span>{' '}
-                {modalClients.length === 1
-                  ? 'cliente Zion neste segmento'
-                  : 'clientes Zion neste segmento'}
-              </DialogDescription>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleCopyContacts}
-              className="gap-2 shrink-0 bg-slate-50 hover:bg-slate-100"
-            >
-              <Copy className="h-4 w-4" />
-              Copiar Contatos
-            </Button>
+        <DialogContent className="max-w-3xl h-[600px] max-h-[90vh] flex flex-col p-0 overflow-hidden bg-slate-50/50">
+          <DialogHeader className="p-6 pb-4 border-b bg-white shrink-0 flex flex-col items-start gap-1 space-y-0 sticky top-0 z-10 shadow-sm">
+            <DialogTitle className="text-xl">Segmento: {selectedModalCnae}</DialogTitle>
+            <DialogDescription className="text-base text-muted-foreground">
+              <span className="font-semibold text-slate-800">{modalClients.length}</span>{' '}
+              {modalClients.length === 1
+                ? 'cliente Zion neste segmento'
+                : 'clientes Zion neste segmento'}
+            </DialogDescription>
           </DialogHeader>
 
-          <div className="flex-1 overflow-hidden p-0 relative">
-            <ScrollArea className="h-full w-full">
-              <Table>
-                <TableHeader className="bg-slate-50 sticky top-0 shadow-sm z-10">
-                  <TableRow>
-                    <TableHead>Empresa</TableHead>
-                    <TableHead>Curva ABC</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {modalClients.map((client) => (
-                    <TableRow key={client.id} className="hover:bg-slate-50/50">
-                      <TableCell>
-                        <div className="font-medium text-slate-800">{client.company_name}</div>
-                        <div className="text-xs text-muted-foreground mt-0.5 font-mono">
-                          {client.cnpj || '-'}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="w-fit text-xs font-semibold">
-                          {mapCurvaABC(client.curva_abc)}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+          <div className="flex-1 overflow-hidden p-6 relative">
+            <ScrollArea className="h-full w-full pr-4 -mr-4">
+              <div className="space-y-3 pb-6">
+                {modalClients.map((client) => {
+                  const curva = getCurvaABCProps(client.curva_abc)
+                  return (
+                    <div
+                      key={client.id}
+                      className="flex items-center justify-between p-4 bg-white border border-slate-200 rounded-lg shadow-sm hover:bg-slate-50 transition-colors"
+                    >
+                      <div className="flex flex-col pr-4">
+                        <span className="font-medium text-slate-800">{client.company_name}</span>
+                        {client.cnpj && client.cnpj.trim() !== '' && (
+                          <span className="text-sm text-slate-500 font-mono mt-0.5">
+                            {client.cnpj}
+                          </span>
+                        )}
+                      </div>
+                      <Badge
+                        variant="outline"
+                        className={`font-bold px-3 py-1 shrink-0 ${curva.colorClass}`}
+                      >
+                        {curva.label}
+                      </Badge>
+                    </div>
+                  )
+                })}
+              </div>
             </ScrollArea>
           </div>
         </DialogContent>
