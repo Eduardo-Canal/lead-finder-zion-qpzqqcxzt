@@ -25,6 +25,7 @@ Deno.serve(async (req: Request) => {
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey)
 
+    // Adicionado ADDRESS aos campos selecionados
     const selectFields = [
       'ID',
       'TITLE',
@@ -34,6 +35,7 @@ Deno.serve(async (req: Request) => {
       'UF_CRM_1738583536320',
       'EMAIL',
       'PHONE',
+      'ADDRESS',
       'ADDRESS_CITY',
       'ADDRESS_PROVINCE',
     ]
@@ -107,8 +109,46 @@ Deno.serve(async (req: Request) => {
       return ''
     }
 
+    // Função auxiliar para extrair Cidade e UF de endereços formatados como "Rua - Bairro, Cidade - UF, País"
+    const parseAddress = (addressStr: any) => {
+      if (typeof addressStr !== 'string') return { city: '', state: '' }
+
+      let city = ''
+      let state = ''
+
+      const parts = addressStr.split(',')
+      if (parts.length >= 2) {
+        const targetIndex = parts.length >= 3 ? parts.length - 2 : 1
+        const targetPart = parts[targetIndex]?.trim() || ''
+
+        if (targetPart.includes('-')) {
+          const csParts = targetPart.split('-')
+          city = csParts[0].trim()
+          state = csParts[csParts.length - 1].trim()
+        } else {
+          city = targetPart
+        }
+      }
+
+      return { city, state }
+    }
+
     const extractedClients = allCompanies
       .map((c: any) => {
+        let city = c.ADDRESS_CITY || ''
+        let state = c.ADDRESS_PROVINCE || ''
+
+        // Fallback para extrair do ADDRESS completo se ambos os campos nativos estiverem vazios
+        if (!city && !state && c.ADDRESS) {
+          const parsed = parseAddress(c.ADDRESS)
+          city = parsed.city
+          state = parsed.state
+        }
+
+        // Default se não encontrar nada de forma alguma
+        city = city || 'Não informado'
+        state = state || 'Não informado'
+
         return {
           ID: parseInt(c.ID, 10) || 0,
           TITLE: c.TITLE || '',
@@ -118,8 +158,8 @@ Deno.serve(async (req: Request) => {
           UF_CRM_1738583536320: getPrimaryValue(c.UF_CRM_1738583536320) || 'Não classificado',
           EMAIL: getPrimaryValue(c.EMAIL),
           TELEFONE: getPrimaryValue(c.PHONE || c.TELEFONE),
-          ADDRESS_CITY: c.ADDRESS_CITY || 'Não informado',
-          ADDRESS_PROVINCE: c.ADDRESS_PROVINCE || 'Não informado',
+          ADDRESS_CITY: city,
+          ADDRESS_PROVINCE: state,
         }
       })
       .filter((c: any) => c.ID > 0)
