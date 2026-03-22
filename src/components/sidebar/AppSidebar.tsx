@@ -9,6 +9,7 @@ import {
   PanelLeftClose,
   PanelLeft,
   PieChart,
+  History,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -103,6 +104,18 @@ export function AppSidebar() {
                   <Link to="/meus-leads">
                     <Users />
                     <span>Meus Leads</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={location.pathname === '/meu-historico'}
+                  tooltip="Meu Histórico"
+                >
+                  <Link to="/meu-historico">
+                    <History />
+                    <span>Meu Histórico</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

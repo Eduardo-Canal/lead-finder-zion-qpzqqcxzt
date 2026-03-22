@@ -58,6 +58,7 @@ type LeadStoreContextType = {
   filters: Filters
   pagination: Pagination
   setFilter: (key: keyof Filters, value: any) => void
+  setAllFilters: (newFilters: Partial<Filters>) => void
   addCnae: (cnae: string) => void
   removeCnae: (cnae: string) => void
   toggleUf: (uf: string, checked: boolean) => void
@@ -266,7 +267,6 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
       })
 
       if (targetPage === 1 && user?.user_id) {
-        // @ts-expect-error - Table search_history added via migration
         supabase
           .from('search_history')
           .insert({
@@ -300,6 +300,10 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
 
   const setFilter = (key: keyof Filters, value: any) => {
     setFilters((prev) => ({ ...prev, [key]: value }))
+  }
+
+  const setAllFilters = (newFilters: Partial<Filters>) => {
+    setFilters((prev) => ({ ...prev, ...newFilters }))
   }
 
   const addCnae = (cnae: string) => {
@@ -420,6 +424,7 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
         filters,
         pagination,
         setFilter,
+        setAllFilters,
         addCnae,
         removeCnae,
         toggleUf,

@@ -8,6 +8,7 @@ import Login from '@/pages/Login'
 import Index from '@/pages/Index'
 import Prospeccao from '@/pages/Prospeccao'
 import MyLeads from '@/pages/MyLeads'
+import SearchHistory from '@/pages/SearchHistory'
 import UserManagement from '@/pages/UserManagement'
 import ConfiguracoesAvancadas from '@/pages/ConfiguracoesAvancadas'
 import DebugAPI from '@/pages/DebugAPI'
@@ -81,6 +82,7 @@ const App = () => (
                   <Route path="/inteligencia-zion" element={<InteligenciaZion />} />
                   <Route path="/prospeccao" element={<Prospeccao />} />
                   <Route path="/meus-leads" element={<MyLeads />} />
+                  <Route path="/meu-historico" element={<SearchHistory />} />
                   <Route path="/gestao-usuarios" element={<UserManagement />} />
                   <Route path="/configuracoes/avancado" element={<ConfiguracoesAvancadas />} />
                   <Route path="/admin/debug-api" element={<DebugAPI />} />

@@ -492,6 +492,39 @@ export type Database = {
           },
         ]
       }
+      search_history: {
+        Row: {
+          cidade: string | null
+          cnae: string | null
+          created_at: string
+          estado: string | null
+          id: string
+          porte: string | null
+          total_results: number | null
+          user_id: string
+        }
+        Insert: {
+          cidade?: string | null
+          cnae?: string | null
+          created_at?: string
+          estado?: string | null
+          id?: string
+          porte?: string | null
+          total_results?: number | null
+          user_id: string
+        }
+        Update: {
+          cidade?: string | null
+          cnae?: string | null
+          created_at?: string
+          estado?: string | null
+          id?: string
+          porte?: string | null
+          total_results?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -768,6 +801,15 @@ export const Constants = {
 //   perfil_id: uuid (nullable)
 //   ativo: boolean (not null, default: true)
 //   require_password_update: boolean (not null, default: false)
+// Table: search_history
+//   id: uuid (not null, default: gen_random_uuid())
+//   user_id: uuid (not null)
+//   cnae: text (nullable)
+//   porte: text (nullable)
+//   estado: text (nullable)
+//   cidade: text (nullable)
+//   total_results: integer (nullable)
+//   created_at: timestamp with time zone (not null, default: now())
 
 // --- CONSTRAINTS ---
 // Table: api_debug_logs
@@ -800,6 +842,9 @@ export const Constants = {
 //   FOREIGN KEY profiles_perfil_id_fkey: FOREIGN KEY (perfil_id) REFERENCES perfis_acesso(id) ON DELETE SET NULL
 //   PRIMARY KEY profiles_pkey: PRIMARY KEY (id)
 //   FOREIGN KEY profiles_user_id_fkey: FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
+// Table: search_history
+//   PRIMARY KEY search_history_pkey: PRIMARY KEY (id)
+//   FOREIGN KEY search_history_user_id_fkey: FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
 
 // --- ROW LEVEL SECURITY POLICIES ---
 // Table: api_debug_logs
@@ -867,6 +912,16 @@ export const Constants = {
 //   Policy "Enable ALL for authenticated users" (ALL, PERMISSIVE) roles={authenticated}
 //     USING: true
 //     WITH CHECK: true
+// Table: search_history
+//   Policy "Users can delete their own search history" (DELETE, PERMISSIVE) roles={authenticated}
+//     USING: (user_id = auth.uid())
+//   Policy "Users can insert their own search history" (INSERT, PERMISSIVE) roles={authenticated}
+//     WITH CHECK: (user_id = auth.uid())
+//   Policy "Users can update their own search history" (UPDATE, PERMISSIVE) roles={authenticated}
+//     USING: (user_id = auth.uid())
+//     WITH CHECK: (user_id = auth.uid())
+//   Policy "Users can view their own search history" (SELECT, PERMISSIVE) roles={authenticated}
+//     USING: (user_id = auth.uid())
 
 // --- DATABASE FUNCTIONS ---
 // FUNCTION limpar_cache_pesquisas(text)
@@ -917,3 +972,6 @@ export const Constants = {
 //   CREATE INDEX idx_bitrix_webhook_events_event_type ON public.bitrix_webhook_events USING btree (event_type)
 // Table: cache_pesquisas
 //   CREATE UNIQUE INDEX cache_pesquisas_chave_cache_key ON public.cache_pesquisas USING btree (chave_cache)
+// Table: search_history
+//   CREATE INDEX idx_search_history_created_at ON public.search_history USING btree (created_at DESC)
+//   CREATE INDEX idx_search_history_user_id ON public.search_history USING btree (user_id)
