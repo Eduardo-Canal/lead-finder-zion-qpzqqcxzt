@@ -25,10 +25,11 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Badge } from '@/components/ui/badge'
 import { MessageSquare, Calendar, User } from 'lucide-react'
 import useMyLeadsStore, { LeadSalvo } from '@/stores/useMyLeadsStore'
 import useAuthStore from '@/stores/useAuthStore'
-import { cn } from '@/lib/utils'
+import { cn, isValidCNPJ } from '@/lib/utils'
 import { toast } from 'sonner'
 import { InteractionHistoryModal } from './InteractionHistoryModal'
 
@@ -110,7 +111,14 @@ export function MyLeadsTable() {
                     </div>
                   </TableCell>
                   <TableCell className="text-muted-foreground whitespace-nowrap">
-                    {lead.cnpj}
+                    <div className="flex flex-col gap-1 items-start">
+                      <span>{lead.cnpj}</span>
+                      {!isValidCNPJ(lead.cnpj || '') && (
+                        <Badge variant="destructive" className="text-[10px] px-1.5 py-0 h-4">
+                          Dados Inválidos
+                        </Badge>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell>
                     {lead.municipio} - {lead.uf}

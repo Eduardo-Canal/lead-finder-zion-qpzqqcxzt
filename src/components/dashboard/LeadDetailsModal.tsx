@@ -62,16 +62,26 @@ const Field = ({
   label,
   value,
   colSpan = false,
+  error = null,
 }: {
   label: string
   value: React.ReactNode
   colSpan?: boolean
+  error?: string | null
 }) => {
   const displayValue = value === null || value === undefined || value === '' ? '-' : value
   return (
     <div className={`space-y-1 ${colSpan ? 'md:col-span-2' : ''}`}>
       <span className="text-xs text-muted-foreground uppercase font-semibold">{label}</span>
-      <div className="text-sm font-medium text-foreground">{displayValue}</div>
+      <div className="text-sm font-medium text-foreground flex items-center gap-2 flex-wrap">
+        {displayValue}
+        {error && (
+          <span className="flex items-center gap-1 text-destructive text-xs bg-destructive/10 px-1.5 py-0.5 rounded font-medium">
+            <AlertCircle className="h-3.5 w-3.5" />
+            {error}
+          </span>
+        )}
+      </div>
     </div>
   )
 }
@@ -79,6 +89,10 @@ const Field = ({
 export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
   const { user } = useAuthStore()
   const [enrichedData, setEnrichedData] = useState<any>(null)
+  const [cnpjValidation, setCnpjValidation] = useState<{
+    valid: boolean
+    message: string
+  } | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [existingLeadId, setExistingLeadId] = useState<string | null>(null)
@@ -91,19 +105,29 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
       setError(null)
       setEnrichedData(null)
       setExistingLeadId(null)
+      setCnpjValidation(null)
       try {
         const { data: saved } = await supabase
           .from('leads_salvos')
           .select('id')
           .eq('cnpj', lead.cnpj)
           .maybeSingle()
+
         if (saved) setExistingLeadId(saved.id)
-        const { data, error: invErr } = await supabase.functions.invoke('enriquecer-lead', {
-          body: { cnpj: lead.cnpj },
-        })
-        if (invErr) throw invErr
-        if (data?.error) throw new Error(data.error)
-        setEnrichedData(data)
+
+        const [enrichRes, validateRes] = await Promise.all([
+          supabase.functions.invoke('enriquecer-lead', { body: { cnpj: lead.cnpj } }),
+          supabase.functions.invoke('validate-cnpj', { body: { cnpj: lead.cnpj } }),
+        ])
+
+        if (enrichRes.error) throw enrichRes.error
+        if (enrichRes.data?.error) throw new Error(enrichRes.data.error)
+
+        setEnrichedData(enrichRes.data)
+
+        if (!validateRes.error && validateRes.data) {
+          setCnpjValidation(validateRes.data)
+        }
       } catch (err: any) {
         setError(err.message || 'Erro de conexão')
       } finally {
@@ -117,16 +141,23 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
     if (!lead?.cnpj) return
     setIsRefreshing(true)
     try {
-      const { data, error: invErr } = await supabase.functions.invoke('enriquecer-lead', {
-        body: { cnpj: lead.cnpj },
-      })
-      if (invErr) throw invErr
-      if (data?.error) throw new Error(data.error)
-      setEnrichedData(data)
+      const [enrichRes, validateRes] = await Promise.all([
+        supabase.functions.invoke('enriquecer-lead', { body: { cnpj: lead.cnpj } }),
+        supabase.functions.invoke('validate-cnpj', { body: { cnpj: lead.cnpj } }),
+      ])
+
+      if (enrichRes.error) throw enrichRes.error
+      if (enrichRes.data?.error) throw new Error(enrichRes.data.error)
+      setEnrichedData(enrichRes.data)
+
+      if (!validateRes.error && validateRes.data) {
+        setCnpjValidation(validateRes.data)
+      }
+
       if (existingLeadId) {
         await supabase
           .from('leads_salvos')
-          .update({ razao_social: data.razao_social })
+          .update({ razao_social: enrichRes.data.razao_social })
           .eq('id', existingLeadId)
       }
       toast.success('Dados atualizados com sucesso!')
@@ -200,7 +231,11 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
               <section>
                 <h3 className="text-lg font-bold border-b pb-2 mb-4">1. Identificação</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-6">
-                  <Field label="CNPJ" value={formatCnpj(lead.cnpj)} />
+                  <Field
+                    label="CNPJ"
+                    value={formatCnpj(lead.cnpj)}
+                    error={cnpjValidation && !cnpjValidation.valid ? cnpjValidation.message : null}
+                  />
                   <Field label="Razão Social" value={d.razao_social} />
                   <Field label="Nome Fantasia" value={d.nome_fantasia} />
                   <Field label="Status" value={d.situacao_cadastral || d.situacao} />
@@ -282,7 +317,10 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
                 Buscar no LinkedIn
               </a>
             </Button>
-            <Button onClick={handleSaveLead} disabled={loading || !!error}>
+            <Button
+              onClick={handleSaveLead}
+              disabled={loading || !!error || (cnpjValidation !== null && !cnpjValidation.valid)}
+            >
               Salvar em Meus Leads
             </Button>
             <Button variant="ghost" onClick={onClose}>

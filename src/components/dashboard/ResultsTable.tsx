@@ -35,7 +35,7 @@ import {
 import useLeadStore from '@/stores/useLeadStore'
 import useAuthStore from '@/stores/useAuthStore'
 import { LeadDetailsModal } from './LeadDetailsModal'
-import { cn } from '@/lib/utils'
+import { cn, isValidCNPJ } from '@/lib/utils'
 import { Loader2, Copy } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -177,7 +177,14 @@ export function ResultsTable() {
                   className="animate-fade-in group text-xs sm:text-sm"
                 >
                   <TableCell className="font-medium whitespace-nowrap">
-                    {formatCnpj(formatObjectField(lead.cnpj))}
+                    <div className="flex flex-col gap-1 items-start">
+                      <span>{formatCnpj(formatObjectField(lead.cnpj))}</span>
+                      {!isValidCNPJ(formatObjectField(lead.cnpj)) && (
+                        <Badge variant="destructive" className="text-[10px] px-1.5 py-0 h-4">
+                          Dados Inválidos
+                        </Badge>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell className="font-medium max-w-[200px]">
                     <Tooltip>
