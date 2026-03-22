@@ -436,6 +436,50 @@ export type Database = {
           },
         ]
       }
+      opportunities: {
+        Row: {
+          created_at: string
+          expected_close_date: string | null
+          id: string
+          lead_id: string
+          notes: string | null
+          probability: number | null
+          stage: Database['public']['Enums']['opportunity_stage']
+          updated_at: string
+          value: number | null
+        }
+        Insert: {
+          created_at?: string
+          expected_close_date?: string | null
+          id?: string
+          lead_id: string
+          notes?: string | null
+          probability?: number | null
+          stage?: Database['public']['Enums']['opportunity_stage']
+          updated_at?: string
+          value?: number | null
+        }
+        Update: {
+          created_at?: string
+          expected_close_date?: string | null
+          id?: string
+          lead_id?: string
+          notes?: string | null
+          probability?: number | null
+          stage?: Database['public']['Enums']['opportunity_stage']
+          updated_at?: string
+          value?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'opportunities_lead_id_fkey'
+            columns: ['lead_id']
+            isOneToOne: false
+            referencedRelation: 'leads_salvos'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       perfis_acesso: {
         Row: {
           id: string
@@ -533,7 +577,7 @@ export type Database = {
       limpar_cache_pesquisas: { Args: { p_cnae?: string }; Returns: number }
     }
     Enums: {
-      [_ in never]: never
+      opportunity_stage: 'prospecting' | 'qualification' | 'proposal' | 'closing'
     }
     CompositeTypes: {
       [_ in never]: never
@@ -658,7 +702,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      opportunity_stage: ['prospecting', 'qualification', 'proposal', 'closing'],
+    },
   },
 } as const
 
@@ -789,6 +835,16 @@ export const Constants = {
 //   decisor_telefone: text (nullable)
 //   decisor_email: text (nullable)
 //   historico_interacoes: jsonb (nullable, default: '[]'::jsonb)
+// Table: opportunities
+//   id: uuid (not null, default: gen_random_uuid())
+//   lead_id: uuid (not null)
+//   stage: opportunity_stage (not null, default: 'prospecting'::opportunity_stage)
+//   value: numeric (nullable, default: 0.00)
+//   probability: integer (nullable, default: 0)
+//   expected_close_date: date (nullable)
+//   notes: text (nullable)
+//   created_at: timestamp with time zone (not null, default: now())
+//   updated_at: timestamp with time zone (not null, default: now())
 // Table: perfis_acesso
 //   id: uuid (not null, default: gen_random_uuid())
 //   nome: text (not null)
@@ -836,6 +892,10 @@ export const Constants = {
 // Table: leads_salvos
 //   PRIMARY KEY leads_salvos_pkey: PRIMARY KEY (id)
 //   FOREIGN KEY leads_salvos_salvo_por_fkey: FOREIGN KEY (salvo_por) REFERENCES profiles(id) ON DELETE SET NULL
+// Table: opportunities
+//   FOREIGN KEY opportunities_lead_id_fkey: FOREIGN KEY (lead_id) REFERENCES leads_salvos(id) ON DELETE CASCADE
+//   PRIMARY KEY opportunities_pkey: PRIMARY KEY (id)
+//   CHECK opportunities_probability_check: CHECK (((probability >= 0) AND (probability <= 100)))
 // Table: perfis_acesso
 //   PRIMARY KEY perfis_acesso_pkey: PRIMARY KEY (id)
 // Table: profiles
@@ -904,6 +964,10 @@ export const Constants = {
 //   Policy "Enable ALL for authenticated users" (ALL, PERMISSIVE) roles={authenticated}
 //     USING: true
 //     WITH CHECK: true
+// Table: opportunities
+//   Policy "Enable ALL for authenticated users on opportunities" (ALL, PERMISSIVE) roles={authenticated}
+//     USING: true
+//     WITH CHECK: true
 // Table: perfis_acesso
 //   Policy "Enable ALL for authenticated users" (ALL, PERMISSIVE) roles={authenticated}
 //     USING: true
@@ -959,6 +1023,22 @@ export const Constants = {
 //   END;
 //   $function$
 //
+// FUNCTION update_opportunities_updated_at()
+//   CREATE OR REPLACE FUNCTION public.update_opportunities_updated_at()
+//    RETURNS trigger
+//    LANGUAGE plpgsql
+//    SECURITY DEFINER
+//   AS $function$
+//   BEGIN
+//       NEW.updated_at = NOW();
+//       RETURN NEW;
+//   END;
+//   $function$
+//
+
+// --- TRIGGERS ---
+// Table: opportunities
+//   update_opportunities_updated_at_trigger: CREATE TRIGGER update_opportunities_updated_at_trigger BEFORE UPDATE ON public.opportunities FOR EACH ROW EXECUTE FUNCTION update_opportunities_updated_at()
 
 // --- INDEXES ---
 // Table: bitrix_api_logs
@@ -972,6 +1052,9 @@ export const Constants = {
 //   CREATE INDEX idx_bitrix_webhook_events_event_type ON public.bitrix_webhook_events USING btree (event_type)
 // Table: cache_pesquisas
 //   CREATE UNIQUE INDEX cache_pesquisas_chave_cache_key ON public.cache_pesquisas USING btree (chave_cache)
+// Table: opportunities
+//   CREATE INDEX idx_opportunities_lead_id ON public.opportunities USING btree (lead_id)
+//   CREATE INDEX idx_opportunities_stage ON public.opportunities USING btree (stage)
 // Table: search_history
 //   CREATE INDEX idx_search_history_created_at ON public.search_history USING btree (created_at DESC)
 //   CREATE INDEX idx_search_history_user_id ON public.search_history USING btree (user_id)

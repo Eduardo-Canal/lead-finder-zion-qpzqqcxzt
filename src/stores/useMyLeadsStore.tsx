@@ -29,6 +29,16 @@ export type LeadSalvo = {
   observacoes: string | null
 }
 
+export type Opportunity = {
+  id: string
+  lead_id: string
+  stage: 'prospecting' | 'qualification' | 'proposal' | 'closing'
+  value: number
+  probability: number
+  expected_close_date: string | null
+  leads_salvos?: { razao_social: string; cnpj: string }
+}
+
 export type MyLeadsFilters = {
   search: string
   municipio: string
@@ -39,12 +49,22 @@ export type MyLeadsFilters = {
 type MyLeadsStoreContextType = {
   myLeads: LeadSalvo[]
   filteredLeads: LeadSalvo[]
+  opportunities: Opportunity[]
   executives: string[]
   filters: MyLeadsFilters
   setFilter: (key: keyof MyLeadsFilters, value: string) => void
   updateStatus: (id: string, status: string) => Promise<void>
   addInteraction: (id: string, texto: string) => Promise<void>
   updateDecisor: (id: string, nome: string, telefone: string, email: string) => Promise<void>
+  fetchOpportunities: () => Promise<void>
+  createOpportunity: (
+    leadId: string,
+    value: number,
+    probability: number,
+    stage: string,
+  ) => Promise<void>
+  updateOpportunity: (id: string, updates: Partial<Opportunity>) => Promise<void>
+  updateOpportunityStage: (id: string, stage: string) => Promise<void>
 }
 
 const defaultFilters: MyLeadsFilters = {
@@ -58,6 +78,7 @@ const MyLeadsContext = createContext<MyLeadsStoreContextType | null>(null)
 
 export function MyLeadsStoreProvider({ children }: { children: ReactNode }) {
   const [myLeads, setMyLeads] = useState<LeadSalvo[]>([])
+  const [opportunities, setOpportunities] = useState<Opportunity[]>([])
   const [executives, setExecutives] = useState<string[]>([])
   const [filters, setFilters] = useState<MyLeadsFilters>(defaultFilters)
   const { user } = useAuthStore()
@@ -83,6 +104,17 @@ export function MyLeadsStoreProvider({ children }: { children: ReactNode }) {
     setMyLeads(enriched)
   }, [])
 
+  const fetchOpportunities = useCallback(async () => {
+    const { data, error } = await supabase.from('opportunities').select(`
+        id, lead_id, stage, value, probability, expected_close_date,
+        leads_salvos (razao_social, cnpj)
+      `)
+
+    if (!error && data) {
+      setOpportunities(data as any)
+    }
+  }, [])
+
   const fetchExecutives = useCallback(async () => {
     const { data, error } = await supabase.from('profiles').select('nome').eq('ativo', true)
     if (!error && data) {
@@ -94,15 +126,17 @@ export function MyLeadsStoreProvider({ children }: { children: ReactNode }) {
     if (user) {
       fetchLeads()
       fetchExecutives()
+      fetchOpportunities()
     }
 
     const handleRefetch = () => {
       fetchLeads()
       fetchExecutives()
+      fetchOpportunities()
     }
     window.addEventListener('refetch-my-leads', handleRefetch)
     return () => window.removeEventListener('refetch-my-leads', handleRefetch)
-  }, [user, fetchLeads, fetchExecutives])
+  }, [user, fetchLeads, fetchExecutives, fetchOpportunities])
 
   const setFilter = (key: keyof MyLeadsFilters, value: string) => {
     setFilters((prev) => ({ ...prev, [key]: value }))
@@ -169,12 +203,40 @@ export function MyLeadsStoreProvider({ children }: { children: ReactNode }) {
       })
       .eq('id', id)
 
+    if (error) throw error
+    fetchLeads()
+  }
+
+  const createOpportunity = async (
+    leadId: string,
+    value: number,
+    probability: number,
+    stage: string,
+  ) => {
+    const { error } = await supabase.from('opportunities').insert({
+      lead_id: leadId,
+      value,
+      probability,
+      stage,
+    })
+    if (error) throw error
+    fetchOpportunities()
+  }
+
+  const updateOpportunity = async (id: string, updates: Partial<Opportunity>) => {
+    const { error } = await supabase.from('opportunities').update(updates).eq('id', id)
+    if (error) throw error
+    fetchOpportunities()
+  }
+
+  const updateOpportunityStage = async (id: string, stage: string) => {
+    // Optimistic update
+    setOpportunities((prev) => prev.map((o) => (o.id === id ? { ...o, stage: stage as any } : o)))
+    const { error } = await supabase.from('opportunities').update({ stage }).eq('id', id)
     if (error) {
-      console.error(error)
+      fetchOpportunities() // revert
       throw error
     }
-
-    fetchLeads()
   }
 
   const filteredLeads = useMemo(() => {
@@ -202,12 +264,17 @@ export function MyLeadsStoreProvider({ children }: { children: ReactNode }) {
       value: {
         myLeads,
         filteredLeads,
+        opportunities,
         executives,
         filters,
         setFilter,
         updateStatus,
         addInteraction,
         updateDecisor,
+        fetchOpportunities,
+        createOpportunity,
+        updateOpportunity,
+        updateOpportunityStage,
       },
     },
     children,

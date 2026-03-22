@@ -26,12 +26,13 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
-import { MessageSquare, Calendar, User } from 'lucide-react'
+import { MessageSquare, Calendar, User, DollarSign } from 'lucide-react'
 import useMyLeadsStore, { LeadSalvo } from '@/stores/useMyLeadsStore'
 import useAuthStore from '@/stores/useAuthStore'
 import { cn, isValidCNPJ } from '@/lib/utils'
 import { toast } from 'sonner'
 import { InteractionHistoryModal } from './InteractionHistoryModal'
+import { OpportunityModal } from './OpportunityModal'
 
 const statusColors: Record<string, string> = {
   'Não Contatado': 'text-slate-600 bg-slate-100',
@@ -42,12 +43,13 @@ const statusColors: Record<string, string> = {
 }
 
 export function MyLeadsTable() {
-  const { filteredLeads, updateStatus, updateDecisor } = useMyLeadsStore()
+  const { filteredLeads, opportunities, updateStatus, updateDecisor } = useMyLeadsStore()
   const { hasPermission } = useAuthStore()
   const canEditStatus = hasPermission('Editar Status de Contato')
 
   const [editingInteractionsLead, setEditingInteractionsLead] = useState<LeadSalvo | null>(null)
   const [editingDecisor, setEditingDecisor] = useState<LeadSalvo | null>(null)
+  const [oppModalLead, setOppModalLead] = useState<LeadSalvo | null>(null)
   const [decisorForm, setDecisorForm] = useState({ nome: '', telefone: '', email: '' })
 
   const openDecisorModal = (lead: LeadSalvo) => {
@@ -91,7 +93,7 @@ export function MyLeadsTable() {
               <TableHead>Nome do Decisor</TableHead>
               <TableHead>Telefone do Decisor</TableHead>
               <TableHead>E-mail do Decisor</TableHead>
-              <TableHead className="text-center w-[100px]">Ações</TableHead>
+              <TableHead className="text-center w-[120px]">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -102,109 +104,125 @@ export function MyLeadsTable() {
                 </TableCell>
               </TableRow>
             ) : (
-              filteredLeads.map((lead) => (
-                <TableRow key={lead.id} className="animate-fade-in">
-                  <TableCell className="font-medium">
-                    {lead.razao_social}
-                    <div className="text-xs text-muted-foreground font-normal mt-0.5">
-                      CNAE: {lead.cnae_principal}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground whitespace-nowrap">
-                    <div className="flex flex-col gap-1 items-start">
-                      <span>{lead.cnpj}</span>
-                      {!isValidCNPJ(lead.cnpj || '') && (
-                        <Badge variant="destructive" className="text-[10px] px-1.5 py-0 h-4">
-                          Dados Inválidos
-                        </Badge>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {lead.municipio} - {lead.uf}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">{lead.executivo_nome}</TableCell>
-                  <TableCell>
-                    <Select
-                      value={lead.status_contato}
-                      disabled={!canEditStatus}
-                      onValueChange={(v: string) => {
-                        updateStatus(lead.id, v)
-                        toast.success('Status atualizado')
-                      }}
+              filteredLeads.map((lead) => {
+                const hasOpp = opportunities.some((o) => o.lead_id === lead.id)
+
+                return (
+                  <TableRow key={lead.id} className="animate-fade-in">
+                    <TableCell className="font-medium">
+                      {lead.razao_social}
+                      <div className="text-xs text-muted-foreground font-normal mt-0.5">
+                        CNAE: {lead.cnae_principal}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground whitespace-nowrap">
+                      <div className="flex flex-col gap-1 items-start">
+                        <span>{lead.cnpj}</span>
+                        {!isValidCNPJ(lead.cnpj || '') && (
+                          <Badge variant="destructive" className="text-[10px] px-1.5 py-0 h-4">
+                            Dados Inválidos
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {lead.municipio} - {lead.uf}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">{lead.executivo_nome}</TableCell>
+                    <TableCell>
+                      <Select
+                        value={lead.status_contato}
+                        disabled={!canEditStatus}
+                        onValueChange={(v: string) => {
+                          updateStatus(lead.id, v)
+                          toast.success('Status atualizado')
+                        }}
+                      >
+                        <SelectTrigger
+                          className={cn(
+                            'h-8 text-xs font-medium border-0 ring-1 ring-inset ring-black/5 focus:ring-2 focus:ring-primary',
+                            statusColors[lead.status_contato] || statusColors['Não Contatado'],
+                          )}
+                        >
+                          <SelectValue placeholder="Status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Não Contatado">Não Contatado</SelectItem>
+                          <SelectItem value="Em Prospecção">Em Prospecção</SelectItem>
+                          <SelectItem value="Proposta Enviada">Proposta Enviada</SelectItem>
+                          <SelectItem value="Sem Interesse">Sem Interesse</SelectItem>
+                          <SelectItem value="Convertido">Convertido</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      <div className="flex items-center gap-1.5 text-xs">
+                        <Calendar className="w-3.5 h-3.5" />
+                        {lead.ultima_data_contato || '-'}
+                      </div>
+                    </TableCell>
+                    <TableCell
+                      className="text-muted-foreground text-sm max-w-[150px] truncate"
+                      title={lead.decisor_nome || ''}
                     >
-                      <SelectTrigger
-                        className={cn(
-                          'h-8 text-xs font-medium border-0 ring-1 ring-inset ring-black/5 focus:ring-2 focus:ring-primary',
-                          statusColors[lead.status_contato] || statusColors['Não Contatado'],
-                        )}
-                      >
-                        <SelectValue placeholder="Status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Não Contatado">Não Contatado</SelectItem>
-                        <SelectItem value="Em Prospecção">Em Prospecção</SelectItem>
-                        <SelectItem value="Proposta Enviada">Proposta Enviada</SelectItem>
-                        <SelectItem value="Sem Interesse">Sem Interesse</SelectItem>
-                        <SelectItem value="Convertido">Convertido</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    <div className="flex items-center gap-1.5 text-xs">
-                      <Calendar className="w-3.5 h-3.5" />
-                      {lead.ultima_data_contato || '-'}
-                    </div>
-                  </TableCell>
-                  <TableCell
-                    className="text-muted-foreground text-sm max-w-[150px] truncate"
-                    title={lead.decisor_nome || ''}
-                  >
-                    {lead.decisor_nome || '-'}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
-                    {lead.decisor_telefone || '-'}
-                  </TableCell>
-                  <TableCell
-                    className="text-muted-foreground text-sm max-w-[150px] truncate"
-                    title={lead.decisor_email || ''}
-                  >
-                    {lead.decisor_email || '-'}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <div className="flex items-center justify-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => openDecisorModal(lead)}
-                        className={cn(
-                          'h-8 w-8',
-                          lead.decisor_nome || lead.decisor_telefone || lead.decisor_email
-                            ? 'text-primary'
-                            : 'text-muted-foreground',
-                        )}
-                        title="Editar Decisor"
-                      >
-                        <User className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setEditingInteractionsLead(lead)}
-                        className={cn(
-                          'h-8 w-8',
-                          lead.historico_interacoes && lead.historico_interacoes.length > 0
-                            ? 'text-primary'
-                            : 'text-muted-foreground',
-                        )}
-                        title="Histórico de Atividades"
-                      >
-                        <MessageSquare className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
+                      {lead.decisor_nome || '-'}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
+                      {lead.decisor_telefone || '-'}
+                    </TableCell>
+                    <TableCell
+                      className="text-muted-foreground text-sm max-w-[150px] truncate"
+                      title={lead.decisor_email || ''}
+                    >
+                      {lead.decisor_email || '-'}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <div className="flex items-center justify-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setOppModalLead(lead)}
+                          className={cn(
+                            'h-8 w-8',
+                            hasOpp ? 'text-emerald-600 bg-emerald-50' : 'text-muted-foreground',
+                          )}
+                          title={hasOpp ? 'Editar Oportunidade' : 'Criar Oportunidade'}
+                        >
+                          <DollarSign className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => openDecisorModal(lead)}
+                          className={cn(
+                            'h-8 w-8',
+                            lead.decisor_nome || lead.decisor_telefone || lead.decisor_email
+                              ? 'text-primary'
+                              : 'text-muted-foreground',
+                          )}
+                          title="Editar Decisor"
+                        >
+                          <User className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setEditingInteractionsLead(lead)}
+                          className={cn(
+                            'h-8 w-8',
+                            lead.historico_interacoes && lead.historico_interacoes.length > 0
+                              ? 'text-primary'
+                              : 'text-muted-foreground',
+                          )}
+                          title="Histórico de Atividades"
+                        >
+                          <MessageSquare className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )
+              })
             )}
           </TableBody>
         </Table>
@@ -213,6 +231,12 @@ export function MyLeadsTable() {
       <InteractionHistoryModal
         lead={editingInteractionsLead}
         onClose={() => setEditingInteractionsLead(null)}
+      />
+
+      <OpportunityModal
+        lead={oppModalLead}
+        opportunity={opportunities.find((o) => o.lead_id === oppModalLead?.id) || null}
+        onClose={() => setOppModalLead(null)}
       />
 
       <Dialog open={!!editingDecisor} onOpenChange={(open) => !open && setEditingDecisor(null)}>
