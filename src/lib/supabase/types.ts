@@ -436,6 +436,33 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          created_at: string
+          id: string
+          message: string
+          read: boolean
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message: string
+          read?: boolean
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string
+          read?: boolean
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       opportunities: {
         Row: {
           created_at: string
@@ -613,11 +640,64 @@ export type Database = {
         }
         Relationships: []
       }
+      user_reminder_settings: {
+        Row: {
+          closing_days: number
+          created_at: string
+          follow_up_days: number
+          proposal_days: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          closing_days?: number
+          created_at?: string
+          follow_up_days?: number
+          proposal_days?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          closing_days?: number
+          created_at?: string
+          follow_up_days?: number
+          proposal_days?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      get_due_followups: {
+        Args: never
+        Returns: {
+          dias_sem_contato: number
+          executivo_email: string
+          executivo_nome: string
+          lead_id: string
+          opp_stage: string
+          razao_social: string
+          reminder_type: string
+          user_id: string
+        }[]
+      }
+      get_due_reminders_with_leads: {
+        Args: never
+        Returns: {
+          days_interval: number
+          executivo_email: string
+          executivo_nome: string
+          lead_id: string
+          razao_social: string
+          reminder_id: string
+          reminder_type: Database['public']['Enums']['reminder_type_enum']
+          user_id: string
+        }[]
+      }
       limpar_cache_pesquisas: { Args: { p_cnae?: string }; Returns: number }
     }
     Enums: {
@@ -881,6 +961,13 @@ export const Constants = {
 //   decisor_telefone: text (nullable)
 //   decisor_email: text (nullable)
 //   historico_interacoes: jsonb (nullable, default: '[]'::jsonb)
+// Table: notifications
+//   id: uuid (not null, default: gen_random_uuid())
+//   user_id: uuid (not null)
+//   title: text (not null)
+//   message: text (not null)
+//   read: boolean (not null, default: false)
+//   created_at: timestamp with time zone (not null, default: now())
 // Table: opportunities
 //   id: uuid (not null, default: gen_random_uuid())
 //   lead_id: uuid (not null)
@@ -922,6 +1009,13 @@ export const Constants = {
 //   cidade: text (nullable)
 //   total_results: integer (nullable)
 //   created_at: timestamp with time zone (not null, default: now())
+// Table: user_reminder_settings
+//   user_id: uuid (not null)
+//   follow_up_days: integer (not null, default: 7)
+//   proposal_days: integer (not null, default: 3)
+//   closing_days: integer (not null, default: 1)
+//   created_at: timestamp with time zone (not null, default: now())
+//   updated_at: timestamp with time zone (not null, default: now())
 
 // --- CONSTRAINTS ---
 // Table: api_debug_logs
@@ -948,6 +1042,9 @@ export const Constants = {
 // Table: leads_salvos
 //   PRIMARY KEY leads_salvos_pkey: PRIMARY KEY (id)
 //   FOREIGN KEY leads_salvos_salvo_por_fkey: FOREIGN KEY (salvo_por) REFERENCES profiles(id) ON DELETE SET NULL
+// Table: notifications
+//   PRIMARY KEY notifications_pkey: PRIMARY KEY (id)
+//   FOREIGN KEY notifications_user_id_fkey: FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
 // Table: opportunities
 //   FOREIGN KEY opportunities_lead_id_fkey: FOREIGN KEY (lead_id) REFERENCES leads_salvos(id) ON DELETE CASCADE
 //   PRIMARY KEY opportunities_pkey: PRIMARY KEY (id)
@@ -965,6 +1062,9 @@ export const Constants = {
 // Table: search_history
 //   PRIMARY KEY search_history_pkey: PRIMARY KEY (id)
 //   FOREIGN KEY search_history_user_id_fkey: FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
+// Table: user_reminder_settings
+//   PRIMARY KEY user_reminder_settings_pkey: PRIMARY KEY (user_id)
+//   FOREIGN KEY user_reminder_settings_user_id_fkey: FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
 
 // --- ROW LEVEL SECURITY POLICIES ---
 // Table: api_debug_logs
@@ -1024,6 +1124,10 @@ export const Constants = {
 //   Policy "Enable ALL for authenticated users" (ALL, PERMISSIVE) roles={authenticated}
 //     USING: true
 //     WITH CHECK: true
+// Table: notifications
+//   Policy "Users can manage their own notifications" (ALL, PERMISSIVE) roles={authenticated}
+//     USING: (user_id = auth.uid())
+//     WITH CHECK: (user_id = auth.uid())
 // Table: opportunities
 //   Policy "Enable ALL for authenticated users on opportunities" (ALL, PERMISSIVE) roles={authenticated}
 //     USING: true
@@ -1050,8 +1154,103 @@ export const Constants = {
 //     WITH CHECK: (user_id = auth.uid())
 //   Policy "Users can view their own search history" (SELECT, PERMISSIVE) roles={authenticated}
 //     USING: (user_id = auth.uid())
+// Table: user_reminder_settings
+//   Policy "Users can manage their own reminder settings" (ALL, PERMISSIVE) roles={authenticated}
+//     USING: (user_id = auth.uid())
+//     WITH CHECK: (user_id = auth.uid())
 
 // --- DATABASE FUNCTIONS ---
+// FUNCTION get_due_followups()
+//   CREATE OR REPLACE FUNCTION public.get_due_followups()
+//    RETURNS TABLE(lead_id uuid, user_id uuid, razao_social text, executivo_email text, executivo_nome text, opp_stage text, dias_sem_contato integer, reminder_type text)
+//    LANGUAGE plpgsql
+//    SECURITY DEFINER
+//   AS $function$
+//   BEGIN
+//       RETURN QUERY
+//       WITH lead_data AS (
+//           SELECT
+//               l.id as lead_id,
+//               l.razao_social,
+//               l.ultima_data_contato,
+//               l.created_at,
+//               l.salvo_por,
+//               o.stage as opp_stage,
+//               p.user_id,
+//               p.email as executivo_email,
+//               p.nome as executivo_nome,
+//               COALESCE(urs.follow_up_days, 7) as follow_up_days,
+//               COALESCE(urs.proposal_days, 3) as proposal_days,
+//               COALESCE(urs.closing_days, 1) as closing_days,
+//               -- Calcula a diferença de dias desde o último contato ou criação
+//               EXTRACT(DAY FROM (NOW() - COALESCE(l.ultima_data_contato, l.created_at)))::INTEGER as dias_sem_contato
+//           FROM public.leads_salvos l
+//           JOIN public.profiles p ON l.salvo_por = p.id
+//           LEFT JOIN public.opportunities o ON o.lead_id = l.id
+//           LEFT JOIN public.user_reminder_settings urs ON urs.user_id = p.user_id
+//           WHERE l.status_contato NOT IN ('Convertido', 'Sem Interesse')
+//       ),
+//       due_leads AS (
+//           SELECT
+//               d.*,
+//               -- Define o tipo de lembrete esperado com base no estágio do lead no funil
+//               CASE
+//                   WHEN d.opp_stage = 'proposal' THEN 'proposal'
+//                   WHEN d.opp_stage = 'closing' THEN 'closing'
+//                   ELSE 'follow_up'
+//               END as expected_reminder_type,
+//               -- Define a meta de dias com base nas configurações e estágio
+//               CASE
+//                   WHEN d.opp_stage = 'proposal' THEN d.proposal_days
+//                   WHEN d.opp_stage = 'closing' THEN d.closing_days
+//                   ELSE d.follow_up_days
+//               END as target_days
+//           FROM lead_data d
+//       )
+//       SELECT
+//           d.lead_id,
+//           d.user_id,
+//           d.razao_social,
+//           d.executivo_email,
+//           d.executivo_nome,
+//           d.opp_stage,
+//           d.dias_sem_contato,
+//           d.expected_reminder_type
+//       FROM due_leads d
+//       -- Fazemos um LEFT JOIN na tabela reminders para verificar quando foi enviada a última notificação
+//       LEFT JOIN public.reminders r ON r.lead_id = d.lead_id AND r.reminder_type::text = d.expected_reminder_type
+//       -- Filtramos os leads onde os dias sem contato são maiores ou iguais à meta
+//       WHERE d.dias_sem_contato >= d.target_days
+//       -- E que não foram notificados nas últimas 24 horas (para evitar spam)
+//       AND (r.last_reminded_at IS NULL OR EXTRACT(DAY FROM (NOW() - r.last_reminded_at)) >= 1);
+//   END;
+//   $function$
+//
+// FUNCTION get_due_reminders_with_leads()
+//   CREATE OR REPLACE FUNCTION public.get_due_reminders_with_leads()
+//    RETURNS TABLE(reminder_id uuid, user_id uuid, lead_id uuid, reminder_type reminder_type_enum, days_interval integer, razao_social text, executivo_email text, executivo_nome text)
+//    LANGUAGE plpgsql
+//    SECURITY DEFINER
+//   AS $function$
+//   BEGIN
+//       RETURN QUERY
+//       SELECT
+//           r.id as reminder_id,
+//           r.user_id,
+//           r.lead_id,
+//           r.reminder_type,
+//           r.days_interval,
+//           l.razao_social,
+//           p.email as executivo_email,
+//           p.nome as executivo_nome
+//       FROM public.reminders r
+//       JOIN public.leads_salvos l ON r.lead_id = l.id
+//       JOIN public.profiles p ON r.user_id = p.user_id
+//       WHERE r.is_active = true
+//       AND NOW() >= COALESCE(r.last_reminded_at, r.created_at) + (r.days_interval * interval '1 day');
+//   END;
+//   $function$
+//
 // FUNCTION limpar_cache_pesquisas(text)
 //   CREATE OR REPLACE FUNCTION public.limpar_cache_pesquisas(p_cnae text DEFAULT NULL::text)
 //    RETURNS integer
@@ -1130,6 +1329,9 @@ export const Constants = {
 //   CREATE INDEX idx_bitrix_webhook_events_event_type ON public.bitrix_webhook_events USING btree (event_type)
 // Table: cache_pesquisas
 //   CREATE UNIQUE INDEX cache_pesquisas_chave_cache_key ON public.cache_pesquisas USING btree (chave_cache)
+// Table: notifications
+//   CREATE INDEX idx_notifications_read ON public.notifications USING btree (read)
+//   CREATE INDEX idx_notifications_user_id ON public.notifications USING btree (user_id)
 // Table: opportunities
 //   CREATE INDEX idx_opportunities_lead_id ON public.opportunities USING btree (lead_id)
 //   CREATE INDEX idx_opportunities_stage ON public.opportunities USING btree (stage)

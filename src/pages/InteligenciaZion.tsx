@@ -52,6 +52,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import useLeadStore from '@/stores/useLeadStore'
+import useAuthStore from '@/stores/useAuthStore'
 
 type Client = {
   id: string
@@ -96,6 +97,7 @@ export default function InteligenciaZion() {
 
   const navigate = useNavigate()
   const { clearFilters, addCnae } = useLeadStore()
+  const { user } = useAuthStore()
 
   const fetchClients = async () => {
     try {
@@ -361,6 +363,18 @@ export default function InteligenciaZion() {
 
       XLSX.writeFile(wb, `Zion_Relatorio_${new Date().getTime()}.xlsx`)
       toast.success('Excel exportado com sucesso!')
+
+      if (user?.user_id) {
+        supabase
+          .from('audit_logs')
+          .insert({
+            user_id: user.user_id,
+            action: 'export',
+            entity_type: 'lead',
+            changes: { type: 'inteligencia_zion', format: 'excel', count: totalFiltered },
+          })
+          .catch((err) => console.error('Error logging audit', err))
+      }
     } catch (e) {
       console.error(e)
       toast.error('Erro ao exportar Excel')
@@ -429,6 +443,18 @@ export default function InteligenciaZion() {
 
       pdf.save(`Zion_Relatorio_${new Date().getTime()}.pdf`)
       toast.success('PDF exportado com sucesso!')
+
+      if (user?.user_id) {
+        supabase
+          .from('audit_logs')
+          .insert({
+            user_id: user.user_id,
+            action: 'export',
+            entity_type: 'lead',
+            changes: { type: 'inteligencia_zion', format: 'pdf', count: totalFiltered },
+          })
+          .catch((err) => console.error('Error logging audit', err))
+      }
     } catch (e) {
       console.error(e)
       toast.error('Erro ao exportar PDF')
