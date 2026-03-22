@@ -536,6 +536,50 @@ export type Database = {
           },
         ]
       }
+      reminders: {
+        Row: {
+          created_at: string
+          days_interval: number
+          id: string
+          is_active: boolean
+          last_reminded_at: string | null
+          lead_id: string
+          reminder_type: Database['public']['Enums']['reminder_type_enum']
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          days_interval?: number
+          id?: string
+          is_active?: boolean
+          last_reminded_at?: string | null
+          lead_id: string
+          reminder_type?: Database['public']['Enums']['reminder_type_enum']
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          days_interval?: number
+          id?: string
+          is_active?: boolean
+          last_reminded_at?: string | null
+          lead_id?: string
+          reminder_type?: Database['public']['Enums']['reminder_type_enum']
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'reminders_lead_id_fkey'
+            columns: ['lead_id']
+            isOneToOne: false
+            referencedRelation: 'leads_salvos'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       search_history: {
         Row: {
           cidade: string | null
@@ -578,6 +622,7 @@ export type Database = {
     }
     Enums: {
       opportunity_stage: 'prospecting' | 'qualification' | 'proposal' | 'closing'
+      reminder_type_enum: 'follow_up' | 'proposal' | 'closing'
     }
     CompositeTypes: {
       [_ in never]: never
@@ -704,6 +749,7 @@ export const Constants = {
   public: {
     Enums: {
       opportunity_stage: ['prospecting', 'qualification', 'proposal', 'closing'],
+      reminder_type_enum: ['follow_up', 'proposal', 'closing'],
     },
   },
 } as const
@@ -857,6 +903,16 @@ export const Constants = {
 //   perfil_id: uuid (nullable)
 //   ativo: boolean (not null, default: true)
 //   require_password_update: boolean (not null, default: false)
+// Table: reminders
+//   id: uuid (not null, default: gen_random_uuid())
+//   lead_id: uuid (not null)
+//   user_id: uuid (not null)
+//   reminder_type: reminder_type_enum (not null, default: 'follow_up'::reminder_type_enum)
+//   days_interval: integer (not null, default: 7)
+//   last_reminded_at: timestamp with time zone (nullable)
+//   is_active: boolean (not null, default: true)
+//   created_at: timestamp with time zone (not null, default: now())
+//   updated_at: timestamp with time zone (not null, default: now())
 // Table: search_history
 //   id: uuid (not null, default: gen_random_uuid())
 //   user_id: uuid (not null)
@@ -902,6 +958,10 @@ export const Constants = {
 //   FOREIGN KEY profiles_perfil_id_fkey: FOREIGN KEY (perfil_id) REFERENCES perfis_acesso(id) ON DELETE SET NULL
 //   PRIMARY KEY profiles_pkey: PRIMARY KEY (id)
 //   FOREIGN KEY profiles_user_id_fkey: FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
+// Table: reminders
+//   FOREIGN KEY reminders_lead_id_fkey: FOREIGN KEY (lead_id) REFERENCES leads_salvos(id) ON DELETE CASCADE
+//   PRIMARY KEY reminders_pkey: PRIMARY KEY (id)
+//   FOREIGN KEY reminders_user_id_fkey: FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
 // Table: search_history
 //   PRIMARY KEY search_history_pkey: PRIMARY KEY (id)
 //   FOREIGN KEY search_history_user_id_fkey: FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
@@ -976,6 +1036,10 @@ export const Constants = {
 //   Policy "Enable ALL for authenticated users" (ALL, PERMISSIVE) roles={authenticated}
 //     USING: true
 //     WITH CHECK: true
+// Table: reminders
+//   Policy "Users can manage their own reminders" (ALL, PERMISSIVE) roles={authenticated}
+//     USING: (user_id = auth.uid())
+//     WITH CHECK: (user_id = auth.uid())
 // Table: search_history
 //   Policy "Users can delete their own search history" (DELETE, PERMISSIVE) roles={authenticated}
 //     USING: (user_id = auth.uid())
@@ -1035,10 +1099,24 @@ export const Constants = {
 //   END;
 //   $function$
 //
+// FUNCTION update_reminders_updated_at()
+//   CREATE OR REPLACE FUNCTION public.update_reminders_updated_at()
+//    RETURNS trigger
+//    LANGUAGE plpgsql
+//    SECURITY DEFINER
+//   AS $function$
+//   BEGIN
+//       NEW.updated_at = NOW();
+//       RETURN NEW;
+//   END;
+//   $function$
+//
 
 // --- TRIGGERS ---
 // Table: opportunities
 //   update_opportunities_updated_at_trigger: CREATE TRIGGER update_opportunities_updated_at_trigger BEFORE UPDATE ON public.opportunities FOR EACH ROW EXECUTE FUNCTION update_opportunities_updated_at()
+// Table: reminders
+//   update_reminders_updated_at_trigger: CREATE TRIGGER update_reminders_updated_at_trigger BEFORE UPDATE ON public.reminders FOR EACH ROW EXECUTE FUNCTION update_reminders_updated_at()
 
 // --- INDEXES ---
 // Table: bitrix_api_logs
@@ -1055,6 +1133,10 @@ export const Constants = {
 // Table: opportunities
 //   CREATE INDEX idx_opportunities_lead_id ON public.opportunities USING btree (lead_id)
 //   CREATE INDEX idx_opportunities_stage ON public.opportunities USING btree (stage)
+// Table: reminders
+//   CREATE INDEX idx_reminders_is_active ON public.reminders USING btree (is_active)
+//   CREATE INDEX idx_reminders_lead_id ON public.reminders USING btree (lead_id)
+//   CREATE INDEX idx_reminders_user_id ON public.reminders USING btree (user_id)
 // Table: search_history
 //   CREATE INDEX idx_search_history_created_at ON public.search_history USING btree (created_at DESC)
 //   CREATE INDEX idx_search_history_user_id ON public.search_history USING btree (user_id)

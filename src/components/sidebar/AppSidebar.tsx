@@ -36,6 +36,8 @@ export function AppSidebar() {
   const location = useLocation()
   const { toggleSidebar, state } = useSidebar()
 
+  const isAdmin = user?.perfis_acesso?.nome === 'Administrador'
+
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader className="flex h-16 shrink-0 items-center justify-between px-4 group-data-[collapsible=icon]:px-2 flex-row border-b border-sidebar-border/20">
@@ -135,69 +137,82 @@ export function AppSidebar() {
                 </SidebarMenuItem>
               )}
 
-              {user?.perfis_acesso?.nome === 'Administrador' && (
-                <Collapsible
-                  defaultOpen={
-                    location.pathname.includes('/configuracoes') ||
-                    location.pathname.includes('/admin')
-                  }
-                  className="group/collapsible"
-                >
-                  <SidebarMenuItem>
-                    <CollapsibleTrigger asChild>
-                      <SidebarMenuButton tooltip="Configurações">
-                        <Settings />
-                        <span>Configurações</span>
-                        <ChevronRight className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-90" />
-                      </SidebarMenuButton>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent>
-                      <SidebarMenuSub>
-                        <SidebarMenuSubItem>
-                          <SidebarMenuSubButton
-                            asChild
-                            isActive={location.pathname === '/configuracoes/avancado'}
-                          >
-                            <Link to="/configuracoes/avancado">
-                              <span>Avançado</span>
-                            </Link>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
-                        <SidebarMenuSubItem>
-                          <SidebarMenuSubButton
-                            asChild
-                            isActive={location.pathname === '/admin/debug-api'}
-                          >
-                            <Link to="/admin/debug-api">
-                              <span>Debug API Casa dos Dados</span>
-                            </Link>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
-                        <SidebarMenuSubItem>
-                          <SidebarMenuSubButton
-                            asChild
-                            isActive={location.pathname === '/admin/debug-bitrix'}
-                          >
-                            <Link to="/admin/debug-bitrix">
-                              <span>Debug API Bitrix24</span>
-                            </Link>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
-                        <SidebarMenuSubItem>
-                          <SidebarMenuSubButton
-                            asChild
-                            isActive={location.pathname === '/admin/monitoramento-bitrix'}
-                          >
-                            <Link to="/admin/monitoramento-bitrix">
-                              <span>Monitoramento Bitrix</span>
-                            </Link>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
-                      </SidebarMenuSub>
-                    </CollapsibleContent>
-                  </SidebarMenuItem>
-                </Collapsible>
-              )}
+              <Collapsible
+                defaultOpen={
+                  location.pathname.includes('/configuracoes') ||
+                  location.pathname.includes('/admin')
+                }
+                className="group/collapsible"
+              >
+                <SidebarMenuItem>
+                  <CollapsibleTrigger asChild>
+                    <SidebarMenuButton tooltip="Configurações">
+                      <Settings />
+                      <span>Configurações</span>
+                      <ChevronRight className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-90" />
+                    </SidebarMenuButton>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <SidebarMenuSub>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton
+                          asChild
+                          isActive={location.pathname === '/configuracoes/lembretes'}
+                        >
+                          <Link to="/configuracoes/lembretes">
+                            <span>Lembretes Automáticos</span>
+                          </Link>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+
+                      {isAdmin && (
+                        <>
+                          <SidebarMenuSubItem>
+                            <SidebarMenuSubButton
+                              asChild
+                              isActive={location.pathname === '/configuracoes/avancado'}
+                            >
+                              <Link to="/configuracoes/avancado">
+                                <span>Avançado</span>
+                              </Link>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                          <SidebarMenuSubItem>
+                            <SidebarMenuSubButton
+                              asChild
+                              isActive={location.pathname === '/admin/debug-api'}
+                            >
+                              <Link to="/admin/debug-api">
+                                <span>Debug API Casa dos Dados</span>
+                              </Link>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                          <SidebarMenuSubItem>
+                            <SidebarMenuSubButton
+                              asChild
+                              isActive={location.pathname === '/admin/debug-bitrix'}
+                            >
+                              <Link to="/admin/debug-bitrix">
+                                <span>Debug API Bitrix24</span>
+                              </Link>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                          <SidebarMenuSubItem>
+                            <SidebarMenuSubButton
+                              asChild
+                              isActive={location.pathname === '/admin/monitoramento-bitrix'}
+                            >
+                              <Link to="/admin/monitoramento-bitrix">
+                                <span>Monitoramento Bitrix</span>
+                              </Link>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        </>
+                      )}
+                    </SidebarMenuSub>
+                  </CollapsibleContent>
+                </SidebarMenuItem>
+              </Collapsible>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

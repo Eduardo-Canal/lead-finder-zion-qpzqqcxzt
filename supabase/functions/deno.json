@@ -7,6 +7,7 @@
     "admin-delete-user": 1,
     "bitrix-rate-limiter": 9,
     "fetch-bitrix-clients-zion": 12,
-    "validate-cnpj": 2
+    "validate-cnpj": 2,
+    "send-reminders": 1
   }
 }
