@@ -265,6 +265,24 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
         totalCount: data?.count || results.length,
       })
 
+      if (targetPage === 1 && user?.user_id) {
+        // @ts-expect-error - Table search_history added via migration
+        supabase
+          .from('search_history')
+          .insert({
+            user_id: user.user_id,
+            cnae: filters.cnaes.join(', '),
+            porte: filters.porte.length > 0 ? filters.porte.join(', ') : 'Todos',
+            estado: filters.ufs.length > 0 ? filters.ufs.join(', ') : 'Todos',
+            cidade:
+              typeof filters.municipio === 'string' && filters.municipio.trim() !== ''
+                ? filters.municipio.trim()
+                : 'Todas',
+            total_results: data?.count || results.length,
+          })
+          .catch((err: any) => console.error('Erro ao salvar histórico de pesquisa:', err))
+      }
+
       if (results.length > 0) {
         toast.success(`${results.length} leads encontrados.`)
       } else {

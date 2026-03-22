@@ -242,6 +242,7 @@ export type Database = {
           executivo_id: string | null
           executivo_nome: string | null
           id: string
+          status: string | null
         }
         Insert: {
           cnpj: string
@@ -250,6 +251,7 @@ export type Database = {
           executivo_id?: string | null
           executivo_nome?: string | null
           id?: string
+          status?: string | null
         }
         Update: {
           cnpj?: string
@@ -258,6 +260,7 @@ export type Database = {
           executivo_id?: string | null
           executivo_nome?: string | null
           id?: string
+          status?: string | null
         }
         Relationships: [
           {
@@ -704,6 +707,7 @@ export const Constants = {
 //   executivo_nome: text (nullable)
 //   data_contato: timestamp without time zone (nullable, default: now())
 //   created_at: timestamp without time zone (nullable, default: now())
+//   status: text (nullable, default: 'Contatado'::text)
 // Table: empresas_rfb
 //   cnpj: text (not null)
 //   razao_social: text (nullable)
