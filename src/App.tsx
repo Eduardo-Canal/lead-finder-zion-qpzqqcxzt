@@ -20,6 +20,7 @@ import MonitoramentoBitrix from '@/pages/MonitoramentoBitrix'
 import InteligenciaZion from '@/pages/InteligenciaZion'
 import NotFound from '@/pages/NotFound'
 import UpdatePassword from '@/pages/UpdatePassword'
+import ChangePassword from '@/pages/ChangePassword'
 import useAuthStore, { AuthProvider } from '@/stores/useAuthStore'
 import { LeadStoreProvider } from '@/stores/useLeadStore'
 import { MyLeadsStoreProvider } from '@/stores/useMyLeadsStore'
@@ -89,6 +90,7 @@ const App = () => (
                     <Route path="/meus-leads" element={<MyLeads />} />
                     <Route path="/meu-historico" element={<SearchHistory />} />
                     <Route path="/gestao-usuarios" element={<UserManagement />} />
+                    <Route path="/perfil/alterar-senha" element={<ChangePassword />} />
                     <Route path="/configuracoes/lembretes" element={<RemindersConfig />} />
                     <Route path="/configuracoes/auditoria" element={<AuditLogs />} />
                     <Route path="/configuracoes/relatorios" element={<Reports />} />

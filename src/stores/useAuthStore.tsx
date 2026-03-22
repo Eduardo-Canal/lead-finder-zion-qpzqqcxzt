@@ -22,6 +22,7 @@ type AuthStoreContextType = {
   logout: () => Promise<void>
   hasPermission: (perm: string) => boolean
   forceUpdatePassword: (password: string) => Promise<{ error: any }>
+  updatePassword: (currentPass: string, newPass: string) => Promise<{ error: any }>
 }
 
 const AuthContext = createContext<AuthStoreContextType | null>(null)
@@ -102,6 +103,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: null }
   }
 
+  const updatePassword = async (currentPass: string, newPass: string) => {
+    if (!user) return { error: new Error('Usuário não autenticado') }
+
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
+    if (!session?.user?.email) return { error: new Error('Sessão inválida') }
+
+    // Validate current password by trying to sign in
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: session.user.email,
+      password: currentPass,
+    })
+
+    if (signInError) {
+      return { error: new Error('Senha atual incorreta.') }
+    }
+
+    // Update to new password
+    const { error: updateError } = await supabase.auth.updateUser({ password: newPass })
+    if (updateError) return { error: updateError }
+
+    return { error: null }
+  }
+
   return React.createElement(
     AuthContext.Provider,
     {
@@ -112,6 +138,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         logout,
         hasPermission,
         forceUpdatePassword,
+        updatePassword,
       },
     },
     children,

@@ -10,6 +10,7 @@ import {
   PanelLeft,
   PieChart,
   History,
+  UserCircle,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -136,6 +137,35 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               )}
+
+              <Collapsible
+                defaultOpen={location.pathname.includes('/perfil')}
+                className="group/collapsible"
+              >
+                <SidebarMenuItem>
+                  <CollapsibleTrigger asChild>
+                    <SidebarMenuButton tooltip="Meu Perfil">
+                      <UserCircle />
+                      <span>Meu Perfil</span>
+                      <ChevronRight className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-90" />
+                    </SidebarMenuButton>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <SidebarMenuSub>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton
+                          asChild
+                          isActive={location.pathname === '/perfil/alterar-senha'}
+                        >
+                          <Link to="/perfil/alterar-senha">
+                            <span>Alterar Senha</span>
+                          </Link>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                    </SidebarMenuSub>
+                  </CollapsibleContent>
+                </SidebarMenuItem>
+              </Collapsible>
 
               <Collapsible
                 defaultOpen={
