@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils'
 type TestState = {
   status: 'idle' | 'running' | 'passed' | 'failed' | 'warning'
   logs: string[]
+  lastRunAt?: string
 }
 
 type TestCardProps = {
@@ -42,7 +43,7 @@ export function TestCard({ name, description, state, onRun }: TestCardProps) {
         )
       default:
         return (
-          <Badge variant="outline" className="text-slate-400 w-24 justify-center">
+          <Badge variant="outline" className="text-slate-400 w-24 justify-center border-slate-300">
             Pendente
           </Badge>
         )
@@ -82,7 +83,14 @@ export function TestCard({ name, description, state, onRun }: TestCardProps) {
           </div>
 
           <div className="flex items-center gap-3 w-full sm:w-auto shrink-0 justify-between sm:justify-end border-t sm:border-0 pt-3 sm:pt-0">
-            {getStatusDisplay()}
+            <div className="flex flex-col items-center w-24 shrink-0">
+              {getStatusDisplay()}
+              {state.lastRunAt && (
+                <span className="text-[10px] text-muted-foreground mt-1 tracking-tight font-medium text-center leading-none">
+                  {state.lastRunAt}
+                </span>
+              )}
+            </div>
             <Button
               size="sm"
               variant="outline"
