@@ -287,26 +287,6 @@ export function FilterPanel() {
               />
             </div>
 
-            {/* Limite */}
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Resultados por Página</Label>
-              <Select
-                value={filters.limit?.toString() || '10'}
-                onValueChange={(v) => setFilter('limit', Number(v))}
-              >
-                <SelectTrigger className="bg-slate-50/50">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="5">5 resultados</SelectItem>
-                  <SelectItem value="10">10 resultados</SelectItem>
-                  <SelectItem value="25">25 resultados</SelectItem>
-                  <SelectItem value="50">50 resultados</SelectItem>
-                  <SelectItem value="100">100 resultados</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
             {/* Status de Contato */}
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">Filtrar por Status (Local)</Label>

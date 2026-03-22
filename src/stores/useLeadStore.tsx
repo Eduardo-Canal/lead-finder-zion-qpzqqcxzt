@@ -63,7 +63,7 @@ type LeadStoreContextType = {
   togglePorte: (porte: string, checked: boolean) => void
   clearFilters: () => void
   toggleContact: (cnpj: string) => Promise<void>
-  searchLeads: (page?: number) => Promise<void>
+  searchLeads: (page?: number, limitOverride?: number) => Promise<void>
   isSearching: boolean
 }
 
@@ -196,7 +196,7 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
     fetchInitialData()
   }, [fetchInitialData])
 
-  const searchLeads = async (pageToFetch?: number | any) => {
+  const searchLeads = async (pageToFetch?: number | any, limitOverride?: number) => {
     if (!user) return
 
     if (filters.cnaes.length === 0) {
@@ -217,6 +217,8 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
       .map((c) => (typeof c === 'string' ? c.replace(/\D/g, '') : String(c).replace(/\D/g, '')))
       .filter(Boolean)
 
+    const currentLimit = limitOverride ?? (typeof filters.limit === 'number' ? filters.limit : 10)
+
     const payload = {
       cnae_fiscal_principal: sanitizedCnaes.length > 0 ? sanitizedCnaes : null,
       uf: filters.ufs.length > 0 ? filters.ufs : null,
@@ -230,15 +232,13 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
           ? filters.situacao
           : null,
       page: targetPage,
-      limit: typeof filters.limit === 'number' ? filters.limit : 10,
+      limit: currentLimit,
     }
 
     try {
       const { data, error } = await supabase.functions.invoke('buscar-leads', {
         body: payload,
       })
-
-      console.log('Full API Response:', data)
 
       if (error) {
         console.error('Search API Connection Error:', error)

@@ -12,11 +12,25 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationNext,
+  PaginationPrevious,
+} from '@/components/ui/pagination'
 import useLeadStore from '@/stores/useLeadStore'
 import useAuthStore from '@/stores/useAuthStore'
 import { LeadDetailsModal } from './LeadDetailsModal'
 import { cn } from '@/lib/utils'
-import { Loader2, ChevronLeft, ChevronRight, Copy } from 'lucide-react'
+import { Loader2, Copy } from 'lucide-react'
 import { toast } from 'sonner'
 
 const formatCnpj = (cnpj: string) => {
@@ -97,7 +111,8 @@ const copyToClipboard = (text: string, label: string) => {
 }
 
 export function ResultsTable() {
-  const { filteredLeads, toggleContact, isSearching, pagination, searchLeads } = useLeadStore()
+  const { filteredLeads, toggleContact, isSearching, pagination, searchLeads, setFilter, filters } =
+    useLeadStore()
   const { hasPermission } = useAuthStore()
   const [selectedLeadCnpj, setSelectedLeadCnpj] = useState<string | null>(null)
 
@@ -302,31 +317,72 @@ export function ResultsTable() {
           </TableBody>
         </Table>
 
-        {!isSearching && filteredLeads.length > 0 && pagination.totalPages > 0 && (
+        {filteredLeads.length > 0 && pagination.totalPages > 0 && (
           <div className="flex flex-col sm:flex-row items-center justify-between px-4 py-3 bg-slate-50 border-t mt-auto gap-4 sticky left-0 right-0">
-            <div className="text-sm text-muted-foreground text-center sm:text-left">
-              Página <span className="font-medium text-foreground">{pagination.page}</span> de{' '}
-              <span className="font-medium text-foreground">{pagination.totalPages}</span> (
-              {pagination.totalCount} resultados)
+            <div className="flex flex-col sm:flex-row items-center gap-4 text-sm text-muted-foreground w-full sm:w-auto">
+              <div className="flex items-center gap-2">
+                <span className="whitespace-nowrap">Itens por página:</span>
+                <Select
+                  value={filters.limit?.toString() || '10'}
+                  onValueChange={(v) => {
+                    const newLimit = Number(v)
+                    setFilter('limit', newLimit)
+                    searchLeads(1, newLimit)
+                  }}
+                  disabled={isSearching}
+                >
+                  <SelectTrigger className="h-8 w-[70px] bg-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="25">25</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="text-center sm:text-left">
+                Página <span className="font-medium text-foreground">{pagination.page}</span> de{' '}
+                <span className="font-medium text-foreground">{pagination.totalPages}</span> (
+                {pagination.totalCount} resultados)
+              </div>
             </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => searchLeads(pagination.page - 1)}
-                disabled={pagination.page <= 1 || isSearching}
-              >
-                <ChevronLeft className="w-4 h-4 mr-1" /> Anterior
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => searchLeads(pagination.page + 1)}
-                disabled={pagination.page >= pagination.totalPages || isSearching}
-              >
-                Próxima <ChevronRight className="w-4 h-4 ml-1" />
-              </Button>
-            </div>
+
+            <Pagination className="mx-0 w-auto">
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      if (pagination.page > 1 && !isSearching) searchLeads(pagination.page - 1)
+                    }}
+                    className={cn(
+                      pagination.page <= 1 || isSearching
+                        ? 'pointer-events-none opacity-50'
+                        : 'cursor-pointer',
+                      'bg-white',
+                    )}
+                  />
+                </PaginationItem>
+                <PaginationItem>
+                  <PaginationNext
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      if (pagination.page < pagination.totalPages && !isSearching)
+                        searchLeads(pagination.page + 1)
+                    }}
+                    className={cn(
+                      pagination.page >= pagination.totalPages || isSearching
+                        ? 'pointer-events-none opacity-50'
+                        : 'cursor-pointer',
+                      'bg-white',
+                    )}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
           </div>
         )}
       </div>
