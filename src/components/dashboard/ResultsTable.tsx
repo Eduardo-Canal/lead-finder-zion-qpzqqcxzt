@@ -26,6 +26,12 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import useLeadStore from '@/stores/useLeadStore'
 import useAuthStore from '@/stores/useAuthStore'
 import { LeadDetailsModal } from './LeadDetailsModal'
@@ -111,8 +117,16 @@ const copyToClipboard = (text: string, label: string) => {
 }
 
 export function ResultsTable() {
-  const { filteredLeads, toggleContact, isSearching, pagination, searchLeads, setFilter, filters } =
-    useLeadStore()
+  const {
+    filteredLeads,
+    updateContactStatus,
+    removeContact,
+    isSearching,
+    pagination,
+    searchLeads,
+    setFilter,
+    filters,
+  } = useLeadStore()
   const { hasPermission } = useAuthStore()
   const [selectedLeadCnpj, setSelectedLeadCnpj] = useState<string | null>(null)
 
@@ -136,7 +150,7 @@ export function ResultsTable() {
               <TableHead className="w-[120px]">Data de Abertura</TableHead>
               <TableHead className="w-[250px]">E-mail</TableHead>
               <TableHead className="w-[200px]">Telefone</TableHead>
-              <TableHead className="w-[120px]">Contatado</TableHead>
+              <TableHead className="w-[140px]">Status Contato</TableHead>
               <TableHead className="text-right w-[100px]">Ações</TableHead>
             </TableRow>
           </TableHeader>
@@ -269,23 +283,61 @@ export function ResultsTable() {
                   </TableCell>
                   <TableCell>
                     {lead.contatado ? (
-                      <Badge
-                        className={cn(
-                          'bg-emerald-500 text-white flex gap-1 w-max items-center px-2 py-1 animate-in zoom-in-95',
-                          canContact && 'hover:bg-emerald-600 cursor-pointer',
+                      <div className="flex flex-col gap-1.5 items-start">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild disabled={!canContact}>
+                            <Badge
+                              className={cn(
+                                'flex gap-1 w-max items-center px-2 py-1 animate-in zoom-in-95',
+                                lead.status_contato === 'Em Negociação'
+                                  ? 'bg-amber-500 hover:bg-amber-600 text-white'
+                                  : 'bg-emerald-500 hover:bg-emerald-600 text-white',
+                                canContact && 'cursor-pointer',
+                              )}
+                              title={`Contatado em: ${lead.contatadoEm}`}
+                            >
+                              {lead.status_contato === 'Em Negociação'
+                                ? 'Em Negociação'
+                                : 'Contatado'}
+                            </Badge>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="start">
+                            <DropdownMenuItem
+                              onClick={() => updateContactStatus(lead.cnpj, 'Contatado')}
+                            >
+                              Marcar como Contatado
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => updateContactStatus(lead.cnpj, 'Em Negociação')}
+                            >
+                              Marcar como Em Negociação
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => removeContact(lead.cnpj)}
+                              className="text-destructive focus:text-destructive"
+                            >
+                              Remover Marcação
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                        {lead.contatadoPor && (
+                          <div
+                            className="text-[10px] text-muted-foreground bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 truncate max-w-[120px] font-medium"
+                            title={`Executivo responsável: ${lead.contatadoPor}`}
+                          >
+                            👤 {lead.contatadoPor.split(' ')[0]}
+                          </div>
                         )}
-                        onClick={() => canContact && toggleContact(lead.cnpj)}
-                        title={`Contatado por: ${lead.contatadoPor} em ${lead.contatadoEm}`}
-                      >
-                        Sim
-                      </Badge>
+                      </div>
                     ) : (
                       <div className="flex items-center space-x-2">
                         <Checkbox
                           id={`contact-${lead.cnpj}`}
                           checked={false}
                           disabled={!canContact}
-                          onCheckedChange={() => canContact && toggleContact(lead.cnpj)}
+                          onCheckedChange={() =>
+                            canContact && updateContactStatus(lead.cnpj, 'Contatado')
+                          }
                         />
                         <label
                           htmlFor={`contact-${lead.cnpj}`}

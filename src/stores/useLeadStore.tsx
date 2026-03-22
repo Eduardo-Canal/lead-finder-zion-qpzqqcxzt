@@ -29,6 +29,7 @@ export type FilteredLead = {
   contatado: boolean
   contatadoPor?: string
   contatadoEm?: string
+  status_contato?: string
 }
 
 export type Filters = {
@@ -62,7 +63,8 @@ type LeadStoreContextType = {
   toggleUf: (uf: string, checked: boolean) => void
   togglePorte: (porte: string, checked: boolean) => void
   clearFilters: () => void
-  toggleContact: (cnpj: string) => Promise<void>
+  updateContactStatus: (cnpj: string, status: string) => Promise<void>
+  removeContact: (cnpj: string) => Promise<void>
   searchLeads: (page?: number, limitOverride?: number) => Promise<void>
   isSearching: boolean
 }
@@ -312,17 +314,18 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
     setPagination({ page: 1, totalPages: 1, totalCount: 0 })
   }
 
-  const toggleContact = async (cnpj: string) => {
+  const updateContactStatus = async (cnpj: string, status: string) => {
     if (!user) return
     const existing = contatos.find((c) => c.cnpj === cnpj)
 
     if (existing) {
-      await supabase.from('contatos_realizados').delete().eq('id', existing.id)
+      await supabase.from('contatos_realizados').update({ status }).eq('id', existing.id)
     } else {
       await supabase.from('contatos_realizados').insert({
         cnpj,
         executivo_id: user.id,
         executivo_nome: user.nome,
+        status,
       })
     }
 
@@ -331,6 +334,19 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
       .select('*')
       .order('data_contato', { ascending: false })
     if (cData) setContatos(cData)
+  }
+
+  const removeContact = async (cnpj: string) => {
+    if (!user) return
+    const existing = contatos.find((c) => c.cnpj === cnpj)
+    if (existing) {
+      await supabase.from('contatos_realizados').delete().eq('id', existing.id)
+      const { data: cData } = await supabase
+        .from('contatos_realizados')
+        .select('*')
+        .order('data_contato', { ascending: false })
+      if (cData) setContatos(cData)
+    }
   }
 
   const leads = useMemo<FilteredLead[]>(() => {
@@ -343,6 +359,7 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
         contatadoEm: contato
           ? new Date(contato.data_contato).toLocaleDateString('pt-BR')
           : undefined,
+        status_contato: contato?.status || 'Contatado',
       }
     })
   }, [leadsRaw, contatos])
@@ -364,8 +381,13 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
       if (filters.sizeQuick && filters.sizeQuick !== 'Todos' && lead.porte !== filters.sizeQuick)
         return false
 
-      if (filters.contactStatus === 'Contatado' && !lead.contatado) return false
-      if (filters.contactStatus === 'Não Contatado' && lead.contatado) return false
+      if (filters.contactStatus && filters.contactStatus !== 'Todos') {
+        if (filters.contactStatus === 'Não Contatados' && lead.contatado) return false
+        if (filters.contactStatus === 'Contatados' && lead.status_contato !== 'Contatado')
+          return false
+        if (filters.contactStatus === 'Em Negociação' && lead.status_contato !== 'Em Negociação')
+          return false
+      }
 
       return true
     })
@@ -385,7 +407,8 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
         toggleUf,
         togglePorte,
         clearFilters,
-        toggleContact,
+        updateContactStatus,
+        removeContact,
         searchLeads,
         isSearching,
       },

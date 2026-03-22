@@ -299,8 +299,9 @@ export function FilterPanel() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Todos">Todos os Status</SelectItem>
-                  <SelectItem value="Não Contatado">Não Contatado</SelectItem>
-                  <SelectItem value="Contatado">Contatado</SelectItem>
+                  <SelectItem value="Não Contatados">Não Contatados</SelectItem>
+                  <SelectItem value="Contatados">Contatados</SelectItem>
+                  <SelectItem value="Em Negociação">Em Negociação</SelectItem>
                 </SelectContent>
               </Select>
             </div>
