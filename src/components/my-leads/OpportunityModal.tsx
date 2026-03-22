@@ -4,8 +4,8 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
   DialogDescription,
+  DialogFooter,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -17,10 +17,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Slider } from '@/components/ui/slider'
 import useMyLeadsStore, { LeadSalvo, Opportunity } from '@/stores/useMyLeadsStore'
 import { toast } from 'sonner'
+import { Loader2 } from 'lucide-react'
 
-interface OpportunityModalProps {
+type OpportunityModalProps = {
   lead: LeadSalvo | null
   opportunity: Opportunity | null
   onClose: () => void
@@ -28,66 +30,91 @@ interface OpportunityModalProps {
 
 export function OpportunityModal({ lead, opportunity, onClose }: OpportunityModalProps) {
   const { createOpportunity, updateOpportunity } = useMyLeadsStore()
+
   const [value, setValue] = useState('')
-  const [probability, setProbability] = useState('')
+  const [probability, setProbability] = useState([50])
   const [stage, setStage] = useState('prospecting')
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     if (opportunity) {
       setValue(opportunity.value.toString())
-      setProbability(opportunity.probability.toString())
+      setProbability([opportunity.probability])
       setStage(opportunity.stage)
     } else {
       setValue('')
-      setProbability('50')
+      setProbability([50])
       setStage('prospecting')
     }
   }, [opportunity, lead])
 
-  if (!lead) return null
-
   const handleSave = async () => {
-    setIsSubmitting(true)
+    if (!lead) return
+    setSaving(true)
+
     try {
-      const numValue = parseFloat(value.replace(/[^0-9.-]+/g, '')) || 0
-      const numProb = parseInt(probability, 10) || 0
+      const numValue = Number(value) || 0
 
       if (opportunity) {
         await updateOpportunity(opportunity.id, {
           value: numValue,
-          probability: numProb,
+          probability: probability[0],
           stage: stage as any,
         })
-        toast.success('Oportunidade atualizada com sucesso!')
+        toast.success('Oportunidade atualizada!')
       } else {
-        await createOpportunity(lead.id, numValue, numProb, stage)
-        toast.success('Oportunidade criada com sucesso!')
+        await createOpportunity(lead.id, numValue, probability[0], stage)
+        toast.success('Oportunidade criada!')
       }
       onClose()
-    } catch (e) {
-      toast.error('Erro ao salvar oportunidade.')
+    } catch (err) {
+      toast.error('Erro ao salvar oportunidade')
     } finally {
-      setIsSubmitting(false)
+      setSaving(false)
     }
   }
 
+  if (!lead) return null
+
   return (
-    <Dialog open={!!lead} onOpenChange={(o) => !o && onClose()}>
+    <Dialog open={!!lead} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>{opportunity ? 'Editar Oportunidade' : 'Nova Oportunidade'}</DialogTitle>
-          <DialogDescription>
-            Configure os detalhes da oportunidade para{' '}
-            <strong className="text-foreground">{lead.razao_social}</strong>.
-          </DialogDescription>
+          <DialogDescription>{lead.razao_social}</DialogDescription>
         </DialogHeader>
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="stage">Estágio no Funil</Label>
+
+        <div className="grid gap-6 py-4">
+          <div className="grid gap-2">
+            <Label htmlFor="value">Valor Estimado (R$)</Label>
+            <Input
+              id="value"
+              type="number"
+              placeholder="Ex: 5000"
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+            />
+          </div>
+
+          <div className="grid gap-4">
+            <div className="flex justify-between items-center">
+              <Label>Probabilidade de Fechamento</Label>
+              <span className="text-sm font-medium text-primary">{probability[0]}%</span>
+            </div>
+            <Slider
+              value={probability}
+              onValueChange={setProbability}
+              max={100}
+              step={5}
+              className="py-2"
+            />
+          </div>
+
+          <div className="grid gap-2">
+            <Label>Estágio no Funil</Label>
             <Select value={stage} onValueChange={setStage}>
-              <SelectTrigger id="stage">
-                <SelectValue placeholder="Selecione o estágio" />
+              <SelectTrigger>
+                <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="prospecting">Prospecção</SelectItem>
@@ -97,37 +124,15 @@ export function OpportunityModal({ lead, opportunity, onClose }: OpportunityModa
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="value">Valor Estimado (R$)</Label>
-            <Input
-              id="value"
-              type="number"
-              min="0"
-              step="0.01"
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
-              placeholder="Ex: 5000.00"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="prob">Probabilidade de Fechamento (%)</Label>
-            <Input
-              id="prob"
-              type="number"
-              min="0"
-              max="100"
-              value={probability}
-              onChange={(e) => setProbability(e.target.value)}
-              placeholder="Ex: 50"
-            />
-          </div>
         </div>
+
         <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
+          <Button variant="outline" onClick={onClose}>
             Cancelar
           </Button>
-          <Button onClick={handleSave} disabled={isSubmitting}>
-            Salvar Oportunidade
+          <Button onClick={handleSave} disabled={saving}>
+            {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Salvar
           </Button>
         </DialogFooter>
       </DialogContent>

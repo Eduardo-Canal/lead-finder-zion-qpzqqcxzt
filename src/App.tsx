@@ -17,6 +17,7 @@ import Reports from '@/pages/Reports'
 import DebugAPI from '@/pages/DebugAPI'
 import DebugBitrix from '@/pages/DebugBitrix'
 import MonitoramentoBitrix from '@/pages/MonitoramentoBitrix'
+import TestesValidacao from '@/pages/TestesValidacao'
 import InteligenciaZion from '@/pages/InteligenciaZion'
 import NotFound from '@/pages/NotFound'
 import UpdatePassword from '@/pages/UpdatePassword'
@@ -98,6 +99,7 @@ const App = () => (
                     <Route path="/admin/debug-api" element={<DebugAPI />} />
                     <Route path="/admin/debug-bitrix" element={<DebugBitrix />} />
                     <Route path="/admin/monitoramento-bitrix" element={<MonitoramentoBitrix />} />
+                    <Route path="/admin/testes-validacao" element={<TestesValidacao />} />
                   </Route>
                   <Route path="*" element={<NotFound />} />
                 </Routes>

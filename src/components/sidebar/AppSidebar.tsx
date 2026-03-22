@@ -247,6 +247,16 @@ export function AppSidebar() {
                               </Link>
                             </SidebarMenuSubButton>
                           </SidebarMenuSubItem>
+                          <SidebarMenuSubItem>
+                            <SidebarMenuSubButton
+                              asChild
+                              isActive={location.pathname === '/admin/testes-validacao'}
+                            >
+                              <Link to="/admin/testes-validacao">
+                                <span>Testes e Validação (QA)</span>
+                              </Link>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
                         </>
                       )}
                     </SidebarMenuSub>
