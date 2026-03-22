@@ -5,6 +5,7 @@ import { User, LogOut, Bell, CheckCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { HelpModal } from '@/components/HelpModal'
 import useAuthStore from '@/stores/useAuthStore'
 import useNotificationStore from '@/stores/useNotificationStore'
 import { cn } from '@/lib/utils'
@@ -38,12 +39,14 @@ export default function Layout() {
             </h1>
           </div>
           <div className="flex items-center gap-2 sm:gap-4">
+            <HelpModal />
+
             <Popover>
               <PopoverTrigger asChild>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="relative text-muted-foreground hover:text-foreground hover:bg-slate-100 rounded-full h-9 w-9"
+                  className="relative text-muted-foreground hover:text-foreground hover:bg-slate-100 rounded-full h-9 w-9 transition-colors"
                 >
                   <Bell className="h-5 w-5" />
                   {unreadCount > 0 && (
