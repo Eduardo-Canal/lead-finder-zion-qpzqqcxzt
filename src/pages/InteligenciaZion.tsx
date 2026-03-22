@@ -81,6 +81,7 @@ export default function InteligenciaZion() {
   const [selectedCity, setSelectedCity] = useState<string>('Todas')
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedModalCnae, setSelectedModalCnae] = useState<string | null>(null)
+  const [selectedModalCurva, setSelectedModalCurva] = useState<string>('Todas')
 
   const navigate = useNavigate()
   const { clearFilters, addCnae } = useLeadStore()
@@ -157,6 +158,7 @@ export default function InteligenciaZion() {
 
   const handleOpenModal = (cnae: string) => {
     setSelectedModalCnae(cnae)
+    setSelectedModalCurva('Todas') // Reset filter on open
     setIsModalOpen(true)
   }
 
@@ -237,14 +239,25 @@ export default function InteligenciaZion() {
 
   const modalClients = useMemo(() => {
     if (!selectedModalCnae) return []
-    return filteredClients.filter((c) => {
+    let filtered = filteredClients.filter((c) => {
       const cnae = c.cnae_principal?.trim() || 'Não informado'
       if (selectedModalCnae === 'Outros Setores') {
         return !top8Cnaes.includes(cnae)
       }
       return cnae === selectedModalCnae
     })
-  }, [filteredClients, selectedModalCnae, top8Cnaes])
+
+    if (selectedModalCurva !== 'Todas') {
+      filtered = filtered.filter((c) => {
+        if (selectedModalCurva === 'unclassified') {
+          return !['7592', '7594', '7596', '7598'].includes(c.curva_abc || '')
+        }
+        return c.curva_abc === selectedModalCurva
+      })
+    }
+
+    return filtered
+  }, [filteredClients, selectedModalCnae, top8Cnaes, selectedModalCurva])
 
   const totalFiltered = filteredClients.length
 
@@ -492,15 +505,35 @@ export default function InteligenciaZion() {
 
       {/* Modal - Detalhamento de Clientes */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-3xl h-[600px] max-h-[90vh] flex flex-col p-0 overflow-hidden bg-slate-50/50">
-          <DialogHeader className="p-6 pb-4 border-b bg-white shrink-0 flex flex-col items-start gap-1 space-y-0 sticky top-0 z-20 shadow-sm">
-            <DialogTitle className="text-xl">Segmento: {selectedModalCnae}</DialogTitle>
-            <DialogDescription className="text-base text-muted-foreground">
-              <span className="font-semibold text-slate-800">{modalClients.length}</span>{' '}
-              {modalClients.length === 1
-                ? 'cliente Zion neste segmento'
-                : 'clientes Zion neste segmento'}
-            </DialogDescription>
+        <DialogContent className="max-w-4xl h-[650px] max-h-[90vh] flex flex-col p-0 overflow-hidden bg-slate-50/50">
+          <DialogHeader className="p-6 pb-4 border-b bg-white shrink-0 sticky top-0 z-20 shadow-sm">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pr-6">
+              <div className="flex flex-col items-start gap-1 space-y-0">
+                <DialogTitle className="text-xl line-clamp-2" title={selectedModalCnae || ''}>
+                  Segmento: {selectedModalCnae}
+                </DialogTitle>
+                <DialogDescription className="text-base text-muted-foreground">
+                  <span className="font-semibold text-slate-800">{modalClients.length}</span>{' '}
+                  {modalClients.length === 1 ? 'cliente Zion' : 'clientes Zion'}
+                </DialogDescription>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="text-sm font-medium text-slate-600">Curva ABC:</span>
+                <Select value={selectedModalCurva} onValueChange={setSelectedModalCurva}>
+                  <SelectTrigger className="w-[160px] bg-slate-50 h-9">
+                    <SelectValue placeholder="Todas" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Todas">Todas as Curvas</SelectItem>
+                    <SelectItem value="7592">A+</SelectItem>
+                    <SelectItem value="7594">A</SelectItem>
+                    <SelectItem value="7596">B</SelectItem>
+                    <SelectItem value="7598">C</SelectItem>
+                    <SelectItem value="unclassified">Não classificado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </DialogHeader>
 
           {/* Fixed Header Row for List */}
@@ -512,30 +545,36 @@ export default function InteligenciaZion() {
           <div className="flex-1 overflow-hidden p-6 pt-4 relative">
             <ScrollArea className="h-full w-full pr-4 -mr-4">
               <div className="space-y-3 pb-6">
-                {modalClients.map((client) => {
-                  const curva = getCurvaABCProps(client.curva_abc)
-                  return (
-                    <div
-                      key={client.id}
-                      className="flex items-center justify-between p-4 bg-white border border-slate-200 rounded-lg shadow-sm hover:bg-slate-50 transition-colors"
-                    >
-                      <div className="flex flex-col pr-4">
-                        <span className="font-medium text-slate-800">{client.company_name}</span>
-                        {client.cnpj && client.cnpj.trim() !== '' && (
-                          <span className="text-sm text-slate-500 font-mono mt-0.5">
-                            {client.cnpj}
-                          </span>
-                        )}
-                      </div>
-                      <Badge
-                        variant="outline"
-                        className={`font-bold px-3 py-1 shrink-0 ${curva.colorClass}`}
+                {modalClients.length === 0 ? (
+                  <div className="text-center py-12 text-muted-foreground bg-white border border-slate-200 rounded-lg border-dashed">
+                    Nenhum cliente encontrado para este filtro de Curva ABC.
+                  </div>
+                ) : (
+                  modalClients.map((client) => {
+                    const curva = getCurvaABCProps(client.curva_abc)
+                    return (
+                      <div
+                        key={client.id}
+                        className="flex items-center justify-between p-4 bg-white border border-slate-200 rounded-lg shadow-sm hover:bg-slate-50 transition-colors"
                       >
-                        {curva.label}
-                      </Badge>
-                    </div>
-                  )
-                })}
+                        <div className="flex flex-col pr-4">
+                          <span className="font-medium text-slate-800">{client.company_name}</span>
+                          {client.cnpj && client.cnpj.trim() !== '' && (
+                            <span className="text-sm text-slate-500 font-mono mt-0.5">
+                              {client.cnpj}
+                            </span>
+                          )}
+                        </div>
+                        <Badge
+                          variant="outline"
+                          className={`font-bold px-3 py-1 shrink-0 ${curva.colorClass}`}
+                        >
+                          {curva.label}
+                        </Badge>
+                      </div>
+                    )
+                  })
+                )}
               </div>
             </ScrollArea>
           </div>
