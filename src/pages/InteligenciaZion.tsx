@@ -1,6 +1,9 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase/client'
+import * as XLSX from 'xlsx'
+import { jsPDF } from 'jspdf'
+import html2canvas from 'html2canvas'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import {
@@ -31,6 +34,12 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
   Loader2,
   RefreshCw,
   Search,
@@ -39,6 +48,7 @@ import {
   Building2,
   BrainCircuit,
   Eye,
+  Download,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import useLeadStore from '@/stores/useLeadStore'
@@ -77,6 +87,7 @@ export default function InteligenciaZion() {
   const [clients, setClients] = useState<Client[]>([])
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
+  const [exporting, setExporting] = useState(false)
   const [selectedState, setSelectedState] = useState<string>('Todos')
   const [selectedCity, setSelectedCity] = useState<string>('Todas')
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -208,6 +219,30 @@ export default function InteligenciaZion() {
       .sort((a, b) => b.count - a.count)
   }, [filteredClients])
 
+  const cnaeStats = useMemo(() => {
+    return tableData.map((row) => {
+      const clientsOfCnae = filteredClients.filter((c) => {
+        const cnae = c.cnae_principal?.trim() || 'Não informado'
+        return cnae === row.cnae
+      })
+
+      const curvas = clientsOfCnae.reduce(
+        (acc, c) => {
+          const label = getCurvaABCProps(c.curva_abc).label
+          acc[label] = (acc[label] || 0) + 1
+          return acc
+        },
+        {} as Record<string, number>,
+      )
+
+      return {
+        cnae: row.cnae,
+        count: row.count,
+        curvas,
+      }
+    })
+  }, [tableData, filteredClients])
+
   const chartData = useMemo(() => {
     // Limit to top 10 for better pie chart visualization
     const topN = tableData.slice(0, 8)
@@ -261,6 +296,147 @@ export default function InteligenciaZion() {
 
   const totalFiltered = filteredClients.length
 
+  const handleExportExcel = () => {
+    try {
+      const wb = XLSX.utils.book_new()
+
+      const summaryData = [
+        ['Relatório de Inteligência Zion'],
+        ['Total de Clientes (Filtro)', totalFiltered],
+        ['Setores Distintos (CNAEs)', tableData.length],
+      ]
+      const wsSummary = XLSX.utils.aoa_to_sheet(summaryData)
+      XLSX.utils.book_append_sheet(wb, wsSummary, 'Resumo')
+
+      const chartDataExport = [['Setor (CNAE)', 'Quantidade de Clientes']]
+      chartData.forEach((item) => {
+        chartDataExport.push([item.cnae, String(item.count)])
+      })
+      const wsChart = XLSX.utils.aoa_to_sheet(chartDataExport)
+      XLSX.utils.book_append_sheet(wb, wsChart, 'Distribuição por Setor')
+
+      const cnaeHeaders = [
+        'CNAE Principal',
+        'Total de Clientes',
+        'A+',
+        'A',
+        'B',
+        'C',
+        'Não classificado',
+      ]
+      const cnaeRows = cnaeStats.map((stat) => [
+        stat.cnae,
+        stat.count,
+        stat.curvas['A+'] || 0,
+        stat.curvas['A'] || 0,
+        stat.curvas['B'] || 0,
+        stat.curvas['C'] || 0,
+        stat.curvas['Não classificado'] || 0,
+      ])
+      const wsCnaes = XLSX.utils.aoa_to_sheet([cnaeHeaders, ...cnaeRows])
+      XLSX.utils.book_append_sheet(wb, wsCnaes, 'Tabela de CNAEs')
+
+      const clientHeaders = [
+        'Empresa',
+        'CNPJ',
+        'CNAE Principal',
+        'Curva ABC',
+        'Cidade',
+        'Estado',
+        'Email',
+        'Telefone',
+      ]
+      const clientRows = filteredClients.map((c) => [
+        c.company_name,
+        c.cnpj,
+        c.cnae_principal || 'Não informado',
+        getCurvaABCProps(c.curva_abc).label,
+        c.city,
+        c.state,
+        c.email,
+        c.phone,
+      ])
+      const wsClients = XLSX.utils.aoa_to_sheet([clientHeaders, ...clientRows])
+      XLSX.utils.book_append_sheet(wb, wsClients, 'Clientes Detalhados')
+
+      XLSX.writeFile(wb, `Zion_Relatorio_${new Date().getTime()}.xlsx`)
+      toast.success('Excel exportado com sucesso!')
+    } catch (e) {
+      console.error(e)
+      toast.error('Erro ao exportar Excel')
+    }
+  }
+
+  const handleExportPDF = async () => {
+    try {
+      setExporting(true)
+      const pdf = new jsPDF('p', 'pt', 'a4')
+      let y = 40
+
+      pdf.setFontSize(18)
+      pdf.text('Relatório de Inteligência Zion', 40, y)
+      y += 30
+
+      pdf.setFontSize(12)
+      pdf.text(`Total de Clientes (Filtro): ${totalFiltered}`, 40, y)
+      y += 20
+      pdf.text(`Setores Distintos (CNAEs): ${tableData.length}`, 40, y)
+      y += 30
+
+      const chartElement = document.getElementById('chart-container-export')
+      if (chartElement) {
+        const canvas = await html2canvas(chartElement, { scale: 2 })
+        const imgData = canvas.toDataURL('image/png')
+        const pdfWidth = 400
+        const pdfHeight = (canvas.height * pdfWidth) / canvas.width
+
+        if (y + pdfHeight > 800) {
+          pdf.addPage()
+          y = 40
+        }
+
+        pdf.addImage(imgData, 'PNG', 40, y, pdfWidth, pdfHeight)
+        y += pdfHeight + 30
+      }
+
+      if (y > 750) {
+        pdf.addPage()
+        y = 40
+      }
+
+      pdf.setFontSize(14)
+      pdf.setFont(undefined, 'bold')
+      pdf.text('Tabela de CNAEs com Curva ABC', 40, y)
+      y += 20
+
+      pdf.setFontSize(10)
+
+      for (const stat of cnaeStats) {
+        if (y > 780) {
+          pdf.addPage()
+          y = 40
+        }
+        pdf.setFont(undefined, 'bold')
+        const text = `${stat.cnae.substring(0, 70)}${stat.cnae.length > 70 ? '...' : ''}`
+        pdf.text(text, 40, y)
+        y += 15
+
+        pdf.setFont(undefined, 'normal')
+        const line2 = `Total: ${stat.count} | A+: ${stat.curvas['A+'] || 0} | A: ${stat.curvas['A'] || 0} | B: ${stat.curvas['B'] || 0} | C: ${stat.curvas['C'] || 0} | N/C: ${stat.curvas['Não classificado'] || 0}`
+        pdf.text(line2, 50, y)
+        y += 20
+      }
+
+      pdf.save(`Zion_Relatorio_${new Date().getTime()}.pdf`)
+      toast.success('PDF exportado com sucesso!')
+    } catch (e) {
+      console.error(e)
+      toast.error('Erro ao exportar PDF')
+    } finally {
+      setExporting(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex h-[60vh] w-full items-center justify-center text-muted-foreground animate-fade-in">
@@ -285,19 +461,38 @@ export default function InteligenciaZion() {
             Analise sua carteira atual de clientes e descubra novos oceanos azuis para prospecção.
           </p>
         </div>
-        <Button
-          onClick={handleSync}
-          disabled={syncing}
-          variant="outline"
-          className="gap-2 shrink-0 bg-white"
-        >
-          {syncing ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <RefreshCw className="h-4 w-4" />
-          )}
-          Sincronizar Bitrix
-        </Button>
+        <div className="flex items-center gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="gap-2 bg-white" disabled={exporting}>
+                {exporting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Download className="h-4 w-4" />
+                )}
+                Exportar
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleExportExcel}>Exportar para Excel</DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExportPDF}>Exportar para PDF</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <Button
+            onClick={handleSync}
+            disabled={syncing}
+            variant="outline"
+            className="gap-2 shrink-0 bg-white"
+          >
+            {syncing ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="h-4 w-4" />
+            )}
+            Sincronizar Bitrix
+          </Button>
+        </div>
       </div>
 
       {/* Metrics Row */}
@@ -382,7 +577,7 @@ export default function InteligenciaZion() {
             <CardTitle className="text-lg">Distribuição por Setor</CardTitle>
             <CardDescription>Top 8 CNAEs mais representativos na base filtrada.</CardDescription>
           </CardHeader>
-          <CardContent className="flex-1 pb-4">
+          <CardContent className="flex-1 pb-4" id="chart-container-export">
             {chartData.length > 0 ? (
               <ChartContainer config={chartConfig} className="mx-auto aspect-square max-h-[300px]">
                 <PieChart>
