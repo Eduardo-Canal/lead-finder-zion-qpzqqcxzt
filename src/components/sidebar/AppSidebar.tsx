@@ -170,6 +170,16 @@ export function AppSidebar() {
                           <SidebarMenuSubItem>
                             <SidebarMenuSubButton
                               asChild
+                              isActive={location.pathname === '/configuracoes/auditoria'}
+                            >
+                              <Link to="/configuracoes/auditoria">
+                                <span>Auditoria do Sistema</span>
+                              </Link>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                          <SidebarMenuSubItem>
+                            <SidebarMenuSubButton
+                              asChild
                               isActive={location.pathname === '/configuracoes/avancado'}
                             >
                               <Link to="/configuracoes/avancado">

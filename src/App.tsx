@@ -12,6 +12,7 @@ import SearchHistory from '@/pages/SearchHistory'
 import UserManagement from '@/pages/UserManagement'
 import ConfiguracoesAvancadas from '@/pages/ConfiguracoesAvancadas'
 import RemindersConfig from '@/pages/RemindersConfig'
+import AuditLogs from '@/pages/AuditLogs'
 import DebugAPI from '@/pages/DebugAPI'
 import DebugBitrix from '@/pages/DebugBitrix'
 import MonitoramentoBitrix from '@/pages/MonitoramentoBitrix'
@@ -88,6 +89,7 @@ const App = () => (
                     <Route path="/meu-historico" element={<SearchHistory />} />
                     <Route path="/gestao-usuarios" element={<UserManagement />} />
                     <Route path="/configuracoes/lembretes" element={<RemindersConfig />} />
+                    <Route path="/configuracoes/auditoria" element={<AuditLogs />} />
                     <Route path="/configuracoes/avancado" element={<ConfiguracoesAvancadas />} />
                     <Route path="/admin/debug-api" element={<DebugAPI />} />
                     <Route path="/admin/debug-bitrix" element={<DebugBitrix />} />

@@ -51,6 +51,42 @@ export type Database = {
         }
         Relationships: []
       }
+      audit_logs: {
+        Row: {
+          action: string
+          changes: Json | null
+          created_at: string
+          entity_id: string | null
+          entity_type: string
+          id: string
+          ip_address: unknown
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          changes?: Json | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          ip_address?: unknown
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          changes?: Json | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          ip_address?: unknown
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       bitrix_api_logs: {
         Row: {
           created_at: string | null
@@ -856,6 +892,16 @@ export const Constants = {
 //   tempo_resposta_ms: integer (nullable)
 //   total_resultados: integer (nullable)
 //   resposta_json: jsonb (nullable)
+// Table: audit_logs
+//   id: uuid (not null, default: gen_random_uuid())
+//   user_id: uuid (nullable)
+//   action: text (not null)
+//   entity_type: text (not null)
+//   entity_id: uuid (nullable)
+//   changes: jsonb (nullable)
+//   ip_address: inet (nullable)
+//   user_agent: text (nullable)
+//   created_at: timestamp with time zone (not null, default: now())
 // Table: bitrix_api_logs
 //   id: uuid (not null, default: gen_random_uuid())
 //   timestamp: timestamp with time zone (not null, default: now())
@@ -1020,6 +1066,9 @@ export const Constants = {
 // --- CONSTRAINTS ---
 // Table: api_debug_logs
 //   PRIMARY KEY api_debug_logs_pkey: PRIMARY KEY (id)
+// Table: audit_logs
+//   PRIMARY KEY audit_logs_pkey: PRIMARY KEY (id)
+//   FOREIGN KEY audit_logs_user_id_fkey: FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE SET NULL
 // Table: bitrix_api_logs
 //   PRIMARY KEY bitrix_api_logs_pkey: PRIMARY KEY (id)
 // Table: bitrix_clients_zion
@@ -1071,6 +1120,11 @@ export const Constants = {
 //   Policy "Enable INSERT for authenticated admins" (INSERT, PERMISSIVE) roles={authenticated}
 //     WITH CHECK: (EXISTS ( SELECT 1    FROM (profiles p      JOIN perfis_acesso pa ON ((p.perfil_id = pa.id)))   WHERE ((p.user_id = auth.uid()) AND (pa.nome = 'Administrador'::text))))
 //   Policy "Enable SELECT for authenticated admins" (SELECT, PERMISSIVE) roles={authenticated}
+//     USING: (EXISTS ( SELECT 1    FROM (profiles p      JOIN perfis_acesso pa ON ((p.perfil_id = pa.id)))   WHERE ((p.user_id = auth.uid()) AND (pa.nome = 'Administrador'::text))))
+// Table: audit_logs
+//   Policy "Enable insert for authenticated users" (INSERT, PERMISSIVE) roles={authenticated}
+//     WITH CHECK: (user_id = auth.uid())
+//   Policy "Enable select for admins" (SELECT, PERMISSIVE) roles={authenticated}
 //     USING: (EXISTS ( SELECT 1    FROM (profiles p      JOIN perfis_acesso pa ON ((p.perfil_id = pa.id)))   WHERE ((p.user_id = auth.uid()) AND (pa.nome = 'Administrador'::text))))
 // Table: bitrix_api_logs
 //   Policy "Allow authenticated users all on bitrix_api_logs" (ALL, PERMISSIVE) roles={authenticated}
@@ -1318,6 +1372,9 @@ export const Constants = {
 //   update_reminders_updated_at_trigger: CREATE TRIGGER update_reminders_updated_at_trigger BEFORE UPDATE ON public.reminders FOR EACH ROW EXECUTE FUNCTION update_reminders_updated_at()
 
 // --- INDEXES ---
+// Table: audit_logs
+//   CREATE INDEX idx_audit_logs_created_at ON public.audit_logs USING btree (created_at DESC)
+//   CREATE INDEX idx_audit_logs_user_id ON public.audit_logs USING btree (user_id)
 // Table: bitrix_api_logs
 //   CREATE INDEX idx_bitrix_api_logs_endpoint ON public.bitrix_api_logs USING btree (endpoint)
 //   CREATE INDEX idx_bitrix_api_logs_timestamp ON public.bitrix_api_logs USING btree ("timestamp")
