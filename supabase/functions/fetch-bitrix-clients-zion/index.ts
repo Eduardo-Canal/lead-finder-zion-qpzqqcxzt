@@ -133,16 +133,31 @@ Deno.serve(async (req: Request) => {
       return { city, state }
     }
 
+    // Função auxiliar para normalizar códigos de estado numéricos para siglas
+    const normalizeState = (rawState: any) => {
+      if (!rawState) return ''
+      const s = String(rawState).trim().toUpperCase()
+      const map: Record<string, string> = {
+        '150': 'SP',
+        '010': 'SP',
+        '070': 'SP',
+        '530': 'SC',
+        ES: 'ES',
+        SP: 'SP',
+      }
+      return map[s] || s
+    }
+
     const extractedClients = allCompanies
       .map((c: any) => {
         let city = c.ADDRESS_CITY || ''
-        let state = c.ADDRESS_PROVINCE || ''
+        let state = normalizeState(c.ADDRESS_PROVINCE)
 
-        // Fallback para extrair do ADDRESS completo se ambos os campos nativos estiverem vazios
-        if (!city && !state && c.ADDRESS) {
+        // Fallback para extrair do ADDRESS completo se os campos nativos estiverem vazios
+        if ((!city || !state) && c.ADDRESS) {
           const parsed = parseAddress(c.ADDRESS)
-          city = parsed.city
-          state = parsed.state
+          if (!city) city = parsed.city
+          if (!state) state = normalizeState(parsed.state)
         }
 
         // Default se não encontrar nada de forma alguma
