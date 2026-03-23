@@ -59,6 +59,10 @@ import {
   Gauge,
   Shield,
   ListChecks,
+  PlayCircle,
+  Terminal,
+  Save,
+  Palette,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -332,6 +336,36 @@ const helpData: Topic[] = [
         title: 'Interpretando Resultados',
         desc: 'Status: PASSOU (verde) é sucesso, FALHOU (vermelho) alerta erro e AVISO (amarelo) indica lentidão. Utilize os botões para "Exportar Relatório CSV" completo e "Limpar Dados" para remover os registros fictícios gerados.',
         icon: ListChecks,
+      },
+      {
+        id: 't6-7',
+        title: 'Executar Todos os Testes',
+        desc: 'O botão "Executar Todos os Testes" permite rodar todos os testes de QA simultaneamente em lote. O processamento ocorre sequencialmente de forma rápida, concluindo a bateria inteira em poucos segundos e de forma paralela sempre que possível.',
+        icon: PlayCircle,
+      },
+      {
+        id: 't6-8',
+        title: 'Painel de Logs em Tempo Real',
+        desc: 'Ao executar ou expandir os cards de teste, um terminal técnico é exibido no rodapé do card, oferecendo um diagnóstico detalhado. Ele mostra o que está acontecendo em tempo real, documentando comandos e retornos durante a execução.',
+        icon: Terminal,
+      },
+      {
+        id: 't6-9',
+        title: 'Persistência de Resultados',
+        desc: 'O sistema salva automaticamente o progresso no navegador (localStorage), garantindo que os resultados dos testes e logs permaneçam disponíveis após um refresh da página. Para limpar, utilize o botão "Limpar Dados de Teste".',
+        icon: Save,
+      },
+      {
+        id: 't6-10',
+        title: 'Resumo de Métricas e Taxa de Sucesso',
+        desc: 'A taxa de sucesso global é calculada em tempo real no topo do painel (total de testes que PASSARAM / total de testes executados × 100%). Interprete essa métrica para validar rapidamente a saúde geral e identificar se a aplicação está apta.',
+        icon: Activity,
+      },
+      {
+        id: 't6-11',
+        title: 'Testes de UX/UI',
+        desc: 'Esta categoria inclui 3 testes: Responsividade (adaptação de breakpoints), Help System (modais e busca de ajuda) e Ícones e Cores (aderência ao design system), garantindo uma experiência de usuário (UX) fluida e visualmente consistente.',
+        icon: Palette,
       },
     ],
   },
