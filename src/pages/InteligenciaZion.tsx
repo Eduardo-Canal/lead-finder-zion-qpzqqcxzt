@@ -31,7 +31,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogFooter,
 } from '@/components/ui/dialog'
 import {
   DropdownMenu,
@@ -52,6 +51,7 @@ import {
   Briefcase,
   Activity,
   FolderOpen,
+  FileText,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import useLeadStore from '@/stores/useLeadStore'
@@ -856,9 +856,9 @@ export default function InteligenciaZion() {
             </span>
           </div>
 
-          <div className="flex-1 overflow-hidden p-6 pt-4 relative bg-slate-50/50">
+          <div className="flex-1 overflow-hidden px-6 py-4 relative bg-slate-50/50">
             <ScrollArea className="h-full w-full pr-4 -mr-4">
-              <div className="space-y-3 pb-6">
+              <div className="space-y-3 pb-2">
                 {modalClients.length === 0 ? (
                   <div className="h-48 flex items-center justify-center">
                     <EmptyState
@@ -899,12 +899,10 @@ export default function InteligenciaZion() {
             </ScrollArea>
           </div>
 
-          <div className="p-4 border-t bg-white shrink-0 mt-auto">
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsModalOpen(false)}>
-                Fechar Detalhes
-              </Button>
-            </DialogFooter>
+          <div className="px-6 py-3 border-t border-slate-200 bg-white shrink-0 mt-auto flex justify-end shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.02)]">
+            <Button variant="outline" onClick={() => setIsModalOpen(false)}>
+              Fechar Detalhes
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
