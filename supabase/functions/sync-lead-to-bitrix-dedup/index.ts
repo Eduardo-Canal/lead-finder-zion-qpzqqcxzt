@@ -51,20 +51,24 @@ function calculateSimilarity(s1: string, s2: string): number {
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
+  let retry_logs: string[] = []
+  let simulate_503 = false
+
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey)
 
     const payload = await req.json().catch(() => ({}))
-    const { lead } = payload
+    const { lead, _simulate_503 } = payload
+    simulate_503 = !!_simulate_503
 
     if (!lead || (!lead.cnpj && !lead.razao_social)) {
       return new Response(
         JSON.stringify({
           error: 'Dados insuficientes. CNPJ ou Razão Social são obrigatórios.',
         }),
-        { status: 400, headers: corsHeaders },
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       )
     }
 
@@ -75,15 +79,45 @@ Deno.serve(async (req: Request) => {
     const rateLimiterUrl = `${supabaseUrl}/functions/v1/bitrix-rate-limiter`
 
     async function callBitrix(endpoint: string, method: string = 'GET', body?: any) {
-      const res = await fetch(rateLimiterUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${serviceRoleKey}` },
-        body: JSON.stringify({ endpoint: baseUrl + endpoint, method, body }),
-      })
-      const data = await res.json()
-      if (!res.ok || !data.success)
-        throw new Error(data.message || data.error || 'Bitrix API error')
-      return data.data
+      let attempt = 1
+      const maxRetries = 3 // Retry logic up to 3 times after initial failure (4 attempts total)
+      let delay = 1000
+
+      while (attempt <= maxRetries + 1) {
+        const timestamp = new Date().toISOString()
+        try {
+          if (simulate_503) {
+            throw new Error('503 Service Unavailable (Simulated)')
+          }
+
+          const res = await fetch(rateLimiterUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${serviceRoleKey}`,
+            },
+            body: JSON.stringify({ endpoint: baseUrl + endpoint, method, body }),
+          })
+          const data = await res.json()
+          if (!res.ok || !data.success)
+            throw new Error(data.message || data.error || 'Bitrix API error')
+          return data.data
+        } catch (error: any) {
+          retry_logs.push(
+            `[${timestamp}] Tentativa ${attempt}: Falhou com erro - ${error.message}. ` +
+              (attempt <= maxRetries
+                ? `Aguardando ${delay}ms para tentar novamente...`
+                : `Limite de tentativas excedido.`),
+          )
+
+          if (attempt > maxRetries) {
+            throw error
+          }
+          await new Promise((res) => setTimeout(res, delay))
+          delay *= 2 // Exponential backoff (1s, 2s, 4s...)
+          attempt++
+        }
+      }
     }
 
     let bitrix_company_id: number | null = null
@@ -103,10 +137,11 @@ Deno.serve(async (req: Request) => {
         return new Response(
           JSON.stringify({
             bitrix_company_id,
-            bitrix_lead_id: null, // Reserved for future lead creation
+            bitrix_lead_id: null,
             action,
             duplicates_found,
             requires_review,
+            retry_logs,
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
         )
@@ -147,6 +182,7 @@ Deno.serve(async (req: Request) => {
             action,
             duplicates_found,
             requires_review,
+            retry_logs,
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
         )
@@ -218,6 +254,7 @@ Deno.serve(async (req: Request) => {
         action,
         duplicates_found,
         requires_review,
+        retry_logs,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
     )
@@ -226,8 +263,12 @@ Deno.serve(async (req: Request) => {
     return new Response(
       JSON.stringify({
         error: error.message || 'Erro interno na sincronização com Bitrix',
+        retry_logs,
       }),
-      { status: 500, headers: corsHeaders },
+      {
+        status: simulate_503 ? 200 : 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      },
     )
   }
 })

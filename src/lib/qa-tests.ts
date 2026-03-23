@@ -490,30 +490,48 @@ export const QA_TESTS: QATest[] = [
     section: 'Resiliência e Falha',
     name: 'Teste de Falha de Rede Durante Merge',
     description:
-      'Valida se a Edge Function implementa retry logic com exponential backoff (1s, 2s, 4s, 8s) quando a requisição falha.',
+      'Valida se a Edge Function implementa retry logic com exponential backoff (1s, 2s, 4s, 8s) quando a requisição falha por timeout ou erro 503.',
     run: async ({ log }) => {
       const start = performance.now()
-      log('Simulando requisição para Bitrix24 com resposta HTTP 503 (Service Unavailable)...')
-
-      const simulateRetry = async (attempt: number, delay: number) => {
-        log(
-          `[${new Date().toISOString()}] Attempt ${attempt}: Falha simulada. Aguardando ${delay}ms...`,
-        )
-        await new Promise((res) => setTimeout(res, delay))
-      }
-
-      await simulateRetry(1, 1000)
-      await simulateRetry(2, 2000)
-      await simulateRetry(3, 4000)
-
+      log('Invocando Edge Function "sync-lead-to-bitrix-dedup"...')
       log(
-        `[${new Date().toISOString()}] Attempt 4: Falha final alcançada. Operação abortada com segurança.`,
+        'Enviando payload com flag _simulate_503 para forçar erro 503 e disparar o backoff logic (1s, 2s, 4s)...',
       )
 
-      const execTime = performance.now() - start
-      log(`Tempo total de simulação: ${execTime.toFixed(0)}ms`)
-      log('Retry logic com exponential backoff verificado com sucesso.')
-      return true
+      try {
+        const { data, error } = await supabase.functions.invoke('sync-lead-to-bitrix-dedup', {
+          body: {
+            lead: { cnpj: '00000000000000', razao_social: 'QA AUTO MERGE SYNC' },
+            _simulate_503: true,
+          },
+        })
+
+        const execTime = performance.now() - start
+
+        // Em caso de falha simulada (com a flag ativa), a edge function retorna status 200 para facilitar
+        // a extração dos retry_logs no payload
+        const logsFromEdge = data?.retry_logs || []
+
+        if (logsFromEdge.length > 0) {
+          logsFromEdge.forEach((l: string) => log(`[Edge Function] ${l}`))
+        }
+
+        log(`Tempo total de execução com Retry Delay: ${(execTime / 1000).toFixed(2)}s`)
+
+        // Verificando se 4 tentativas ocorreram (A tentativa original + 3 retentativas)
+        if (logsFromEdge.length >= 4) {
+          log(
+            'Retry logic com exponential backoff verificado com sucesso (limite de 3 retentativas atingido antes de abortar de forma segura).',
+          )
+          return true
+        } else {
+          log(`Falha: Número de tentativas registradas: ${logsFromEdge.length}. Esperado: 4.`)
+          return false
+        }
+      } catch (err: any) {
+        log(`Erro inesperado na chamada ao serviço: ${err.message}`)
+        return false
+      }
     },
   },
   {

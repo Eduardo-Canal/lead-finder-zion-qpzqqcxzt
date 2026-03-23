@@ -9,6 +9,6 @@
     "fetch-bitrix-clients-zion": 12,
     "validate-cnpj": 2,
     "send-reminders": 1,
-    "sync-lead-to-bitrix-dedup": 4
+    "sync-lead-to-bitrix-dedup": 5
   }
 }
