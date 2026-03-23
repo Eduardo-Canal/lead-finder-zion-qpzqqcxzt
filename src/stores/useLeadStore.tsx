@@ -280,7 +280,9 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
                 : 'Todas',
             total_results: data?.count || results.length,
           })
-          .catch((err: any) => console.error('Erro ao salvar histórico de pesquisa:', err))
+          .then(({ error }) => {
+            if (error) console.error('Erro ao salvar histórico de pesquisa:', error)
+          })
       }
 
       if (results.length > 0) {
