@@ -46,6 +46,9 @@ export function MergeModal({
       const absorbedId =
         primary === 'original' ? record.duplicate_company_id : record.original_company_id
 
+      const absorbedCompany = primary === 'original' ? record.duplicate : record.original
+      const mergedToCompany = primary === 'original' ? record.original : record.duplicate
+
       const { error: updateError } = await supabase
         .from('company_duplicates')
         .update({
@@ -64,7 +67,15 @@ export function MergeModal({
         merged_at: new Date().toISOString(),
         reason: 'Mesclagem manual via interface de controle de duplicidades',
         reversible: true,
-      })
+        original_company_name: absorbedCompany?.company_name || `Empresa ID: ${absorbedId}`,
+        merged_to_company_name: mergedToCompany?.company_name || `Empresa ID: ${mergedToId}`,
+        status: 'merged',
+        fields_updated: {
+          before: absorbedCompany,
+          after: mergedToCompany,
+          reassociated_leads: [],
+        },
+      } as any)
 
       if (historyError) throw historyError
 
