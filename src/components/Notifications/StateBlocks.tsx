@@ -23,27 +23,20 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        'flex flex-col items-center justify-center p-12 text-center text-muted-foreground animate-fade-in',
+        'flex flex-col items-center justify-center p-12 text-center text-muted-foreground animate-fade-in h-full w-full',
         className,
       )}
     >
-      <div
-        className="bg-slate-100 p-4 rounded-full mb-4"
-        style={{ backgroundColor: designTokens.colors.neutral[100] }}
-      >
-        <Icon className="w-8 h-8" style={{ color: designTokens.colors.neutral[400] }} />
+      <div className="bg-slate-50 p-5 rounded-full mb-5 shadow-sm border border-slate-100">
+        <Icon className="w-10 h-10 text-slate-400" />
       </div>
-      <h3 className="text-lg font-semibold" style={{ color: designTokens.colors.neutral[700] }}>
-        {title}
-      </h3>
+      <h3 className="text-xl font-bold tracking-tight text-slate-800">{title}</h3>
       {description && (
-        <p className="text-sm mt-1 max-w-sm" style={{ color: designTokens.colors.neutral[500] }}>
-          {description}
-        </p>
+        <p className="text-sm mt-2 max-w-sm text-slate-500 font-medium">{description}</p>
       )}
       {actionLabel && onAction && (
-        <Button onClick={onAction} className="mt-6" variant="outline">
-          {actionLabel}
+        <Button onClick={onAction} className="mt-6 gap-2" variant="outline">
+          <RefreshCw className="w-4 h-4" /> {actionLabel}
         </Button>
       )}
     </div>
@@ -54,10 +47,10 @@ export function LoadingTableRows({ columns = 5, rows = 5 }) {
   return (
     <>
       {Array.from({ length: rows }).map((_, i) => (
-        <TableRow key={i} className="animate-pulse">
+        <TableRow key={i} className="animate-pulse hover:bg-transparent">
           {Array.from({ length: columns }).map((_, j) => (
             <TableCell key={j}>
-              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-5 w-full bg-slate-100 rounded-md" />
             </TableCell>
           ))}
         </TableRow>
@@ -69,15 +62,15 @@ export function LoadingTableRows({ columns = 5, rows = 5 }) {
 export function LoadingCard() {
   return (
     <div
-      className="rounded-xl border bg-white p-6 space-y-4 shadow-sm"
+      className="rounded-xl border bg-white p-6 space-y-4 shadow-sm animate-pulse"
       style={{ borderColor: designTokens.colors.neutral[200] }}
     >
-      <Skeleton className="h-6 w-1/3" />
-      <Skeleton className="h-20 w-full" />
-      <div className="flex gap-4">
-        <Skeleton className="h-8 w-24" />
-        <Skeleton className="h-8 w-24" />
+      <div className="flex justify-between items-center">
+        <Skeleton className="h-5 w-1/3 bg-slate-100" />
+        <Skeleton className="h-6 w-6 rounded-full bg-slate-100" />
       </div>
+      <Skeleton className="h-10 w-1/2 bg-slate-100 mt-2" />
+      <Skeleton className="h-3 w-1/4 bg-slate-100" />
     </div>
   )
 }
@@ -88,13 +81,13 @@ export function LoadingList({ items = 3 }) {
       {Array.from({ length: items }).map((_, i) => (
         <div
           key={i}
-          className="flex items-center gap-4 border p-4 rounded-xl"
+          className="flex items-center gap-4 border p-4 rounded-xl shadow-sm animate-pulse"
           style={{ borderColor: designTokens.colors.neutral[200] }}
         >
-          <Skeleton className="h-12 w-12 rounded-full" />
+          <Skeleton className="h-12 w-12 rounded-full bg-slate-100" />
           <div className="space-y-2 flex-1">
-            <Skeleton className="h-4 w-1/4" />
-            <Skeleton className="h-3 w-1/2" />
+            <Skeleton className="h-4 w-1/4 bg-slate-100" />
+            <Skeleton className="h-3 w-1/2 bg-slate-100" />
           </div>
         </div>
       ))}
@@ -116,25 +109,18 @@ export function ErrorState({
   return (
     <div
       className={cn(
-        'flex flex-col items-center justify-center p-12 text-center animate-fade-in',
+        'flex flex-col items-center justify-center p-12 text-center animate-fade-in h-full w-full',
         className,
       )}
     >
-      <div
-        className="bg-red-50 p-4 rounded-full mb-4"
-        style={{ backgroundColor: designTokens.colors.error[50] }}
-      >
-        <AlertCircle className="w-8 h-8" style={{ color: designTokens.colors.error[500] }} />
+      <div className="bg-red-50 p-5 rounded-full mb-5 shadow-sm border border-red-100">
+        <AlertCircle className="w-10 h-10 text-red-500" />
       </div>
-      <h3 className="text-lg font-semibold" style={{ color: designTokens.colors.neutral[800] }}>
-        {title}
-      </h3>
-      <p className="text-sm mt-1 max-w-sm" style={{ color: designTokens.colors.neutral[500] }}>
-        {description}
-      </p>
+      <h3 className="text-xl font-bold tracking-tight text-slate-800">{title}</h3>
+      <p className="text-sm mt-2 max-w-sm text-slate-500 font-medium">{description}</p>
       {onRetry && (
-        <Button onClick={onRetry} variant="outline" className="mt-6">
-          <RefreshCw className="w-4 h-4 mr-2" />
+        <Button onClick={onRetry} variant="outline" className="mt-6 gap-2">
+          <RefreshCw className="w-4 h-4" />
           Tentar novamente
         </Button>
       )}

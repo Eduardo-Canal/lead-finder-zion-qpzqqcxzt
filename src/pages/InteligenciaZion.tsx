@@ -49,10 +49,17 @@ import {
   BrainCircuit,
   Eye,
   Download,
+  Briefcase,
+  Activity,
+  FolderOpen,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import useLeadStore from '@/stores/useLeadStore'
 import useAuthStore from '@/stores/useAuthStore'
+import { cn } from '@/lib/utils'
+import { designTokens } from '@/constants/designTokens'
+import { EmptyState, LoadingCard, LoadingTableRows } from '@/components/Notifications/StateBlocks'
+import { Skeleton } from '@/components/ui/skeleton'
 
 type Client = {
   id: string
@@ -72,8 +79,8 @@ type Client = {
 const getCurvaABCProps = (code: string | null) => {
   const map: Record<string, { label: string; colorClass: string }> = {
     '7592': { label: 'A+', colorClass: 'bg-blue-100 text-blue-800 border-blue-200' },
-    '7594': { label: 'A', colorClass: 'bg-green-100 text-green-800 border-green-200' },
-    '7596': { label: 'B', colorClass: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
+    '7594': { label: 'A', colorClass: 'bg-emerald-100 text-emerald-800 border-emerald-200' },
+    '7596': { label: 'B', colorClass: 'bg-amber-100 text-amber-800 border-amber-200' },
     '7598': { label: 'C', colorClass: 'bg-red-100 text-red-800 border-red-200' },
   }
   return (
@@ -465,29 +472,64 @@ export default function InteligenciaZion() {
 
   if (loading) {
     return (
-      <div className="flex h-[60vh] w-full items-center justify-center text-muted-foreground animate-fade-in">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-sm font-medium">Carregando dados da Inteligência Zion...</p>
+      <div className={cn(designTokens.layout.page, 'max-w-7xl mx-auto space-y-6 animate-fade-in')}>
+        <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-8">
+          <div className="space-y-2 w-full sm:w-1/2">
+            <Skeleton className="h-8 w-3/4" />
+            <Skeleton className="h-4 w-full" />
+          </div>
+          <div className="flex gap-2 w-full sm:w-auto">
+            <Skeleton className="h-10 w-24" />
+            <Skeleton className="h-10 w-32" />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <LoadingCard />
+          <LoadingCard />
+          <LoadingCard />
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <Card className="lg:col-span-1 shadow-sm">
+            <CardHeader>
+              <Skeleton className="h-6 w-1/2 mb-2" />
+              <Skeleton className="h-4 w-3/4" />
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-[250px] w-full rounded-full aspect-square mx-auto" />
+            </CardContent>
+          </Card>
+          <Card className="lg:col-span-2 shadow-sm">
+            <CardHeader>
+              <Skeleton className="h-6 w-1/3 mb-2" />
+              <Skeleton className="h-4 w-2/3" />
+            </CardHeader>
+            <CardContent className="p-0">
+              <Table>
+                <TableBody>
+                  <LoadingTableRows columns={3} rows={6} />
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6 animate-fade-in pb-12">
+    <div className={cn(designTokens.layout.page, 'max-w-7xl mx-auto space-y-6 animate-fade-in')}>
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight text-[#0066CC] flex items-center gap-2">
+          <h2 className="text-2xl font-bold tracking-tight text-primary flex items-center gap-2">
             <BrainCircuit className="h-6 w-6" />
             Inteligência Zion
           </h2>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-muted-foreground mt-1 text-sm md:text-base">
             Analise sua carteira atual de clientes e descubra novos oceanos azuis para prospecção.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="gap-2 bg-white" disabled={exporting}>
@@ -496,52 +538,61 @@ export default function InteligenciaZion() {
                 ) : (
                   <Download className="h-4 w-4" />
                 )}
-                Exportar
+                <span className="hidden sm:inline">Exportar</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={handleExportExcel}>Exportar para Excel</DropdownMenuItem>
-              <DropdownMenuItem onClick={handleExportPDF}>Exportar para PDF</DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExportExcel} className="cursor-pointer">
+                Exportar para Excel
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExportPDF} className="cursor-pointer">
+                Exportar para PDF
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
           <Button
             onClick={handleSync}
             disabled={syncing}
-            variant="outline"
-            className="gap-2 shrink-0 bg-white"
+            variant="primary"
+            className="gap-2 shrink-0 shadow-sm"
           >
             {syncing ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
               <RefreshCw className="h-4 w-4" />
             )}
-            Sincronizar Bitrix
+            <span className="hidden sm:inline">Sincronizar Bitrix</span>
+            <span className="sm:hidden">Sincronizar</span>
           </Button>
         </div>
       </div>
 
       {/* Metrics Row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="bg-gradient-to-br from-[#0066CC] to-blue-700 text-white shadow-md border-none">
-          <CardContent className="p-6">
+        <Card className="bg-gradient-to-br from-primary to-primary-600 text-white shadow-md border-none overflow-hidden relative">
+          <div className="absolute right-0 top-0 opacity-10 translate-x-1/4 -translate-y-1/4">
+            <Users className="w-32 h-32" />
+          </div>
+          <CardContent className="p-6 relative z-10">
             <div className="flex items-center justify-between space-x-2">
-              <h3 className="text-sm font-medium text-blue-100">Total de Clientes (Filtro)</h3>
-              <Users className="h-5 w-5 text-blue-200" />
+              <h3 className="text-sm font-medium text-primary-50">Total de Clientes (Filtro)</h3>
+              <Users className="h-5 w-5 text-primary-100" />
             </div>
             <div className="text-4xl font-bold tracking-tight mt-2">{totalFiltered}</div>
-            <p className="text-xs text-blue-100 mt-1 opacity-80">
+            <p className="text-xs text-primary-100 mt-1 opacity-90">
               {totalFiltered === clients.length ? 'Base completa' : 'Base filtrada'}
             </p>
           </CardContent>
         </Card>
-        <Card className="shadow-sm border-slate-200">
+
+        <Card className="shadow-sm border-neutral-200">
           <CardContent className="p-6">
             <div className="flex items-center justify-between space-x-2">
               <h3 className="text-sm font-medium text-muted-foreground">
                 Setores Distintos (CNAEs)
               </h3>
-              <Building2 className="h-5 w-5 text-muted-foreground" />
+              <Activity className="h-5 w-5 text-secondary" />
             </div>
             <div className="text-3xl font-bold tracking-tight mt-2 text-slate-800">
               {tableData.length}
@@ -549,14 +600,15 @@ export default function InteligenciaZion() {
             <p className="text-xs text-muted-foreground mt-1">Atividades econômicas mapeadas</p>
           </CardContent>
         </Card>
-        <Card className="shadow-sm border-slate-200">
-          <CardContent className="p-6 flex flex-col justify-center h-full space-y-3">
+
+        <Card className="shadow-sm border-neutral-200">
+          <CardContent className="p-5 flex flex-col justify-center h-full space-y-3">
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                <MapPin className="h-3 w-3" /> Estado (UF)
+              <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                <MapPin className="h-3.5 w-3.5" /> Estado (UF)
               </label>
               <Select value={selectedState} onValueChange={setSelectedState}>
-                <SelectTrigger className="bg-slate-50 h-9">
+                <SelectTrigger className="bg-slate-50/50 h-9 transition-colors hover:bg-slate-50">
                   <SelectValue placeholder="Todos" />
                 </SelectTrigger>
                 <SelectContent>
@@ -570,15 +622,15 @@ export default function InteligenciaZion() {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                <MapPin className="h-3 w-3" /> Cidade
+              <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                <MapPin className="h-3.5 w-3.5" /> Cidade
               </label>
               <Select
                 value={selectedCity}
                 onValueChange={setSelectedCity}
                 disabled={selectedState === 'Todos' && uniqueCities.length > 50}
               >
-                <SelectTrigger className="bg-slate-50 h-9">
+                <SelectTrigger className="bg-slate-50/50 h-9 transition-colors hover:bg-slate-50">
                   <SelectValue placeholder="Todas" />
                 </SelectTrigger>
                 <SelectContent>
@@ -600,7 +652,9 @@ export default function InteligenciaZion() {
         {/* Pie Chart Card */}
         <Card className="lg:col-span-1 flex flex-col shadow-sm">
           <CardHeader>
-            <CardTitle className="text-lg">Distribuição por Setor</CardTitle>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Activity className="h-5 w-5 text-muted-foreground" /> Distribuição por Setor
+            </CardTitle>
             <CardDescription>Top 8 CNAEs mais representativos na base filtrada.</CardDescription>
           </CardHeader>
           <CardContent className="flex-1 pb-4" id="chart-container-export">
@@ -633,53 +687,72 @@ export default function InteligenciaZion() {
                 </PieChart>
               </ChartContainer>
             ) : (
-              <div className="h-full flex items-center justify-center text-muted-foreground text-sm border border-dashed rounded-lg bg-slate-50/50 min-h-[250px]">
-                Nenhum dado para exibir.
+              <div className="h-full min-h-[250px] flex items-center justify-center">
+                <EmptyState
+                  title="Nenhum dado"
+                  description="Ajuste os filtros para ver o gráfico."
+                  icon={Activity}
+                />
               </div>
             )}
           </CardContent>
         </Card>
 
         {/* Table Card */}
-        <Card className="lg:col-span-2 flex flex-col shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-lg">Análise de CNAEs (Oceanos Azuis)</CardTitle>
+        <Card className="lg:col-span-2 flex flex-col shadow-sm overflow-hidden">
+          <CardHeader className="bg-slate-50/50 border-b border-slate-100">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Briefcase className="h-5 w-5 text-primary" /> Análise de CNAEs (Oceanos Azuis)
+            </CardTitle>
             <CardDescription>
               Identifique as atividades principais dos seus clientes atuais para espelhar na busca
               de novos leads.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex-1 p-0">
-            <ScrollArea className="h-[400px] w-full rounded-b-lg border-t">
+            <ScrollArea className="h-[400px] w-full bg-white">
               <Table>
                 <TableHeader className="bg-slate-50 sticky top-0 z-10 shadow-sm">
                   <TableRow>
-                    <TableHead className="w-[50%]">CNAE Principal</TableHead>
-                    <TableHead className="text-center w-[20%]">Qtd. Clientes</TableHead>
-                    <TableHead className="text-right pr-6 w-[30%]">Ação</TableHead>
+                    <TableHead className="w-[50%]">
+                      <div className="flex items-center gap-2">
+                        <Briefcase className="h-3.5 w-3.5" /> CNAE Principal
+                      </div>
+                    </TableHead>
+                    <TableHead className="text-center w-[20%]">
+                      <div className="flex items-center justify-center gap-2">
+                        <Users className="h-3.5 w-3.5" /> Qtd. Clientes
+                      </div>
+                    </TableHead>
+                    <TableHead className="text-right pr-6 w-[30%]">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {tableData.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={3} className="text-center py-12 text-muted-foreground">
-                        Nenhum cliente encontrado com os filtros selecionados.
+                      <TableCell colSpan={3} className="h-64">
+                        <EmptyState
+                          title="Nenhum setor encontrado"
+                          description="Tente ajustar os filtros de estado ou cidade."
+                          icon={FolderOpen}
+                        />
                       </TableCell>
                     </TableRow>
                   ) : (
                     tableData.map((row, index) => (
                       <TableRow
                         key={index}
-                        className="group hover:bg-slate-50/80 transition-colors"
+                        className="group hover:bg-primary-50/40 transition-colors cursor-pointer"
+                        onClick={() => handleOpenModal(row.cnae)}
                       >
                         <TableCell className="font-medium text-slate-700">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2.5">
                             <div
-                              className="w-3 h-3 rounded-full shrink-0"
+                              className="w-3 h-3 rounded-full shrink-0 shadow-sm"
                               style={{ backgroundColor: chartConfig[row.cnae]?.color || '#cbd5e1' }}
                             />
                             <span
-                              className="truncate max-w-[300px] md:max-w-[400px]"
+                              className="truncate max-w-[200px] sm:max-w-[300px] md:max-w-[400px] group-hover:text-primary transition-colors"
                               title={row.cnae}
                             >
                               {row.cnae}
@@ -687,30 +760,39 @@ export default function InteligenciaZion() {
                           </div>
                         </TableCell>
                         <TableCell className="text-center">
-                          <Badge variant="secondary" className="font-mono bg-slate-100">
+                          <Badge
+                            variant="secondary"
+                            className="font-mono bg-slate-100/80 group-hover:bg-white transition-colors"
+                          >
                             {row.count}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right pr-4">
-                          <div className="flex justify-end items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity focus-within:opacity-100">
+                          <div className="flex justify-end items-center gap-1.5 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity focus-within:opacity-100">
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="text-slate-500 hover:bg-slate-200 gap-1.5 h-8 px-2"
-                              onClick={() => handleOpenModal(row.cnae)}
+                              className="text-slate-500 hover:bg-white hover:text-slate-900 gap-1.5 h-8 px-2 shadow-sm border border-transparent hover:border-slate-200"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleOpenModal(row.cnae)
+                              }}
                             >
                               <Eye className="h-3.5 w-3.5" />
-                              <span className="hidden xl:inline">Ver Clientes</span>
+                              <span className="hidden xl:inline">Ver</span>
                             </Button>
                             <Button
-                              variant="ghost"
+                              variant="primary"
                               size="sm"
-                              className="text-[#0066CC] hover:bg-[#0066CC]/10 hover:text-[#0066CC] gap-1.5 h-8 px-2"
-                              onClick={() => handleBuscarLeads(row.cnae)}
+                              className="gap-1.5 h-8 px-3 shadow-sm"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleBuscarLeads(row.cnae)
+                              }}
                               disabled={row.cnae.toLowerCase() === 'não informado'}
                             >
                               <Search className="h-3.5 w-3.5" />
-                              <span className="hidden xl:inline">Buscar Semelhantes</span>
+                              <span className="hidden xl:inline">Buscar</span>
                             </Button>
                           </div>
                         </TableCell>
@@ -729,19 +811,26 @@ export default function InteligenciaZion() {
         <DialogContent className="max-w-4xl h-[650px] max-h-[90vh] flex flex-col p-0 overflow-hidden bg-slate-50/50">
           <DialogHeader className="p-6 pb-4 border-b bg-white shrink-0 sticky top-0 z-20 shadow-sm">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pr-6">
-              <div className="flex flex-col items-start gap-1 space-y-0">
-                <DialogTitle className="text-xl line-clamp-2" title={selectedModalCnae || ''}>
-                  Segmento: {selectedModalCnae}
+              <div className="flex flex-col items-start gap-1.5">
+                <DialogTitle
+                  className="text-xl line-clamp-2 leading-tight text-slate-800"
+                  title={selectedModalCnae || ''}
+                >
+                  <span className="text-primary mr-1">Segmento:</span> {selectedModalCnae}
                 </DialogTitle>
-                <DialogDescription className="text-base text-muted-foreground">
-                  <span className="font-semibold text-slate-800">{modalClients.length}</span>{' '}
-                  {modalClients.length === 1 ? 'cliente Zion' : 'clientes Zion'}
+                <DialogDescription className="text-sm font-medium text-slate-500 flex items-center gap-1.5">
+                  <Badge variant="outline" className="bg-slate-50">
+                    {modalClients.length}{' '}
+                    {modalClients.length === 1 ? 'cliente encontrado' : 'clientes encontrados'}
+                  </Badge>
                 </DialogDescription>
               </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <span className="text-sm font-medium text-slate-600">Curva ABC:</span>
+              <div className="flex items-center gap-2.5 shrink-0 bg-slate-50 p-1.5 rounded-lg border">
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide pl-2">
+                  Curva ABC:
+                </span>
                 <Select value={selectedModalCurva} onValueChange={setSelectedModalCurva}>
-                  <SelectTrigger className="w-[160px] bg-slate-50 h-9">
+                  <SelectTrigger className="w-[150px] bg-white h-8 border-slate-200">
                     <SelectValue placeholder="Todas" />
                   </SelectTrigger>
                   <SelectContent>
@@ -759,16 +848,24 @@ export default function InteligenciaZion() {
 
           {/* Fixed Header Row for List */}
           <div className="flex items-center justify-between bg-slate-800 text-white pl-10 pr-12 py-3 shrink-0 z-10 shadow-md">
-            <span className="font-semibold text-sm tracking-wide">Empresa</span>
-            <span className="font-semibold text-sm tracking-wide">Curva ABC</span>
+            <span className="font-semibold text-sm tracking-wide flex items-center gap-2">
+              <Building2 className="w-4 h-4 text-slate-300" /> Empresa
+            </span>
+            <span className="font-semibold text-sm tracking-wide flex items-center gap-2">
+              <Activity className="w-4 h-4 text-slate-300" /> Curva ABC
+            </span>
           </div>
 
-          <div className="flex-1 overflow-hidden p-6 pt-4 relative">
+          <div className="flex-1 overflow-hidden p-6 pt-4 relative bg-slate-50/50">
             <ScrollArea className="h-full w-full pr-4 -mr-4">
               <div className="space-y-3 pb-6">
                 {modalClients.length === 0 ? (
-                  <div className="text-center py-12 text-muted-foreground bg-white border border-slate-200 rounded-lg border-dashed">
-                    Nenhum cliente encontrado para este filtro de Curva ABC.
+                  <div className="h-48 flex items-center justify-center">
+                    <EmptyState
+                      title="Nenhum cliente"
+                      description="Nenhum cliente encontrado para este filtro de Curva ABC."
+                      icon={Users}
+                    />
                   </div>
                 ) : (
                   modalClients.map((client) => {
@@ -776,19 +873,21 @@ export default function InteligenciaZion() {
                     return (
                       <div
                         key={client.id}
-                        className="flex items-center justify-between p-4 bg-white border border-slate-200 rounded-lg shadow-sm hover:bg-slate-50 transition-colors"
+                        className="flex items-center justify-between p-4 bg-white border border-slate-200 rounded-lg shadow-sm hover:border-primary/30 hover:shadow-md transition-all group"
                       >
                         <div className="flex flex-col pr-4">
-                          <span className="font-medium text-slate-800">{client.company_name}</span>
+                          <span className="font-semibold text-slate-800 group-hover:text-primary transition-colors">
+                            {client.company_name}
+                          </span>
                           {client.cnpj && client.cnpj.trim() !== '' && (
-                            <span className="text-sm text-slate-500 font-mono mt-0.5">
-                              {client.cnpj}
+                            <span className="text-xs text-slate-500 font-mono mt-1 flex items-center gap-1.5">
+                              <FileText className="w-3 h-3" /> {client.cnpj}
                             </span>
                           )}
                         </div>
                         <Badge
                           variant="outline"
-                          className={`font-bold px-3 py-1 shrink-0 ${curva.colorClass}`}
+                          className={`font-bold px-3 py-1 shrink-0 ${curva.colorClass} shadow-sm`}
                         >
                           {curva.label}
                         </Badge>
@@ -803,7 +902,7 @@ export default function InteligenciaZion() {
           <div className="p-4 border-t bg-white shrink-0 mt-auto">
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsModalOpen(false)}>
-                Fechar
+                Fechar Detalhes
               </Button>
             </DialogFooter>
           </div>
