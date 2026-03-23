@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/table'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 import { PieChart, Pie, Cell } from 'recharts'
-import { Badge } from '@/components/ui/badge'
+import { Badge, badgeVariants } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import {
   Dialog,
@@ -818,11 +818,13 @@ export default function InteligenciaZion() {
                 >
                   <span className="text-primary mr-1">Segmento:</span> {selectedModalCnae}
                 </DialogTitle>
-                <DialogDescription className="text-sm font-medium text-slate-500 flex items-center gap-1.5">
-                  <Badge variant="outline" className="bg-slate-50">
-                    {modalClients.length}{' '}
-                    {modalClients.length === 1 ? 'cliente encontrado' : 'clientes encontrados'}
-                  </Badge>
+                <DialogDescription asChild>
+                  <div className="text-sm font-medium text-slate-500 flex items-center gap-1.5">
+                    <span className={cn(badgeVariants({ variant: 'outline' }), 'bg-slate-50')}>
+                      {modalClients.length}{' '}
+                      {modalClients.length === 1 ? 'cliente encontrado' : 'clientes encontrados'}
+                    </span>
+                  </div>
                 </DialogDescription>
               </div>
               <div className="flex items-center gap-2.5 shrink-0 bg-slate-50 p-1.5 rounded-lg border">
