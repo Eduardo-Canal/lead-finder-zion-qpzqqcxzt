@@ -314,9 +314,14 @@ export type Database = {
           merged_at: string | null
           merged_by: string | null
           merged_to_company_id: number
+          merged_to_company_name: string | null
           original_company_id: number
+          original_company_name: string | null
           reason: string | null
           reversible: boolean | null
+          reverted_at: string | null
+          reverted_by: string | null
+          status: string | null
         }
         Insert: {
           created_at?: string
@@ -325,9 +330,14 @@ export type Database = {
           merged_at?: string | null
           merged_by?: string | null
           merged_to_company_id: number
+          merged_to_company_name?: string | null
           original_company_id: number
+          original_company_name?: string | null
           reason?: string | null
           reversible?: boolean | null
+          reverted_at?: string | null
+          reverted_by?: string | null
+          status?: string | null
         }
         Update: {
           created_at?: string
@@ -336,9 +346,14 @@ export type Database = {
           merged_at?: string | null
           merged_by?: string | null
           merged_to_company_id?: number
+          merged_to_company_name?: string | null
           original_company_id?: number
+          original_company_name?: string | null
           reason?: string | null
           reversible?: boolean | null
+          reverted_at?: string | null
+          reverted_by?: string | null
+          status?: string | null
         }
         Relationships: [
           {
@@ -1070,6 +1085,11 @@ export const Constants = {
 //   reason: text (nullable)
 //   reversible: boolean (nullable, default: true)
 //   created_at: timestamp with time zone (not null, default: now())
+//   original_company_name: text (nullable)
+//   merged_to_company_name: text (nullable)
+//   status: text (nullable, default: 'merged'::text)
+//   reverted_at: timestamp with time zone (nullable)
+//   reverted_by: uuid (nullable)
 // Table: configuracoes_sistema
 //   id: integer (not null, default: 1)
 //   data_ultima_atualizacao_rfb: timestamp with time zone (nullable)
@@ -1214,6 +1234,7 @@ export const Constants = {
 //   FOREIGN KEY company_merge_history_merged_by_fkey: FOREIGN KEY (merged_by) REFERENCES auth.users(id) ON DELETE SET NULL
 //   FOREIGN KEY company_merge_history_merged_to_company_id_fkey: FOREIGN KEY (merged_to_company_id) REFERENCES bitrix_clients_zion(bitrix_id) ON DELETE CASCADE
 //   PRIMARY KEY company_merge_history_pkey: PRIMARY KEY (id)
+//   FOREIGN KEY company_merge_history_reverted_by_fkey: FOREIGN KEY (reverted_by) REFERENCES auth.users(id) ON DELETE SET NULL
 // Table: configuracoes_sistema
 //   PRIMARY KEY configuracoes_sistema_pkey: PRIMARY KEY (id)
 // Table: contatos_realizados

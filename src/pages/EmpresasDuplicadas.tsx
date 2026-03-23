@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { CopySlash } from 'lucide-react'
 import { PendingTab } from '@/components/duplicates/PendingTab'
 import { HistoryTab } from '@/components/duplicates/HistoryTab'
+import { PotentialTab } from '@/components/duplicates/PotentialTab'
 
 export default function EmpresasDuplicadas() {
   const { user, hasPermission } = useAuthStore()
@@ -33,12 +34,16 @@ export default function EmpresasDuplicadas() {
       </div>
 
       <Tabs defaultValue="pending" className="w-full space-y-6">
-        <TabsList className="bg-slate-100/50 border">
+        <TabsList className="bg-slate-100/50 border flex-wrap h-auto w-fit max-w-full justify-start">
           <TabsTrigger value="pending">Pendentes de Revisão</TabsTrigger>
+          <TabsTrigger value="potential">Empresas Duplicadas Potenciais</TabsTrigger>
           <TabsTrigger value="history">Histórico de Merges</TabsTrigger>
         </TabsList>
         <TabsContent value="pending" className="mt-0">
           <PendingTab />
+        </TabsContent>
+        <TabsContent value="potential" className="mt-0">
+          <PotentialTab />
         </TabsContent>
         <TabsContent value="history" className="mt-0">
           <HistoryTab />
