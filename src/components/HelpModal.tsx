@@ -52,6 +52,13 @@ import {
   Edit3,
   LineChart,
   FileDown,
+  Beaker,
+  MousePointerClick,
+  Settings2,
+  Network,
+  Gauge,
+  Shield,
+  ListChecks,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -282,6 +289,49 @@ const helpData: Topic[] = [
         title: 'Exporte Dados para Apresentações',
         desc: 'Use a ferramenta de exportação em CSV para cruzar os leads capturados na Zion com outras ferramentas analíticas da empresa.',
         icon: FileDown,
+      },
+    ],
+  },
+  {
+    id: 't6',
+    title: 'Testes e Validação 🧪',
+    mainIcon: Beaker,
+    subtopics: [
+      {
+        id: 't6-1',
+        title: 'Como Acessar a Página de Testes',
+        desc: 'Exclusivo para admins. Acesse via menu lateral "Testes e Validação (QA)". Este painel é uma central automatizada para validar toda a saúde, integridade e regras de negócio da aplicação com um único clique.',
+        icon: MousePointerClick,
+      },
+      {
+        id: 't6-2',
+        title: 'Testes de Funcionalidade',
+        desc: 'Valida 11 recursos vitais: Paginação, Filtro de Status, Histórico, CNPJ, Curva ABC, Exportação, Funil Kanban, Lembretes, Auditoria, Relatórios e Senhas, garantindo a operação perfeita da plataforma de ponta a ponta.',
+        icon: Settings2,
+      },
+      {
+        id: 't6-3',
+        title: 'Testes de Integração',
+        desc: 'Verifica a comunicação crítica do sistema. Testa se as conexões com o banco Supabase, a integridade das Edge Functions e a geração segura de tokens pelo serviço de Autenticação estão totalmente operantes.',
+        icon: Network,
+      },
+      {
+        id: 't6-4',
+        title: 'Testes de Performance',
+        desc: 'Mede a velocidade da aplicação. O teste de Carregamento avalia se queries respondem rapidamente. O teste de Cache comprova a economia de tempo e créditos reutilizando pesquisas idênticas recentes.',
+        icon: Gauge,
+      },
+      {
+        id: 't6-5',
+        title: 'Testes de Segurança',
+        desc: 'Garante a blindagem dos dados da empresa. Valida as permissões de interface e testa as políticas RLS no banco, impedindo rigorosamente acessos indevidos a registros de outros usuários.',
+        icon: Shield,
+      },
+      {
+        id: 't6-6',
+        title: 'Interpretando Resultados',
+        desc: 'Status: PASSOU (verde) é sucesso, FALHOU (vermelho) alerta erro e AVISO (amarelo) indica lentidão. Utilize os botões para "Exportar Relatório CSV" completo e "Limpar Dados" para remover os registros fictícios gerados.',
+        icon: ListChecks,
       },
     ],
   },
