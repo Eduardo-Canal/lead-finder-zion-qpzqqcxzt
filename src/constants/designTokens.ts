@@ -116,6 +116,8 @@ export const TYPOGRAPHY = {
     relaxed: '1.625',
     loose: '2',
   },
+  pageTitle: 'text-3xl font-bold tracking-tight text-slate-900',
+  small: 'text-sm text-muted-foreground',
 } as const
 
 export const SPACING = {
@@ -176,15 +178,23 @@ export const EFFECTS = {
   },
 } as const
 
+export const LAYOUT = {
+  page: 'flex-1 space-y-6 p-4 md:p-8 pt-6',
+  card: 'rounded-xl border bg-card text-card-foreground shadow-sm bg-white',
+  tableContainer: 'rounded-md border bg-white shadow-sm overflow-hidden',
+} as const
+
 export const designTokens = {
   COLORS,
   TYPOGRAPHY,
   SPACING,
   BREAKPOINTS,
   EFFECTS,
+  LAYOUT,
   colors: COLORS,
   typography: TYPOGRAPHY,
   spacing: SPACING,
   breakpoints: BREAKPOINTS,
   effects: EFFECTS,
+  layout: LAYOUT,
 } as const
