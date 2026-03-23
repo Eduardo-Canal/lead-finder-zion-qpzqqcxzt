@@ -18,6 +18,7 @@ import DebugAPI from '@/pages/DebugAPI'
 import DebugBitrix from '@/pages/DebugBitrix'
 import MonitoramentoBitrix from '@/pages/MonitoramentoBitrix'
 import TestesValidacao from '@/pages/TestesValidacao'
+import EmpresasDuplicadas from '@/pages/EmpresasDuplicadas'
 import InteligenciaZion from '@/pages/InteligenciaZion'
 import NotFound from '@/pages/NotFound'
 import UpdatePassword from '@/pages/UpdatePassword'
@@ -96,6 +97,10 @@ const App = () => (
                     <Route path="/configuracoes/auditoria" element={<AuditLogs />} />
                     <Route path="/configuracoes/relatorios" element={<Reports />} />
                     <Route path="/configuracoes/avancado" element={<ConfiguracoesAvancadas />} />
+                    <Route
+                      path="/configuracoes/empresas-duplicadas"
+                      element={<EmpresasDuplicadas />}
+                    />
                     <Route path="/admin/debug-api" element={<DebugAPI />} />
                     <Route path="/admin/debug-bitrix" element={<DebugBitrix />} />
                     <Route path="/admin/monitoramento-bitrix" element={<MonitoramentoBitrix />} />

@@ -37,7 +37,7 @@ export function AppSidebar() {
   const location = useLocation()
   const { toggleSidebar, state } = useSidebar()
 
-  const isAdmin = user?.perfis_acesso?.nome === 'Administrador'
+  const isAdmin = user?.perfis_acesso?.nome === 'Administrador' || hasPermission('Acessar Admin')
 
   return (
     <Sidebar collapsible="icon">
@@ -214,6 +214,16 @@ export function AppSidebar() {
                             >
                               <Link to="/configuracoes/avancado">
                                 <span>Avançado</span>
+                              </Link>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                          <SidebarMenuSubItem>
+                            <SidebarMenuSubButton
+                              asChild
+                              isActive={location.pathname === '/configuracoes/empresas-duplicadas'}
+                            >
+                              <Link to="/configuracoes/empresas-duplicadas">
+                                <span>Empresas Duplicadas</span>
                               </Link>
                             </SidebarMenuSubButton>
                           </SidebarMenuSubItem>
