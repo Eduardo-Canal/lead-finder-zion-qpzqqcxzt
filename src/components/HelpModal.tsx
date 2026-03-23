@@ -334,37 +334,37 @@ const helpData: Topic[] = [
   },
   {
     id: 't6',
-    title: 'Deduplicação de Empresas 🔄',
+    title: '🔄 Deduplicação de Empresas',
     mainIcon: CopySlash,
     subtopics: [
       {
         id: 't6-1',
         title: 'Como Funciona a Deduplicação Automática',
-        desc: 'O sistema utiliza 3 níveis de busca para evitar dados repetidos: 1. CNPJ exato (busca sequencial segura); 2. Razão Social (com validação de similaridade para detectar variações de nome); 3. Criação de novo registro apenas quando nenhuma correspondência segura é encontrada.',
+        desc: 'O sistema utiliza 3 níveis de busca para evitar dados repetidos: 1. CNPJ exato (busca sequencial segura); 2. Razão Social (com validação de similaridade para detectar variações de nome); 3. Criar novo registro apenas quando nenhuma correspondência segura é encontrada.',
         icon: Waypoints,
       },
       {
         id: 't6-2',
         title: 'Seção Pendentes de Revisão',
-        desc: 'Área dedicada para visualizar, comparar e revisar possíveis empresas duplicadas identificadas pelo sistema. Permite fazer a mesclagem (merge) manual escolhendo qual cadastro deve ser mantido como o principal.',
+        desc: 'Área dedicada para visualizar, revisar e fazer merge de empresas duplicadas identificadas pelo sistema. Permite fazer a mesclagem manual escolhendo qual cadastro deve ser mantido como o principal.',
         icon: FileCheck2,
       },
       {
         id: 't6-3',
         title: 'Histórico de Merges',
-        desc: 'Painel de auditoria completa de todas as mesclagens realizadas. Oferece rastreabilidade total (quem fez, quando e por que) e a possibilidade de reverter a operação (desfazer merge) devolvendo a empresa absorvida e os leads associados.',
+        desc: 'Painel com auditoria completa de todas as mesclagens realizadas. Oferece rastreabilidade total (quem fez, quando e por que) e a possibilidade de reversão de operações (desfazer merge).',
         icon: FileClock,
       },
       {
         id: 't6-4',
         title: 'Análise Potencial com Fuzzy Matching',
-        desc: 'Ferramenta proativa que varre toda a sua base de dados utilizando o algoritmo "Fuzzy Matching" para encontrar empresas com nomes muito parecidos. Oferece sugestões de merge pré-preenchidas e estatísticas como a "Taxa de Resolução".',
+        desc: 'Ferramenta proativa que detalha a detecção automática de empresas com Razão Social similar varrendo a base com Fuzzy Matching. Oferece sugestões de merge pré-preenchidas e estatísticas de resolução.',
         icon: Wand2,
       },
       {
         id: 't6-5',
         title: 'Boas Práticas de Deduplicação',
-        desc: 'Recomendações essenciais: Revise regularmente a aba "Pendentes", sempre compare os dados antes de confirmar um merge, e utilize o "Score Mínimo" na aba de "Potenciais" para focar nos conflitos com maior chance de serem a mesma empresa.',
+        desc: 'Recomendações para manter sua base de dados limpa e confiável: Revise regularmente a aba de pendentes, compare os dados com atenção e valide as sugestões de merge proativas.',
         icon: ThumbsUp,
       },
     ],
@@ -418,7 +418,7 @@ export function HelpModal() {
   const [open, setOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedSubtopic, setSelectedSubtopic] = useState<Subtopic | null>(null)
-  const [expandedTopics, setExpandedTopics] = useState<string[]>(['t1']) // Default expand first
+  const [expandedTopics, setExpandedTopics] = useState<string[]>(['t1'])
 
   const filteredData = useMemo(() => {
     if (!searchQuery.trim()) return helpData
