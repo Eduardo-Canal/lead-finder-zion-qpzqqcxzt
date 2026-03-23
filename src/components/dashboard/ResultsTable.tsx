@@ -544,7 +544,7 @@ export function ResultsTable() {
       </div>
 
       <Dialog open={!!selectedLead} onOpenChange={(open) => !open && setSelectedLeadCnpj(null)}>
-        <DialogContent className="max-w-4xl p-0 overflow-hidden border-none shadow-2xl bg-slate-50/50">
+        <DialogContent className="max-w-4xl p-0 overflow-hidden flex flex-col border-none shadow-2xl bg-transparent max-h-[95vh] md:max-h-[90vh]">
           <DialogTitle className="sr-only">Detalhes do Lead</DialogTitle>
           {selectedLead && (
             <LeadDetailsModal lead={selectedLead} onClose={() => setSelectedLeadCnpj(null)} />

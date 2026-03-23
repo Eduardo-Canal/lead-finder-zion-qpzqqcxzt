@@ -1,18 +1,15 @@
-import { useEffect, useState, useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import { DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import {
-  Building2,
   MapPin,
   Briefcase,
   Phone,
   Mail,
   FileText,
   CheckCircle2,
-  Building,
   BookmarkPlus,
   Sparkles,
   Calendar,
@@ -129,18 +126,18 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
   const isEnriched = !!enrichedData
 
   return (
-    <div className="flex flex-col h-full bg-slate-50/50">
-      <DialogHeader className="p-6 pb-4 bg-white border-b border-slate-100 sticky top-0 z-10 shadow-sm">
+    <div className="flex flex-col h-full w-full bg-slate-50 min-h-0 overflow-hidden rounded-xl">
+      <DialogHeader className="p-5 md:p-6 pb-4 bg-white border-b border-slate-100 shrink-0 z-10 shadow-sm relative">
         <div className="flex justify-between items-start gap-4">
           <div className="space-y-1.5">
-            <DialogTitle className="text-2xl font-bold text-slate-800 leading-tight">
+            <DialogTitle className="text-xl md:text-2xl font-bold text-slate-800 leading-tight">
               {displayData.razao_social}
             </DialogTitle>
             <DialogDescription className="font-mono text-sm text-slate-500 flex items-center gap-1.5">
               <FileText className="w-4 h-4" /> {lead.cnpj}
             </DialogDescription>
           </div>
-          <div className="flex flex-col items-end gap-2">
+          <div className="flex flex-col items-end gap-2 shrink-0">
             <Badge
               variant={displayData.situacao?.toUpperCase() === 'ATIVA' ? 'default' : 'destructive'}
               className={cn(
@@ -164,26 +161,37 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
         </div>
       </DialogHeader>
 
-      <div className="p-6 flex-1 overflow-hidden">
+      <div className="flex-1 flex flex-col min-h-0 overflow-hidden relative">
         <Tabs
           value={activeTab}
           onValueChange={setActiveTab}
-          className="w-full h-full flex flex-col"
+          className="w-full h-full flex flex-col min-h-0"
         >
-          <TabsList className="grid w-full grid-cols-3 mb-6 bg-slate-100/80 p-1 rounded-xl">
-            <TabsTrigger value="resumo" className="rounded-lg data-[state=active]:shadow-sm">
-              Resumo
-            </TabsTrigger>
-            <TabsTrigger value="contato" className="rounded-lg data-[state=active]:shadow-sm">
-              Contatos
-            </TabsTrigger>
-            <TabsTrigger value="socios" className="rounded-lg data-[state=active]:shadow-sm">
-              Sócios
-            </TabsTrigger>
-          </TabsList>
+          <div className="px-5 md:px-6 pt-5 shrink-0 bg-slate-50 z-10">
+            <TabsList className="grid w-full grid-cols-3 bg-slate-200/60 p-1 rounded-xl">
+              <TabsTrigger
+                value="resumo"
+                className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
+              >
+                Resumo
+              </TabsTrigger>
+              <TabsTrigger
+                value="contato"
+                className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
+              >
+                Contatos
+              </TabsTrigger>
+              <TabsTrigger
+                value="socios"
+                className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
+              >
+                Sócios
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
-          <ScrollArea className="flex-1 -mx-6 px-6">
-            <TabsContent value="resumo" className="space-y-6 mt-0 animate-fade-in">
+          <div className="flex-1 overflow-y-auto px-5 md:px-6 pb-6 min-h-0 custom-scrollbar">
+            <TabsContent value="resumo" className="space-y-6 mt-5 animate-fade-in outline-none">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-sm flex items-start gap-4 hover:border-primary/30 transition-colors">
                   <div className="bg-primary/10 p-3 rounded-lg text-primary shrink-0">
@@ -243,7 +251,7 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
               </div>
 
               {displayData.cnaes_secundarios && displayData.cnaes_secundarios.length > 0 && (
-                <div className="mt-6 p-5 bg-white rounded-xl border border-slate-200 shadow-sm">
+                <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-sm">
                   <h4 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
                     <Briefcase className="w-4 h-4 text-primary" /> Atividades Secundárias
                   </h4>
@@ -262,7 +270,7 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
               )}
             </TabsContent>
 
-            <TabsContent value="contato" className="space-y-6 mt-0 animate-fade-in">
+            <TabsContent value="contato" className="space-y-6 mt-5 animate-fade-in outline-none">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="p-6 bg-white rounded-xl border border-slate-200 shadow-sm space-y-5">
                   <h4 className="font-bold flex items-center gap-2 text-slate-800 border-b border-slate-100 pb-3">
@@ -312,7 +320,7 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
               </div>
             </TabsContent>
 
-            <TabsContent value="socios" className="mt-0 animate-fade-in">
+            <TabsContent value="socios" className="mt-5 animate-fade-in outline-none">
               {!displayData.socios || displayData.socios.length === 0 ? (
                 <div className="text-center py-16 bg-white rounded-xl border-2 border-dashed border-slate-200">
                   <div className="bg-slate-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -357,18 +365,18 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
                 </div>
               )}
             </TabsContent>
-          </ScrollArea>
+          </div>
         </Tabs>
       </div>
 
-      <DialogFooter className="p-4 bg-white border-t border-slate-200 sticky bottom-0 z-10 flex flex-col sm:flex-row gap-3 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+      <DialogFooter className="p-4 md:px-6 bg-white border-t border-slate-200 shrink-0 flex flex-col sm:flex-row gap-3 relative z-10 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
         <div className="flex-1 flex items-center justify-start">
           {!isEnriched && (
             <Button
               variant="outline"
               onClick={handleEnrichLead}
               disabled={enriching}
-              className="gap-2 border-indigo-200 text-indigo-700 hover:bg-indigo-50 hover:text-indigo-800 font-semibold shadow-sm"
+              className="gap-2 border-indigo-200 text-indigo-700 hover:bg-indigo-50 hover:text-indigo-800 font-semibold shadow-sm w-full sm:w-auto"
             >
               {enriching ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -379,14 +387,14 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
             </Button>
           )}
         </div>
-        <Button variant="ghost" onClick={onClose} className="font-medium">
+        <Button variant="ghost" onClick={onClose} className="font-medium w-full sm:w-auto">
           Cancelar
         </Button>
         <Button
           onClick={handleSaveLead}
           disabled={saving || isSaved}
           className={cn(
-            'gap-2 font-bold shadow-sm transition-all',
+            'gap-2 font-bold shadow-sm transition-all w-full sm:w-auto',
             isSaved
               ? 'bg-emerald-500 hover:bg-emerald-600 text-white'
               : 'bg-primary hover:bg-primary-600 text-white',
