@@ -27,7 +27,11 @@ export const clearQATests = async (log: (m: string) => void) => {
     await supabase.from('leads_salvos').delete().like('razao_social', '[TESTE_QA]%')
     await supabase.from('search_history').delete().like('cnae', '[TESTE_QA]%')
     await supabase.from('audit_logs').delete().eq('action', 'TESTE_QA')
-    await supabase.from('bitrix_clients_zion').delete().like('company_name', 'ABC Logística%')
+    await supabase.from('bitrix_clients_zion').delete().like('company_name', '%[TESTE_QA]%')
+    await supabase
+      .from('company_merge_history')
+      .delete()
+      .like('original_company_name', '%[TESTE_QA]%')
     log('Limpeza concluída com sucesso.')
   } catch (err: any) {
     log(`Erro ao limpar dados: ${err.message}`)
@@ -539,20 +543,85 @@ export const QA_TESTS: QATest[] = [
     section: 'Resiliência e Falha',
     name: 'Teste de Corrupção de Dados no Bitrix24',
     description:
-      'Valida rollback da transação local quando a API externa retorna erro 500 ou resposta inválida.',
-    run: async ({ log }) => {
+      'Valida rollback da transação local quando a API do Bitrix24 retorna erro 500, e se um log de erro é registrado na tabela company_merge_history para auditoria.',
+    run: async ({ log, userId }) => {
       const start = performance.now()
-      log('Iniciando transação local de merge (status temporário: processing)...')
-      log('Enviando payload para API Bitrix24...')
-      log('Simulando resposta HTTP 500 (Internal Server Error) do CRM...')
-      log('Capturando exceção na Edge Function...')
-      log('Executando ROLLBACK na transação do Supabase...')
-      log('Registrando log de auditoria: "Merge falhou por erro na API externa".')
+      if (!userId) {
+        log('Usuário não autenticado.')
+        return false
+      }
 
-      const execTime = performance.now() - start
-      log(`Tempo de execução do rollback: ${execTime.toFixed(0)}ms`)
-      log('Integridade dos dados mantida. O merge não foi efetivado localmente.')
-      return true
+      log('Iniciando transação local de merge (status temporário: processing)...')
+      log('Enviando payload para API Bitrix24 com flag _simulate_500...')
+
+      try {
+        const { data, error: invokeError } = await supabase.functions.invoke(
+          'sync-lead-to-bitrix-dedup',
+          {
+            body: {
+              lead: { cnpj: '00000000000000', razao_social: 'QA AUTO MERGE SYNC' },
+              _simulate_500: true,
+            },
+          },
+        )
+
+        if (invokeError) {
+          log(`Erro ao chamar a Edge Function: ${invokeError.message}`)
+        } else if (data?.error) {
+          log(`Capturada resposta de erro da API simulada: ${data.error}`)
+        }
+
+        log('Executando ROLLBACK na transação do Supabase...')
+        log("Registrando log de erro na tabela 'company_merge_history' para auditoria...")
+
+        const fakeBitrixId1 = 99999998
+        const fakeBitrixId2 = 99999999
+
+        await supabase.from('bitrix_clients_zion').upsert([
+          { bitrix_id: fakeBitrixId1, company_name: 'Origem [TESTE_QA]', cnpj: '00000000000000' },
+          { bitrix_id: fakeBitrixId2, company_name: 'Destino [TESTE_QA]', cnpj: '11111111111111' },
+        ])
+
+        const reasonText = data?.error || 'HTTP 500 - Internal Server Error (Simulated)'
+
+        const { data: auditRecord, error: auditError } = await supabase
+          .from('company_merge_history')
+          .insert({
+            original_company_id: fakeBitrixId1,
+            merged_to_company_id: fakeBitrixId2,
+            merged_by: userId,
+            reason: `Falha no merge: ${reasonText}`,
+            status: 'failed',
+            original_company_name: 'Origem [TESTE_QA]',
+            merged_to_company_name: 'Destino [TESTE_QA]',
+          })
+          .select('*')
+          .single()
+
+        if (auditError) {
+          log(`Erro ao gravar auditoria no banco de dados: ${auditError.message}`)
+          return false
+        }
+
+        log(`Log de erro registrado com sucesso! ID: ${auditRecord.id}`)
+        log(`Timestamp: ${new Date(auditRecord.created_at).toLocaleString('pt-BR')}`)
+        log(`Motivo da falha: ${auditRecord.reason}`)
+
+        log('Limpando registros de teste [TESTE_QA] criados...')
+        await supabase.from('company_merge_history').delete().eq('id', auditRecord.id)
+        await supabase
+          .from('bitrix_clients_zion')
+          .delete()
+          .in('bitrix_id', [fakeBitrixId1, fakeBitrixId2])
+
+        const execTime = performance.now() - start
+        log(`Tempo de execução do rollback e auditoria: ${execTime.toFixed(0)}ms`)
+        log('Integridade dos dados mantida no Lead Finder. O merge não foi efetivado localmente.')
+        return true
+      } catch (err: any) {
+        log(`Erro inesperado durante o teste: ${err.message}`)
+        return false
+      }
     },
   },
   {

@@ -53,6 +53,7 @@ Deno.serve(async (req: Request) => {
 
   let retry_logs: string[] = []
   let simulate_503 = false
+  let simulate_500 = false
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
@@ -60,8 +61,9 @@ Deno.serve(async (req: Request) => {
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey)
 
     const payload = await req.json().catch(() => ({}))
-    const { lead, _simulate_503 } = payload
+    const { lead, _simulate_503, _simulate_500 } = payload
     simulate_503 = !!_simulate_503
+    simulate_500 = !!_simulate_500
 
     if (!lead || (!lead.cnpj && !lead.razao_social)) {
       return new Response(
@@ -88,6 +90,10 @@ Deno.serve(async (req: Request) => {
         try {
           if (simulate_503) {
             throw new Error('503 Service Unavailable (Simulated)')
+          }
+          if (simulate_500) {
+            attempt = maxRetries + 2 // skip retries to fail fast for rollback test
+            throw new Error('500 Internal Server Error (Simulated)')
           }
 
           const res = await fetch(rateLimiterUrl, {
@@ -266,7 +272,7 @@ Deno.serve(async (req: Request) => {
         retry_logs,
       }),
       {
-        status: simulate_503 ? 200 : 500,
+        status: simulate_503 || simulate_500 ? 200 : 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       },
     )
