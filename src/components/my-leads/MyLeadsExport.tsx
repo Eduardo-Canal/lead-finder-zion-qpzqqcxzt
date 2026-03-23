@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Download, Database, Loader2 } from 'lucide-react'
+import { Download, Database } from 'lucide-react'
 import useMyLeadsStore from '@/stores/useMyLeadsStore'
 import { supabase } from '@/lib/supabase/client'
 import { toast } from 'sonner'
-import { cn } from '@/lib/utils'
+import { SubmitButton } from '@/components/Forms/FormStandards'
 
 const STATUS_MAP: Record<string, string> = {
   'Não Contatado': 'NEW',
@@ -106,14 +106,15 @@ export function MyLeadsExport() {
         <Download className="w-4 h-4 mr-2" />
         Exportar para Bitrix24 (CSV)
       </Button>
-      <Button variant="default" onClick={handleExportAll} disabled={isExportingAll}>
-        {isExportingAll ? (
-          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-        ) : (
-          <Database className="w-4 h-4 mr-2" />
-        )}
-        {isExportingAll ? 'Exportando...' : 'Exportar Tudo'}
-      </Button>
+      <SubmitButton
+        variant="default"
+        onClick={handleExportAll}
+        isLoading={isExportingAll}
+        loadingText="Exportando..."
+      >
+        <Database className="w-4 h-4 mr-2" />
+        Exportar Tudo
+      </SubmitButton>
     </div>
   )
 }

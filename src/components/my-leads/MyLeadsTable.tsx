@@ -45,7 +45,7 @@ const statusColors: Record<string, string> = {
 }
 
 export function MyLeadsTable() {
-  const { filteredLeads, opportunities, updateStatus, updateDecisor } = useMyLeadsStore()
+  const { filteredLeads, opportunities, updateStatus, updateDecisor, setFilter } = useMyLeadsStore()
   const { hasPermission } = useAuthStore()
   const canEditStatus = hasPermission('Editar Status de Contato')
 
@@ -106,6 +106,13 @@ export function MyLeadsTable() {
                     title="Nenhum lead encontrado"
                     description="Tente ajustar seus filtros de busca ou adicione novos leads na Prospecção."
                     className="py-16"
+                    actionLabel="Limpar Filtros"
+                    onAction={() => {
+                      setFilter('search', '')
+                      setFilter('municipio', 'Todos')
+                      setFilter('status', 'Todos')
+                      setFilter('executivo', 'Todos')
+                    }}
                   />
                 </TableCell>
               </TableRow>

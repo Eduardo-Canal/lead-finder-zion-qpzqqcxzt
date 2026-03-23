@@ -13,7 +13,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { Skeleton } from '@/components/ui/skeleton'
+import { LoadingCard, ErrorState } from '@/components/Notifications/StateBlocks'
 import { designTokens } from '@/constants/designTokens'
 
 const chartConfig = {
@@ -31,69 +31,76 @@ export default function Index() {
     recent: [] as any[],
   })
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
 
-  useEffect(() => {
-    const fetchDashboardData = async () => {
-      setLoading(true)
+  const fetchDashboardData = async () => {
+    setLoading(true)
+    setError(false)
 
-      try {
-        const { data: recentData } = await supabase
-          .from('leads_salvos')
-          .select('id, razao_social, status_contato, created_at, profiles(nome)')
-          .order('created_at', { ascending: false })
-          .limit(5)
+    try {
+      const { data: recentData, error: err1 } = await supabase
+        .from('leads_salvos')
+        .select('id, razao_social, status_contato, created_at, profiles(nome)')
+        .order('created_at', { ascending: false })
+        .limit(5)
 
-        const { data: allData } = await supabase
-          .from('leads_salvos')
-          .select('status_contato, profiles(nome)')
+      if (err1) throw err1
 
-        if (allData) {
-          const total = allData.length
+      const { data: allData, error: err2 } = await supabase
+        .from('leads_salvos')
+        .select('status_contato, profiles(nome)')
 
-          const statusCounts: Record<string, number> = {
-            'Não Contatado': 0,
-            'Em Prospecção': 0,
-            'Proposta Enviada': 0,
-            'Sem Interesse': 0,
-            Convertido: 0,
+      if (err2) throw err2
+
+      if (allData) {
+        const total = allData.length
+
+        const statusCounts: Record<string, number> = {
+          'Não Contatado': 0,
+          'Em Prospecção': 0,
+          'Proposta Enviada': 0,
+          'Sem Interesse': 0,
+          Convertido: 0,
+        }
+
+        const execCounts: Record<string, number> = {}
+
+        allData.forEach((lead) => {
+          const st = lead.status_contato || 'Não Contatado'
+          if (statusCounts[st] !== undefined) {
+            statusCounts[st]++
+          } else {
+            statusCounts[st] = (statusCounts[st] || 0) + 1
           }
 
-          const execCounts: Record<string, number> = {}
+          const execName = (lead.profiles as any)?.nome || 'Sem Responsável'
+          execCounts[execName] = (execCounts[execName] || 0) + 1
+        })
 
-          allData.forEach((lead) => {
-            const st = lead.status_contato || 'Não Contatado'
-            if (statusCounts[st] !== undefined) {
-              statusCounts[st]++
-            } else {
-              statusCounts[st] = (statusCounts[st] || 0) + 1
-            }
+        const byStatus = Object.keys(statusCounts).map((k) => ({
+          name: k,
+          count: statusCounts[k],
+        }))
+        const byExecutive = Object.keys(execCounts)
+          .map((k) => ({ name: k, count: execCounts[k] }))
+          .sort((a, b) => b.count - a.count)
 
-            const execName = (lead.profiles as any)?.nome || 'Sem Responsável'
-            execCounts[execName] = (execCounts[execName] || 0) + 1
-          })
-
-          const byStatus = Object.keys(statusCounts).map((k) => ({
-            name: k,
-            count: statusCounts[k],
-          }))
-          const byExecutive = Object.keys(execCounts)
-            .map((k) => ({ name: k, count: execCounts[k] }))
-            .sort((a, b) => b.count - a.count)
-
-          setStats({
-            total,
-            byStatus,
-            byExecutive,
-            recent: recentData || [],
-          })
-        }
-      } catch (error) {
-        console.error('Erro ao carregar dados do dashboard:', error)
-      } finally {
-        setLoading(false)
+        setStats({
+          total,
+          byStatus,
+          byExecutive,
+          recent: recentData || [],
+        })
       }
+    } catch (error) {
+      console.error('Erro ao carregar dados do dashboard:', error)
+      setError(true)
+    } finally {
+      setLoading(false)
     }
+  }
 
+  useEffect(() => {
     fetchDashboardData()
   }, [])
 
@@ -101,17 +108,27 @@ export default function Index() {
     return (
       <div className={designTokens.layout.page}>
         <div>
-          <Skeleton className="h-8 w-48 mb-2" />
-          <Skeleton className="h-4 w-96" />
+          <div className="h-8 w-48 bg-slate-200 animate-pulse rounded mb-2" />
+          <div className="h-4 w-96 bg-slate-200 animate-pulse rounded" />
         </div>
         <div className="grid gap-4 md:grid-cols-3">
-          <Skeleton className="h-[120px] w-full rounded-xl" />
+          <LoadingCard />
+          <LoadingCard />
+          <LoadingCard />
         </div>
         <div className="grid gap-4 md:grid-cols-2">
-          <Skeleton className="h-[400px] w-full rounded-xl" />
-          <Skeleton className="h-[400px] w-full rounded-xl" />
+          <LoadingCard />
+          <LoadingCard />
         </div>
-        <Skeleton className="h-[300px] w-full rounded-xl mt-6" />
+        <LoadingCard />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className={designTokens.layout.page}>
+        <ErrorState onRetry={fetchDashboardData} />
       </div>
     )
   }

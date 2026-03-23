@@ -28,6 +28,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid } from 'recharts'
 import { EmptyState, LoadingTableRows } from '@/components/Notifications/StateBlocks'
 import { designTokens } from '@/constants/designTokens'
 import { cn } from '@/lib/utils'
+import { SubmitButton } from '@/components/Forms/FormStandards'
 
 export function PotentialTab() {
   const [potentials, setPotentials] = useState<any[]>([])
@@ -251,15 +252,16 @@ export function PotentialTab() {
                 nomes muito semelhantes.
               </CardDescription>
             </div>
-            <Button
+            <SubmitButton
               onClick={fetchPotentials}
-              disabled={loading}
+              isLoading={loading}
               size="sm"
-              className={cn(designTokens.animations.buttonClick, 'gap-2')}
+              className={cn(designTokens.animations?.buttonClick, 'gap-2')}
+              loadingText="Varrendo..."
             >
-              <Search className="h-4 w-4" />
-              Varrer Base Novamente
-            </Button>
+              {!loading && <Search className="h-4 w-4" />}
+              {!loading && 'Varrer Base Novamente'}
+            </SubmitButton>
           </div>
         </CardHeader>
         <CardContent className="p-4 sm:p-6 bg-slate-50/50">
@@ -327,6 +329,16 @@ export function PotentialTab() {
                     title="Nenhuma potencial duplicidade"
                     description="Não foram detectadas empresas com nomes similares baseados nos seus filtros atuais."
                     className="py-12"
+                    actionLabel={
+                      similarityType !== 'Todos' || searchDate || minScore !== '75'
+                        ? 'Limpar Filtros'
+                        : undefined
+                    }
+                    onAction={() => {
+                      setSimilarityType('Todos')
+                      setSearchDate('')
+                      setMinScore('75')
+                    }}
                   />
                 </TableCell>
               </TableRow>

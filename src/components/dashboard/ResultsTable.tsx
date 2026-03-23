@@ -128,6 +128,7 @@ export function ResultsTable() {
     searchLeads,
     setFilter,
     filters,
+    clearFilters,
   } = useLeadStore()
   const { hasPermission } = useAuthStore()
   const [selectedLeadCnpj, setSelectedLeadCnpj] = useState<string | null>(null)
@@ -168,6 +169,8 @@ export function ResultsTable() {
                     title="Nenhum lead encontrado"
                     description="Ajuste os filtros ou inicie uma nova busca para obter resultados."
                     className="py-16"
+                    actionLabel={filters.cnaes.length > 0 ? 'Limpar Filtros' : undefined}
+                    onAction={clearFilters}
                   />
                 </TableCell>
               </TableRow>

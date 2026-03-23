@@ -24,6 +24,7 @@ import useMyLeadsStore from '@/stores/useMyLeadsStore'
 import { supabase } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { SubmitButton } from '@/components/Forms/FormStandards'
 
 type LeadDetailsModalProps = {
   lead: FilteredLead
@@ -335,38 +336,32 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
       <DialogFooter className="p-4 bg-white border-t sticky bottom-0 z-10 flex flex-col sm:flex-row gap-3">
         <div className="flex-1 flex items-center justify-start">
           {!isEnriched && (
-            <Button
+            <SubmitButton
               variant="outline"
               onClick={handleEnrichLead}
-              disabled={enriching}
+              isLoading={enriching}
               className="gap-2 border-indigo-200 text-indigo-700 hover:bg-indigo-50 hover:text-indigo-800"
+              loadingText="Buscando dados..."
             >
-              {enriching ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Sparkles className="w-4 h-4" />
-              )}
-              {enriching ? 'Buscando dados...' : 'Enriquecer Lead (API Externa)'}
-            </Button>
+              {!enriching && <Sparkles className="w-4 h-4" />}
+              {!enriching && 'Enriquecer Lead (API Externa)'}
+            </SubmitButton>
           )}
         </div>
         <Button variant="ghost" onClick={onClose}>
           Cancelar
         </Button>
-        <Button
+        <SubmitButton
           onClick={handleSaveLead}
-          disabled={saving || isSaved}
+          isLoading={saving}
+          disabled={isSaved}
           className="gap-2 bg-[#F59E0B] hover:bg-[#D97706] text-white"
+          loadingText="Salvando..."
         >
-          {saving ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : isSaved ? (
-            <CheckCircle2 className="w-4 h-4" />
-          ) : (
-            <BookmarkPlus className="w-4 h-4" />
-          )}
-          {isSaved ? 'Lead na Carteira' : 'Salvar em Meus Leads'}
-        </Button>
+          {!saving &&
+            (isSaved ? <CheckCircle2 className="w-4 h-4" /> : <BookmarkPlus className="w-4 h-4" />)}
+          {!saving && (isSaved ? 'Lead na Carteira' : 'Salvar em Meus Leads')}
+        </SubmitButton>
       </DialogFooter>
     </div>
   )

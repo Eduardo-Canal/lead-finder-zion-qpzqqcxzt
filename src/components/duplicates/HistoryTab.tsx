@@ -156,8 +156,18 @@ export function HistoryTab() {
                 <TableCell colSpan={6} className="p-0">
                   <EmptyState
                     title="Histórico vazio"
-                    description="Nenhum merge foi realizado ainda."
+                    description="Nenhum merge foi realizado ainda ou corresponde aos filtros."
                     className="py-12"
+                    actionLabel={
+                      statusFilter !== 'Todos' || userFilter !== 'Todos' || searchDate
+                        ? 'Limpar Filtros'
+                        : undefined
+                    }
+                    onAction={() => {
+                      setStatusFilter('Todos')
+                      setUserFilter('Todos')
+                      setSearchDate('')
+                    }}
                   />
                 </TableCell>
               </TableRow>

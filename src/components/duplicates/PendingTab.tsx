@@ -169,8 +169,16 @@ export function PendingTab() {
                 <TableCell colSpan={6} className="p-0">
                   <EmptyState
                     title="Nenhuma duplicidade pendente"
-                    description="Sua base de dados está em ordem no momento."
+                    description="Sua base de dados está em ordem no momento ou não há resultados para os filtros."
                     className="py-12"
+                    actionLabel={
+                      matchType !== 'Todos' || minScore || searchDate ? 'Limpar Filtros' : undefined
+                    }
+                    onAction={() => {
+                      setMatchType('Todos')
+                      setMinScore('')
+                      setSearchDate('')
+                    }}
                   />
                 </TableCell>
               </TableRow>

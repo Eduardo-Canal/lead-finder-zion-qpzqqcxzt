@@ -20,7 +20,7 @@ import {
 import { Slider } from '@/components/ui/slider'
 import useMyLeadsStore, { LeadSalvo, Opportunity } from '@/stores/useMyLeadsStore'
 import { toast } from 'sonner'
-import { Loader2 } from 'lucide-react'
+import { SubmitButton } from '@/components/Forms/FormStandards'
 
 type OpportunityModalProps = {
   lead: LeadSalvo | null
@@ -130,10 +130,9 @@ export function OpportunityModal({ lead, opportunity, onClose }: OpportunityModa
           <Button variant="outline" onClick={onClose}>
             Cancelar
           </Button>
-          <Button onClick={handleSave} disabled={saving}>
-            {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          <SubmitButton onClick={handleSave} isLoading={saving} loadingText="Salvando...">
             Salvar
-          </Button>
+          </SubmitButton>
         </DialogFooter>
       </DialogContent>
     </Dialog>

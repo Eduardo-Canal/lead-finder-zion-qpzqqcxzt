@@ -6,12 +6,12 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { MessageSquare, Calendar, User, Clock } from 'lucide-react'
 import useMyLeadsStore, { LeadSalvo } from '@/stores/useMyLeadsStore'
 import { toast } from 'sonner'
+import { SubmitButton } from '@/components/Forms/FormStandards'
 
 type InteractionHistoryModalProps = {
   lead: LeadSalvo | null
@@ -62,13 +62,15 @@ export function InteractionHistoryModal({ lead, onClose }: InteractionHistoryMod
               className="resize-none h-20 mb-3 bg-slate-50 focus-visible:bg-white transition-colors"
             />
             <div className="flex justify-end">
-              <Button
+              <SubmitButton
                 onClick={handleSaveInteraction}
-                disabled={saving || !newNote.trim()}
+                disabled={!newNote.trim()}
+                isLoading={saving}
                 size="sm"
+                loadingText="Registrando..."
               >
-                {saving ? 'Registrando...' : 'Registrar Interação'}
-              </Button>
+                Registrar Interação
+              </SubmitButton>
             </div>
           </div>
 

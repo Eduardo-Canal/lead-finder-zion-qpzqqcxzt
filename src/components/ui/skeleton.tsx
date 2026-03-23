@@ -1,8 +1,14 @@
-/* Skeleton Component - A component that displays a skeleton (a component that displays a loading state) - from shadcn/ui (exposes Skeleton) */
 import { cn } from '@/lib/utils'
+import { designTokens } from '@/constants/designTokens'
 
-function Skeleton({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn('animate-pulse rounded-md bg-muted', className)} {...props} />
+function Skeleton({ className, style, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div
+      className={cn('animate-pulse rounded-md', className)}
+      style={{ backgroundColor: designTokens.colors.neutral[200], ...style }}
+      {...props}
+    />
+  )
 }
 
 export { Skeleton }
