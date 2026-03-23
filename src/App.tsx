@@ -7,7 +7,6 @@ import { Loader2 } from 'lucide-react'
 
 import useAuthStore, { AuthProvider } from '@/stores/useAuthStore'
 import { LeadStoreProvider } from '@/stores/useLeadStore'
-import { MyLeadsStoreProvider } from '@/stores/useMyLeadsStore'
 import { UserManagementStoreProvider } from '@/stores/useUserManagementStore'
 import { NotificationStoreProvider } from '@/stores/useNotificationStore'
 
@@ -70,57 +69,55 @@ const App = () => (
   <AuthProvider>
     <NotificationStoreProvider>
       <LeadStoreProvider>
-        <MyLeadsStoreProvider>
-          <UserManagementStoreProvider>
-            <BrowserRouter future={{ v7_startTransition: false, v7_relativeSplatPath: false }}>
-              <TooltipProvider>
-                <Toaster />
-                <Sonner />
-                <Suspense fallback={<GlobalLoading />}>
-                  <Routes>
-                    <Route path="/login" element={<Login />} />
+        <UserManagementStoreProvider>
+          <BrowserRouter future={{ v7_startTransition: false, v7_relativeSplatPath: false }}>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <Suspense fallback={<GlobalLoading />}>
+                <Routes>
+                  <Route path="/login" element={<Login />} />
+                  <Route
+                    path="/atualizar-senha"
+                    element={
+                      <ProtectedRoute isPasswordReset>
+                        <UpdatePassword />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    element={
+                      <ProtectedRoute>
+                        <Layout />
+                      </ProtectedRoute>
+                    }
+                  >
+                    <Route path="/" element={<Index />} />
+                    <Route path="/inteligencia-zion" element={<InteligenciaZion />} />
+                    <Route path="/prospeccao" element={<Prospeccao />} />
+                    <Route path="/meus-leads" element={<MyLeads />} />
+                    <Route path="/meu-historico" element={<SearchHistory />} />
+                    <Route path="/gestao-usuarios" element={<UserManagement />} />
+                    <Route path="/perfil/alterar-senha" element={<ChangePassword />} />
+                    <Route path="/configuracoes/lembretes" element={<RemindersConfig />} />
+                    <Route path="/configuracoes/auditoria" element={<AuditLogs />} />
+                    <Route path="/configuracoes/relatorios" element={<Reports />} />
+                    <Route path="/configuracoes/avancado" element={<ConfiguracoesAvancadas />} />
                     <Route
-                      path="/atualizar-senha"
-                      element={
-                        <ProtectedRoute isPasswordReset>
-                          <UpdatePassword />
-                        </ProtectedRoute>
-                      }
+                      path="/configuracoes/empresas-duplicadas"
+                      element={<EmpresasDuplicadas />}
                     />
-                    <Route
-                      element={
-                        <ProtectedRoute>
-                          <Layout />
-                        </ProtectedRoute>
-                      }
-                    >
-                      <Route path="/" element={<Index />} />
-                      <Route path="/inteligencia-zion" element={<InteligenciaZion />} />
-                      <Route path="/prospeccao" element={<Prospeccao />} />
-                      <Route path="/meus-leads" element={<MyLeads />} />
-                      <Route path="/meu-historico" element={<SearchHistory />} />
-                      <Route path="/gestao-usuarios" element={<UserManagement />} />
-                      <Route path="/perfil/alterar-senha" element={<ChangePassword />} />
-                      <Route path="/configuracoes/lembretes" element={<RemindersConfig />} />
-                      <Route path="/configuracoes/auditoria" element={<AuditLogs />} />
-                      <Route path="/configuracoes/relatorios" element={<Reports />} />
-                      <Route path="/configuracoes/avancado" element={<ConfiguracoesAvancadas />} />
-                      <Route
-                        path="/configuracoes/empresas-duplicadas"
-                        element={<EmpresasDuplicadas />}
-                      />
-                      <Route path="/admin/debug-api" element={<DebugAPI />} />
-                      <Route path="/admin/debug-bitrix" element={<DebugBitrix />} />
-                      <Route path="/admin/monitoramento-bitrix" element={<MonitoramentoBitrix />} />
-                      <Route path="/admin/testes-validacao" element={<TestesValidacao />} />
-                    </Route>
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                </Suspense>
-              </TooltipProvider>
-            </BrowserRouter>
-          </UserManagementStoreProvider>
-        </MyLeadsStoreProvider>
+                    <Route path="/admin/debug-api" element={<DebugAPI />} />
+                    <Route path="/admin/debug-bitrix" element={<DebugBitrix />} />
+                    <Route path="/admin/monitoramento-bitrix" element={<MonitoramentoBitrix />} />
+                    <Route path="/admin/testes-validacao" element={<TestesValidacao />} />
+                  </Route>
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </Suspense>
+            </TooltipProvider>
+          </BrowserRouter>
+        </UserManagementStoreProvider>
       </LeadStoreProvider>
     </NotificationStoreProvider>
   </AuthProvider>

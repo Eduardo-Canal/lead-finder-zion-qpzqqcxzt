@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { useAuthStore } from '@/stores/useAuthStore'
+import useAuthStore from '@/stores/useAuthStore'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -20,7 +20,7 @@ export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
-  const { signIn } = useAuthStore()
+  const { login } = useAuthStore()
   const navigate = useNavigate()
   const location = useLocation()
   const { toast } = useToast()
@@ -40,7 +40,7 @@ export default function Login() {
 
     setLoading(true)
     try {
-      const { error } = await signIn(email, password)
+      const { error } = await login(email, password)
       if (error) {
         toast({
           title: 'Erro de autenticação',

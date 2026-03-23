@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { useMyLeadsStore } from '@/stores/useMyLeadsStore'
+import { useEffect } from 'react'
+import useMyLeadsStore from '@/stores/useMyLeadsStore'
 import { MyLeadsTable } from '@/components/my-leads/MyLeadsTable'
 import { MyLeadsKanban } from '@/components/my-leads/MyLeadsKanban'
 import { MyLeadsFilters } from '@/components/my-leads/MyLeadsFilters'
@@ -9,24 +9,11 @@ import { LayoutList, Trello, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 export default function MyLeads() {
-  const { leads, isLoading, error, fetchLeads } = useMyLeadsStore()
-  const [searchTerm, setSearchTerm] = useState('')
-  const [statusFilter, setStatusFilter] = useState<string>('todos')
+  const { filteredLeads, isLoading, error, fetchLeads } = useMyLeadsStore()
 
   useEffect(() => {
     fetchLeads()
   }, [fetchLeads])
-
-  const filteredLeads = leads.filter((lead) => {
-    const matchesSearch =
-      lead.razao_social?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      lead.nome_fantasia?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      lead.cnpj?.includes(searchTerm)
-
-    const matchesStatus = statusFilter === 'todos' || lead.status === statusFilter
-
-    return matchesSearch && matchesStatus
-  })
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -47,16 +34,11 @@ export default function MyLeads() {
           >
             <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
           </Button>
-          <MyLeadsExport leads={filteredLeads} />
+          <MyLeadsExport />
         </div>
       </div>
 
-      <MyLeadsFilters
-        searchTerm={searchTerm}
-        setSearchTerm={setSearchTerm}
-        statusFilter={statusFilter}
-        setStatusFilter={setStatusFilter}
-      />
+      <MyLeadsFilters />
 
       {error && (
         <div className="bg-destructive/10 text-destructive p-4 rounded-md">
@@ -83,11 +65,11 @@ export default function MyLeads() {
         </div>
 
         <TabsContent value="table" className="mt-0">
-          <MyLeadsTable leads={filteredLeads} isLoading={isLoading} />
+          <MyLeadsTable />
         </TabsContent>
 
         <TabsContent value="kanban" className="mt-0">
-          <MyLeadsKanban leads={filteredLeads} isLoading={isLoading} />
+          <MyLeadsKanban />
         </TabsContent>
       </Tabs>
     </div>
