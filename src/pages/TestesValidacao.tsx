@@ -15,7 +15,15 @@ type TestState = {
   lastRunAt?: string
 }
 
-const SECTIONS = ['Funcionalidade', 'Integração', 'Performance', 'Segurança', 'UX/UI'] as const
+const SECTIONS = [
+  'Funcionalidade',
+  'Deduplicação',
+  'Integração',
+  'Performance',
+  'Segurança',
+  'UX/UI',
+] as const
+
 const STORAGE_KEY = '@leadfinder:qa_test_results'
 
 const loadInitialState = (): Record<string, TestState> => {
@@ -141,9 +149,24 @@ export default function TestesValidacao() {
   }
 
   const handleExportCSV = () => {
-    const headers = ['ID', 'Secao', 'Nome', 'Status', 'Ultima Execucao', 'Logs']
+    const headers = ['ID', 'Secao', 'Nome', 'Status', 'Ultima Execucao', 'Logs', 'Recomendacoes']
     const rows = QA_TESTS.map((t) => {
-      const s = results[t.id]
+      const s = results[t.id] || { status: 'idle', logs: [], lastRunAt: '' }
+
+      let recommendation = ''
+      if (s.status === 'failed') {
+        if (t.id === 'dedup_performance') {
+          recommendation =
+            'Otimizar índices de banco de dados (pg_trgm) e aplicar paginação e limits restritos nas RPCs.'
+        } else if (t.id.includes('dedup')) {
+          recommendation =
+            'Revisar triggers de integridade referencial, regras de RLS na company_merge_history ou inspecionar logs da Edge Function de deduplicação.'
+        } else {
+          recommendation =
+            'Revisar os logs técnicos no console ou no Supabase Dashboard para identificar a raiz primária da falha.'
+        }
+      }
+
       return [
         t.id,
         t.section,
@@ -151,6 +174,7 @@ export default function TestesValidacao() {
         s.status,
         `"${s.lastRunAt || 'Nunca'}"`,
         `"${s.logs.join(' | ').replace(/"/g, '""')}"`,
+        `"${recommendation}"`,
       ].join(',')
     })
 
@@ -158,7 +182,7 @@ export default function TestesValidacao() {
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
     const link = document.createElement('a')
     link.href = URL.createObjectURL(blob)
-    link.download = `relatorio_qa_${new Date().getTime()}.csv`
+    link.download = `relatorio_qa_zion_${new Date().getTime()}.csv`
     link.click()
   }
 
