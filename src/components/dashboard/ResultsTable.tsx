@@ -160,63 +160,67 @@ export function ResultsTable() {
           'flex flex-col w-full overflow-hidden border-slate-200 shadow-sm bg-white rounded-xl relative',
         )}
       >
-        <div className="overflow-x-auto">
-          <Table className="min-w-[1600px]">
+        <div className="overflow-x-auto custom-scrollbar pb-2">
+          <Table className="w-full min-w-[2200px]">
             <TableHeader>
               <TableRow className="bg-slate-50 hover:bg-slate-50 border-b-slate-200">
-                <TableHead className="w-[160px] font-semibold text-slate-700">
+                <TableHead className="min-w-[160px] w-[160px] font-semibold text-slate-700">
                   <div className="flex items-center gap-1.5">
                     <FileText className="w-4 h-4 text-slate-400" /> CNPJ
                   </div>
                 </TableHead>
-                <TableHead className="w-[220px] font-semibold text-slate-700">
+                <TableHead className="min-w-[280px] w-[280px] font-semibold text-slate-700">
                   <div className="flex items-center gap-1.5">
                     <Building2 className="w-4 h-4 text-slate-400" /> Razão Social
                   </div>
                 </TableHead>
-                <TableHead className="w-[200px] font-semibold text-slate-700">
+                <TableHead className="min-w-[320px] w-[320px] font-semibold text-slate-700">
                   <div className="flex items-center gap-1.5">
                     <Briefcase className="w-4 h-4 text-slate-400" /> CNAE Principal
                   </div>
                 </TableHead>
-                <TableHead className="w-[130px] font-semibold text-slate-700">
+                <TableHead className="min-w-[160px] w-[160px] font-semibold text-slate-700">
                   <div className="flex items-center gap-1.5">
                     <MapPin className="w-4 h-4 text-slate-400" /> Município
                   </div>
                 </TableHead>
-                <TableHead className="w-[70px] font-semibold text-slate-700">UF</TableHead>
-                <TableHead className="w-[110px] font-semibold text-slate-700">
+                <TableHead className="min-w-[80px] w-[80px] font-semibold text-slate-700">
+                  UF
+                </TableHead>
+                <TableHead className="min-w-[140px] w-[140px] font-semibold text-slate-700">
                   <div className="flex items-center gap-1.5">
                     <Activity className="w-4 h-4 text-slate-400" /> Porte
                   </div>
                 </TableHead>
-                <TableHead className="w-[130px] font-semibold text-slate-700">Situação</TableHead>
-                <TableHead className="w-[130px] font-semibold text-slate-700">
+                <TableHead className="min-w-[130px] w-[130px] font-semibold text-slate-700">
+                  Situação
+                </TableHead>
+                <TableHead className="min-w-[150px] w-[150px] font-semibold text-slate-700">
                   <div className="flex items-center gap-1.5">
                     <DollarSign className="w-4 h-4 text-slate-400" /> Capital
                   </div>
                 </TableHead>
-                <TableHead className="w-[130px] font-semibold text-slate-700">
+                <TableHead className="min-w-[120px] w-[120px] font-semibold text-slate-700">
                   <div className="flex items-center gap-1.5">
                     <Calendar className="w-4 h-4 text-slate-400" /> Abertura
                   </div>
                 </TableHead>
-                <TableHead className="w-[230px] font-semibold text-slate-700">
+                <TableHead className="min-w-[240px] w-[240px] font-semibold text-slate-700">
                   <div className="flex items-center gap-1.5">
                     <Mail className="w-4 h-4 text-slate-400" /> E-mail
                   </div>
                 </TableHead>
-                <TableHead className="w-[180px] font-semibold text-slate-700">
+                <TableHead className="min-w-[160px] w-[160px] font-semibold text-slate-700">
                   <div className="flex items-center gap-1.5">
                     <Phone className="w-4 h-4 text-slate-400" /> Telefone
                   </div>
                 </TableHead>
-                <TableHead className="w-[150px] font-semibold text-slate-700">
+                <TableHead className="min-w-[180px] w-[180px] font-semibold text-slate-700">
                   <div className="flex items-center gap-1.5">
                     <Users className="w-4 h-4 text-slate-400" /> Status
                   </div>
                 </TableHead>
-                <TableHead className="text-right w-[80px] pr-6 font-semibold text-slate-700">
+                <TableHead className="text-right min-w-[80px] w-[80px] pr-6 font-semibold text-slate-700">
                   Ações
                 </TableHead>
               </TableRow>
@@ -250,7 +254,7 @@ export function ResultsTable() {
                     )}
                     onClick={() => setSelectedLeadCnpj(lead.cnpj)}
                   >
-                    <TableCell className="font-medium whitespace-nowrap">
+                    <TableCell className="font-medium whitespace-nowrap align-middle">
                       <div className="flex flex-col gap-1 items-start">
                         <span className="text-slate-700 group-hover:text-primary transition-colors">
                           {formatCnpj(formatObjectField(lead.cnpj))}
@@ -265,10 +269,10 @@ export function ResultsTable() {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="font-semibold text-slate-800 max-w-[220px]">
+                    <TableCell className="font-semibold text-slate-800 align-middle">
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <span className="block truncate w-full group-hover:text-primary transition-colors">
+                          <span className="line-clamp-2 w-full group-hover:text-primary transition-colors whitespace-normal leading-snug break-words">
                             {formatObjectField(lead.razao_social) || '-'}
                           </span>
                         </TooltipTrigger>
@@ -281,10 +285,10 @@ export function ResultsTable() {
                         </TooltipContent>
                       </Tooltip>
                     </TableCell>
-                    <TableCell className="max-w-[200px] text-slate-600">
+                    <TableCell className="text-slate-600 align-middle">
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <span className="block truncate w-full">
+                          <span className="line-clamp-2 w-full whitespace-normal leading-snug break-words">
                             {formatObjectField(lead.cnae_principal) || '-'}
                           </span>
                         </TooltipTrigger>
@@ -298,15 +302,17 @@ export function ResultsTable() {
                       </Tooltip>
                     </TableCell>
                     <TableCell
-                      className="whitespace-nowrap truncate max-w-[130px] text-slate-600"
+                      className="text-slate-600 align-middle"
                       title={formatObjectField(lead.municipio)}
                     >
-                      {formatObjectField(lead.municipio)}
+                      <span className="line-clamp-2 w-full leading-snug whitespace-normal break-words">
+                        {formatObjectField(lead.municipio)}
+                      </span>
                     </TableCell>
-                    <TableCell className="font-medium text-slate-700">
+                    <TableCell className="font-medium text-slate-700 align-middle">
                       {formatObjectField(lead.uf)}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="align-middle">
                       <Badge
                         variant="outline"
                         className="whitespace-nowrap bg-white text-slate-600 font-medium border-slate-200"
@@ -314,7 +320,7 @@ export function ResultsTable() {
                         {formatObjectField(lead.porte)}
                       </Badge>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="align-middle">
                       <Badge
                         variant={
                           formatObjectField(lead.situacao).toUpperCase() === 'ATIVA'
@@ -330,13 +336,13 @@ export function ResultsTable() {
                         {formatObjectField(lead.situacao) || '-'}
                       </Badge>
                     </TableCell>
-                    <TableCell className="whitespace-nowrap font-mono text-slate-700">
+                    <TableCell className="whitespace-nowrap font-mono text-slate-700 align-middle">
                       {formatCurrency(lead.capital_social)}
                     </TableCell>
-                    <TableCell className="whitespace-nowrap text-slate-600">
+                    <TableCell className="whitespace-nowrap text-slate-600 align-middle">
                       {formatDate(lead.data_abertura)}
                     </TableCell>
-                    <TableCell className="min-w-[230px] whitespace-normal break-all text-slate-600">
+                    <TableCell className="whitespace-normal break-words text-slate-600 align-middle">
                       <div className="flex items-center justify-between gap-2 group/copy">
                         <span className="line-clamp-2">{formatObjectField(lead.email)}</span>
                         {formatObjectField(lead.email) !== '-' && (
@@ -353,7 +359,7 @@ export function ResultsTable() {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="min-w-[180px] whitespace-normal text-slate-600">
+                    <TableCell className="whitespace-normal text-slate-600 align-middle">
                       <div className="flex items-center justify-between gap-2 group/copy">
                         <span className="font-mono">{formatObjectField(lead.telefone)}</span>
                         {formatObjectField(lead.telefone) !== '-' && (
@@ -372,7 +378,7 @@ export function ResultsTable() {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="align-middle">
                       {lead.contatado ? (
                         <div
                           className="flex flex-col gap-1.5 items-start"
@@ -419,10 +425,11 @@ export function ResultsTable() {
                           </DropdownMenu>
                           {lead.contatadoPor && (
                             <div
-                              className="text-[10px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 truncate max-w-[130px] font-medium tracking-wide flex items-center gap-1"
+                              className="text-[10px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 truncate max-w-[150px] font-medium tracking-wide flex items-center gap-1"
                               title={`Executivo responsável: ${lead.contatadoPor}`}
                             >
-                              <Users className="w-3 h-3" /> {lead.contatadoPor.split(' ')[0]}
+                              <Users className="w-3 h-3 shrink-0" />{' '}
+                              <span className="truncate">{lead.contatadoPor.split(' ')[0]}</span>
                             </div>
                           )}
                         </div>
@@ -455,7 +462,7 @@ export function ResultsTable() {
                         </div>
                       )}
                     </TableCell>
-                    <TableCell className="text-right pr-6">
+                    <TableCell className="text-right pr-6 align-middle">
                       <Button
                         variant="ghost"
                         size="icon"
