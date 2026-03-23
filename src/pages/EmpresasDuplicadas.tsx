@@ -7,6 +7,7 @@ import { PendingTab } from '@/components/duplicates/PendingTab'
 import { HistoryTab } from '@/components/duplicates/HistoryTab'
 import { PotentialTab } from '@/components/duplicates/PotentialTab'
 import { designTokens } from '@/constants/designTokens'
+import { cn } from '@/lib/utils'
 
 export default function EmpresasDuplicadas() {
   const { user, hasPermission } = useAuthStore()
@@ -22,31 +23,33 @@ export default function EmpresasDuplicadas() {
   if (!isAdmin) return null
 
   return (
-    <div className={designTokens.layout.page}>
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight text-accent flex items-center gap-2">
-          <CopySlash className="h-6 w-6" />
+    <div className={cn(designTokens.layout.page, 'animate-fade-in')}>
+      <div className="flex flex-col gap-2">
+        <h2 className={cn(designTokens.typography.pageTitle, 'flex items-center gap-2')}>
+          <div className="p-2 bg-primary/10 rounded-lg text-primary">
+            <CopySlash className="h-6 w-6" />
+          </div>
           Empresas Duplicadas
         </h2>
         <p className={designTokens.typography.small}>
           Analise e mescle empresas com alto grau de similaridade detectadas pelo sistema de
-          sincronização.
+          sincronização para manter a integridade da sua base de dados.
         </p>
       </div>
 
       <Tabs defaultValue="pending" className="w-full space-y-6">
         <TabsList className="bg-slate-100/50 border flex-wrap h-auto w-fit max-w-full justify-start transition-all">
           <TabsTrigger value="pending">Pendentes de Revisão</TabsTrigger>
-          <TabsTrigger value="potential">Empresas Duplicadas Potenciais</TabsTrigger>
+          <TabsTrigger value="potential">Varredura de Potenciais</TabsTrigger>
           <TabsTrigger value="history">Histórico de Merges</TabsTrigger>
         </TabsList>
-        <TabsContent value="pending" className="mt-0 animate-fade-in">
+        <TabsContent value="pending" className="mt-0 outline-none">
           <PendingTab />
         </TabsContent>
-        <TabsContent value="potential" className="mt-0 animate-fade-in">
+        <TabsContent value="potential" className="mt-0 outline-none">
           <PotentialTab />
         </TabsContent>
-        <TabsContent value="history" className="mt-0 animate-fade-in">
+        <TabsContent value="history" className="mt-0 outline-none">
           <HistoryTab />
         </TabsContent>
       </Tabs>

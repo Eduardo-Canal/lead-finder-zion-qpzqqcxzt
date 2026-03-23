@@ -12,11 +12,13 @@ import { Button } from '@/components/ui/button'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Label } from '@/components/ui/label'
 import { supabase } from '@/lib/supabase/client'
-import { toast } from 'sonner'
 import useAuthStore from '@/stores/useAuthStore'
-import { Loader2, GitMerge, AlertCircle } from 'lucide-react'
+import { GitMerge, AlertCircle, CheckCircle2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
+import { notify } from '@/components/Notifications/NotificationSystem'
+import { SubmitButton } from '@/components/Forms/FormStandards'
+import { designTokens } from '@/constants/designTokens'
 
 export function SuggestMergeModal({
   isOpen,
@@ -64,20 +66,16 @@ export function SuggestMergeModal({
       const absorbedCompany = primary === 'empresa1' ? record.empresa2 : record.empresa1
 
       // 1. Registra a duplicidade já como resolvida (merged)
-      const { data: dupData, error: dupError } = await supabase
-        .from('company_duplicates')
-        .insert({
-          original_company_id: absorbedId,
-          duplicate_company_id: mergedToId,
-          similarity_score: record.similarity_score,
-          match_type: 'razao_social_single',
-          status: 'merged',
-          merged_by: user?.user_id,
-          merged_at: new Date().toISOString(),
-          notes: 'Merged direto via sugestão de Fuzzy Matching.',
-        })
-        .select()
-        .single()
+      const { error: dupError } = await supabase.from('company_duplicates').insert({
+        original_company_id: absorbedId,
+        duplicate_company_id: mergedToId,
+        similarity_score: record.similarity_score,
+        match_type: 'razao_social_single',
+        status: 'merged',
+        merged_by: user?.user_id,
+        merged_at: new Date().toISOString(),
+        notes: 'Merged direto via sugestão de Fuzzy Matching.',
+      })
 
       if (dupError) throw dupError
 
@@ -101,11 +99,11 @@ export function SuggestMergeModal({
 
       if (histError) throw histError
 
-      toast.success('Empresas mescladas com sucesso!')
+      notify.success('Sugestão Aplicada', 'Empresas mescladas com sucesso!')
       onMerge()
       onClose()
     } catch (e: any) {
-      toast.error('Erro ao mesclar: ' + e.message)
+      notify.error('Erro ao mesclar', e.message)
     } finally {
       setLoading(false)
     }
@@ -115,11 +113,14 @@ export function SuggestMergeModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-emerald-700">
+          <DialogTitle
+            className="flex items-center gap-2"
+            style={{ color: designTokens.colors.primary[600] }}
+          >
             <GitMerge className="h-5 w-5" />
-            Sugerir Merge
+            Aplicar Sugestão de Merge
           </DialogTitle>
           <DialogDescription className="text-base pt-2">
             O sistema pré-selecionou o registro mais completo. Confirme qual será mantido como{' '}
@@ -127,7 +128,7 @@ export function SuggestMergeModal({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="py-4">
+        <div className="py-2">
           <RadioGroup
             value={primary}
             onValueChange={(v: any) => setPrimary(v)}
@@ -135,10 +136,10 @@ export function SuggestMergeModal({
           >
             <div
               className={cn(
-                'flex items-start space-x-3 border p-4 rounded-lg cursor-pointer transition-all',
+                'flex items-start space-x-4 border p-5 rounded-xl cursor-pointer transition-all duration-200',
                 primary === 'empresa1'
-                  ? 'bg-emerald-50 border-emerald-300 shadow-sm ring-1 ring-emerald-500/20'
-                  : 'bg-white hover:bg-slate-50',
+                  ? 'bg-primary/5 border-primary shadow-sm ring-1 ring-primary/20'
+                  : 'bg-white hover:bg-slate-50 hover:border-slate-300',
               )}
               onClick={() => setPrimary('empresa1')}
             >
@@ -146,39 +147,30 @@ export function SuggestMergeModal({
               <div className="grid gap-1.5 leading-none flex-1">
                 <Label
                   htmlFor="r-e1"
-                  className="font-semibold text-base cursor-pointer text-slate-800"
+                  className="font-semibold text-base cursor-pointer text-slate-800 flex items-center justify-between"
                 >
-                  Manter {empresa1?.company_name}
+                  <span className="line-clamp-1 flex-1 pr-2">{empresa1?.company_name}</span>
+                  {primary === 'empresa1' && <CheckCircle2 className="h-4 w-4 text-primary" />}
                 </Label>
-                <p className="text-xs text-muted-foreground font-mono">
-                  CNPJ: {empresa1?.cnpj || 'Sem CNPJ'}
-                </p>
-                <div className="flex gap-2 mt-1.5">
-                  {empresa1?.email && (
-                    <Badge variant="secondary" className="text-[10px]">
-                      Email
-                    </Badge>
-                  )}
-                  {empresa1?.phone && (
-                    <Badge variant="secondary" className="text-[10px]">
-                      Telefone
-                    </Badge>
-                  )}
-                  {empresa1?.city && (
-                    <Badge variant="secondary" className="text-[10px]">
-                      Localização
-                    </Badge>
-                  )}
+                <div className="mt-2 space-y-2">
+                  <p className="text-xs text-muted-foreground font-mono">
+                    CNPJ: {empresa1?.cnpj || 'Sem CNPJ'}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {empresa1?.email && <Badge variant="secondary">Email</Badge>}
+                    {empresa1?.phone && <Badge variant="secondary">Telefone</Badge>}
+                    {empresa1?.city && <Badge variant="secondary">Localização</Badge>}
+                  </div>
                 </div>
               </div>
             </div>
 
             <div
               className={cn(
-                'flex items-start space-x-3 border p-4 rounded-lg cursor-pointer transition-all',
+                'flex items-start space-x-4 border p-5 rounded-xl cursor-pointer transition-all duration-200',
                 primary === 'empresa2'
-                  ? 'bg-emerald-50 border-emerald-300 shadow-sm ring-1 ring-emerald-500/20'
-                  : 'bg-white hover:bg-slate-50',
+                  ? 'bg-primary/5 border-primary shadow-sm ring-1 ring-primary/20'
+                  : 'bg-white hover:bg-slate-50 hover:border-slate-300',
               )}
               onClick={() => setPrimary('empresa2')}
             >
@@ -186,58 +178,49 @@ export function SuggestMergeModal({
               <div className="grid gap-1.5 leading-none flex-1">
                 <Label
                   htmlFor="r-e2"
-                  className="font-semibold text-base cursor-pointer text-slate-800"
+                  className="font-semibold text-base cursor-pointer text-slate-800 flex items-center justify-between"
                 >
-                  Manter {empresa2?.company_name}
+                  <span className="line-clamp-1 flex-1 pr-2">{empresa2?.company_name}</span>
+                  {primary === 'empresa2' && <CheckCircle2 className="h-4 w-4 text-primary" />}
                 </Label>
-                <p className="text-xs text-muted-foreground font-mono">
-                  CNPJ: {empresa2?.cnpj || 'Sem CNPJ'}
-                </p>
-                <div className="flex gap-2 mt-1.5">
-                  {empresa2?.email && (
-                    <Badge variant="secondary" className="text-[10px]">
-                      Email
-                    </Badge>
-                  )}
-                  {empresa2?.phone && (
-                    <Badge variant="secondary" className="text-[10px]">
-                      Telefone
-                    </Badge>
-                  )}
-                  {empresa2?.city && (
-                    <Badge variant="secondary" className="text-[10px]">
-                      Localização
-                    </Badge>
-                  )}
+                <div className="mt-2 space-y-2">
+                  <p className="text-xs text-muted-foreground font-mono">
+                    CNPJ: {empresa2?.cnpj || 'Sem CNPJ'}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {empresa2?.email && <Badge variant="secondary">Email</Badge>}
+                    {empresa2?.phone && <Badge variant="secondary">Telefone</Badge>}
+                    {empresa2?.city && <Badge variant="secondary">Localização</Badge>}
+                  </div>
                 </div>
               </div>
             </div>
           </RadioGroup>
         </div>
 
-        <div className="bg-amber-50 p-3 rounded-md border border-amber-100 flex items-start gap-2 text-amber-800 text-xs mb-2">
-          <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-          <p>A empresa preterida será desativada e todo o histórico será auditado com segurança.</p>
+        <div className="bg-warning-50 p-4 rounded-lg border border-warning-200 flex items-start gap-3 mt-4">
+          <AlertCircle className="h-5 w-5 shrink-0 mt-0.5 text-warning-600" />
+          <p className="text-sm text-warning-800 leading-relaxed">
+            A empresa preterida será desativada. Todo o histórico será auditado com segurança,
+            permitindo rastreabilidade.
+          </p>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="mt-6">
           <DialogClose asChild>
             <Button variant="outline" disabled={loading}>
               Cancelar
             </Button>
           </DialogClose>
-          <Button
+          <SubmitButton
             onClick={handleMerge}
-            disabled={loading}
-            className="gap-2 bg-emerald-600 hover:bg-emerald-700"
+            isLoading={loading}
+            className="gap-2"
+            loadingText="Mesclando..."
           >
-            {loading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <GitMerge className="h-4 w-4" />
-            )}
-            Confirmar Mesclagem
-          </Button>
+            {!loading && <GitMerge className="h-4 w-4" />}
+            {!loading && 'Confirmar Mesclagem'}
+          </SubmitButton>
         </DialogFooter>
       </DialogContent>
     </Dialog>

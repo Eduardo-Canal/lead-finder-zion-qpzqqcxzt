@@ -19,16 +19,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { toast } from 'sonner'
-import { Eye, GitMerge, Ban, TrendingUp, CheckCircle, Search } from 'lucide-react'
+import { Eye, GitMerge, Ban, TrendingUp, CheckCircle, Search, Filter } from 'lucide-react'
 import { CompareModal } from '@/components/duplicates/CompareModal'
 import { SuggestMergeModal } from '@/components/duplicates/SuggestMergeModal'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid } from 'recharts'
 import { EmptyState, LoadingTableRows } from '@/components/Notifications/StateBlocks'
 import { designTokens } from '@/constants/designTokens'
-import { cn } from '@/lib/utils'
 import { SubmitButton } from '@/components/Forms/FormStandards'
+import { notify } from '@/components/Notifications/NotificationSystem'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
 export function PotentialTab() {
   const [potentials, setPotentials] = useState<any[]>([])
@@ -105,7 +105,7 @@ export function PotentialTab() {
         setPotentials([])
       }
     } catch (err: any) {
-      toast.error('Erro ao buscar duplicatas potenciais: ' + err.message)
+      notify.error('Erro na varredura', err.message)
     } finally {
       setLoading(false)
     }
@@ -126,7 +126,7 @@ export function PotentialTab() {
         status: 'ignored',
         notes: 'Ignorado a partir da busca de potenciais (Fuzzy Matching).',
       })
-      toast.success('Sugestão ignorada e registrada no histórico.')
+      notify.success('Sugestão ignorada', 'A potencial duplicidade foi removida desta lista.')
       setPotentials((prev) =>
         prev.filter(
           (p) => p.empresa1_id !== item.empresa1_id || p.empresa2_id !== item.empresa2_id,
@@ -134,7 +134,7 @@ export function PotentialTab() {
       )
       fetchStats()
     } catch (e: any) {
-      toast.error('Erro ao ignorar: ' + e.message)
+      notify.error('Erro ao ignorar', e.message)
     }
   }
 
@@ -161,30 +161,30 @@ export function PotentialTab() {
     <div className="space-y-6 animate-fade-in">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="space-y-6">
-          <Card className="shadow-sm transition-all hover:shadow-md">
+          <Card>
             <CardContent className="p-6">
               <div className="flex items-center gap-4">
-                <div className="p-3 bg-blue-100 text-blue-600 rounded-lg">
+                <div className="p-3 bg-secondary-100 text-secondary-600 rounded-lg">
                   <TrendingUp className="h-6 w-6" />
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">
                     Potenciais Encontradas
                   </p>
-                  <h3 className="text-2xl font-bold text-slate-800">{potentials.length}</h3>
+                  <h3 className="text-3xl font-bold text-slate-800">{potentials.length}</h3>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card className="shadow-sm transition-all hover:shadow-md">
+          <Card>
             <CardContent className="p-6">
               <div className="flex items-center gap-4">
-                <div className="p-3 bg-emerald-100 text-emerald-600 rounded-lg">
+                <div className="p-3 bg-success-100 text-success-600 rounded-lg">
                   <CheckCircle className="h-6 w-6" />
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Taxa de Resolução</p>
-                  <h3 className="text-2xl font-bold text-slate-800">
+                  <h3 className="text-3xl font-bold text-slate-800">
                     {resolutionRate.toFixed(1)}%
                   </h3>
                 </div>
@@ -193,22 +193,22 @@ export function PotentialTab() {
           </Card>
         </div>
 
-        <Card className="shadow-sm transition-all hover:shadow-md lg:col-span-2">
-          <CardHeader className="pb-2">
+        <Card className="lg:col-span-2">
+          <CardHeader className="pb-2 bg-slate-50/50 border-b">
             <CardTitle className="text-base font-semibold">
               Tendência de Duplicatas (30 dias)
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             <ChartContainer
               config={{
-                detectadas: { label: 'Detectadas', color: 'hsl(var(--destructive))' },
-                resolvidas: { label: 'Resolvidas', color: 'hsl(var(--primary))' },
+                detectadas: { label: 'Detectadas', color: designTokens.colors.error[500] },
+                resolvidas: { label: 'Resolvidas', color: designTokens.colors.success[500] },
               }}
-              className="h-[160px] w-full"
+              className="h-[180px] w-full"
             >
               <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.5} />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
                 <XAxis
                   dataKey="date"
                   tickFormatter={(v) =>
@@ -217,6 +217,7 @@ export function PotentialTab() {
                   tickLine={false}
                   axisLine={false}
                   tick={{ fontSize: 12 }}
+                  dy={10}
                 />
                 <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 12 }} />
                 <ChartTooltip content={<ChartTooltipContent />} />
@@ -225,7 +226,7 @@ export function PotentialTab() {
                   dataKey="detectadas"
                   stroke="var(--color-detectadas)"
                   fill="var(--color-detectadas)"
-                  fillOpacity={0.2}
+                  fillOpacity={0.1}
                   strokeWidth={2}
                 />
                 <Area
@@ -233,7 +234,7 @@ export function PotentialTab() {
                   dataKey="resolvidas"
                   stroke="var(--color-resolvidas)"
                   fill="var(--color-resolvidas)"
-                  fillOpacity={0.2}
+                  fillOpacity={0.1}
                   strokeWidth={2}
                 />
               </AreaChart>
@@ -242,21 +243,23 @@ export function PotentialTab() {
         </Card>
       </div>
 
-      <Card className="shadow-sm transition-all hover:shadow-md">
-        <CardHeader className="pb-4 border-b">
+      <Card>
+        <CardHeader className="pb-4 border-b bg-slate-50/50">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div>
-              <CardTitle className="text-base font-semibold">Varredura de Potenciais</CardTitle>
-              <CardDescription>
-                O algoritmo Fuzzy Matching analisa sua base inteira para identificar empresas com
-                nomes muito semelhantes.
-              </CardDescription>
+            <div className="flex items-center gap-2">
+              <Filter className="w-5 h-5 text-muted-foreground" />
+              <div>
+                <CardTitle className="text-base font-semibold">Varredura de Potenciais</CardTitle>
+                <CardDescription>
+                  O algoritmo analisa sua base inteira para identificar nomes muito semelhantes.
+                </CardDescription>
+              </div>
             </div>
             <SubmitButton
               onClick={fetchPotentials}
               isLoading={loading}
               size="sm"
-              className={cn(designTokens.animations?.buttonClick, 'gap-2')}
+              className="gap-2"
               loadingText="Varrendo..."
             >
               {!loading && <Search className="h-4 w-4" />}
@@ -264,9 +267,9 @@ export function PotentialTab() {
             </SubmitButton>
           </div>
         </CardHeader>
-        <CardContent className="p-4 sm:p-6 bg-slate-50/50">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="space-y-1.5">
+        <CardContent className="p-4 sm:p-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6">
+            <div className="space-y-2">
               <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 Score Mínimo (%)
               </label>
@@ -276,15 +279,14 @@ export function PotentialTab() {
                 max="100"
                 value={minScore}
                 onChange={(e) => setMinScore(e.target.value)}
-                className="bg-white"
               />
             </div>
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 Tipo de Similaridade
               </label>
               <Select value={similarityType} onValueChange={setSimilarityType}>
-                <SelectTrigger className="bg-white">
+                <SelectTrigger>
                   <SelectValue placeholder="Todos" />
                 </SelectTrigger>
                 <SelectContent>
@@ -293,15 +295,14 @@ export function PotentialTab() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Data Inclusão (Bitrix)
+                Data de Inclusão
               </label>
               <Input
                 type="date"
                 value={searchDate}
                 onChange={(e) => setSearchDate(e.target.value)}
-                className="bg-white"
               />
             </div>
           </div>
@@ -310,7 +311,7 @@ export function PotentialTab() {
 
       <div className={designTokens.layout.tableContainer}>
         <Table>
-          <TableHeader className="bg-slate-50">
+          <TableHeader>
             <TableRow>
               <TableHead>Empresa 1</TableHead>
               <TableHead>Empresa 2</TableHead>
@@ -324,11 +325,10 @@ export function PotentialTab() {
               <LoadingTableRows columns={5} rows={5} />
             ) : filteredData.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="p-0">
+                <TableCell colSpan={5} className="h-64">
                   <EmptyState
                     title="Nenhuma potencial duplicidade"
-                    description="Não foram detectadas empresas com nomes similares baseados nos seus filtros atuais."
-                    className="py-12"
+                    description="Não foram detectadas empresas com nomes similares baseados nos seus filtros."
                     actionLabel={
                       similarityType !== 'Todos' || searchDate || minScore !== '75'
                         ? 'Limpar Filtros'
@@ -344,7 +344,7 @@ export function PotentialTab() {
               </TableRow>
             ) : (
               filteredData.map((item, i) => (
-                <TableRow key={i} className="hover:bg-slate-50/80 transition-colors">
+                <TableRow key={i}>
                   <TableCell>
                     <div
                       className="font-medium text-slate-800 line-clamp-1"
@@ -352,7 +352,7 @@ export function PotentialTab() {
                     >
                       {item.empresa1?.company_name}
                     </div>
-                    <div className="text-xs text-muted-foreground font-mono">
+                    <div className="text-xs text-muted-foreground font-mono mt-0.5">
                       {item.empresa1?.cnpj || 'Sem CNPJ'}
                     </div>
                   </TableCell>
@@ -363,7 +363,7 @@ export function PotentialTab() {
                     >
                       {item.empresa2?.company_name}
                     </div>
-                    <div className="text-xs text-muted-foreground font-mono">
+                    <div className="text-xs text-muted-foreground font-mono mt-0.5">
                       {item.empresa2?.cnpj || 'Sem CNPJ'}
                     </div>
                   </TableCell>
@@ -371,55 +371,59 @@ export function PotentialTab() {
                     <Badge
                       className={
                         item.similarity_score >= 90
-                          ? 'bg-emerald-500'
+                          ? 'bg-success-500 hover:bg-success-600'
                           : item.similarity_score >= 80
-                            ? 'bg-amber-500'
-                            : 'bg-orange-500'
+                            ? 'bg-warning-500 hover:bg-warning-600 text-white'
+                            : 'bg-primary-500 hover:bg-primary-600'
+                      }
+                      style={
+                        item.similarity_score >= 90
+                          ? { backgroundColor: designTokens.colors.success[500], color: '#fff' }
+                          : item.similarity_score >= 80
+                            ? { backgroundColor: designTokens.colors.warning[500], color: '#fff' }
+                            : { backgroundColor: designTokens.colors.primary[500], color: '#fff' }
                       }
                     >
                       {Number(item.similarity_score).toFixed(1)}%
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Badge
-                      variant="outline"
-                      className="bg-slate-100 font-normal text-[10px] uppercase"
-                    >
+                    <Badge variant="secondary" className="font-normal text-[10px] uppercase">
                       {item.tipo_similaridade}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right pr-4">
                     <div className="flex justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 hover:bg-blue-50 text-accent"
-                        onClick={() => handleReview(item)}
-                        title="Revisar Manualmente"
-                        aria-label="Revisar Manualmente"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 hover:bg-emerald-50 text-emerald-600"
-                        onClick={() => setSuggestRecord(item)}
-                        title="Sugerir Merge"
-                        aria-label="Sugerir Merge"
-                      >
-                        <GitMerge className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 hover:bg-red-50 text-destructive"
-                        onClick={() => handleIgnore(item)}
-                        title="Ignorar"
-                        aria-label="Ignorar Potencial Duplicidade"
-                      >
-                        <Ban className="h-4 w-4" />
-                      </Button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="ghost" size="icon" onClick={() => handleReview(item)}>
+                            <Eye className="h-4 w-4 text-secondary-500" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Revisar Manualmente</TooltipContent>
+                      </Tooltip>
+
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setSuggestRecord(item)}
+                          >
+                            <GitMerge className="h-4 w-4 text-success-600" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Sugerir Merge</TooltipContent>
+                      </Tooltip>
+
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="ghost" size="icon" onClick={() => handleIgnore(item)}>
+                            <Ban className="h-4 w-4 text-error-500" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Ignorar</TooltipContent>
+                      </Tooltip>
                     </div>
                   </TableCell>
                 </TableRow>

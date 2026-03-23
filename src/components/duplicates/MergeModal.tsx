@@ -12,10 +12,12 @@ import { Button } from '@/components/ui/button'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Label } from '@/components/ui/label'
 import { supabase } from '@/lib/supabase/client'
-import { toast } from 'sonner'
 import useAuthStore from '@/stores/useAuthStore'
-import { Loader2, GitMerge, AlertCircle } from 'lucide-react'
+import { GitMerge, AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { notify } from '@/components/Notifications/NotificationSystem'
+import { SubmitButton } from '@/components/Forms/FormStandards'
+import { designTokens } from '@/constants/designTokens'
 
 export function MergeModal({
   isOpen,
@@ -79,11 +81,14 @@ export function MergeModal({
 
       if (historyError) throw historyError
 
-      toast.success('Empresas mescladas com sucesso e histórico registrado!')
+      notify.success(
+        'Mesclagem Concluída',
+        'Empresas mescladas com sucesso e histórico registrado!',
+      )
       onMerge()
       onClose()
     } catch (e: any) {
-      toast.error('Erro ao mesclar: ' + e.message)
+      notify.error('Erro ao mesclar', e.message)
     } finally {
       setLoading(false)
     }
@@ -93,19 +98,22 @@ export function MergeModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-emerald-700">
+          <DialogTitle
+            className="flex items-center gap-2"
+            style={{ color: designTokens.colors.primary[600] }}
+          >
             <GitMerge className="h-5 w-5" />
-            Mesclar Cadastros
+            Confirmar Mesclagem
           </DialogTitle>
           <DialogDescription className="text-base pt-2">
             Selecione qual registro será mantido como <strong>Principal</strong> na base de dados. O
-            outro será marcado como secundário/absorvido.
+            outro será marcado como secundário e absorvido.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="py-4">
+        <div className="py-2">
           <RadioGroup
             value={primary}
             onValueChange={(v: any) => setPrimary(v)}
@@ -113,10 +121,10 @@ export function MergeModal({
           >
             <div
               className={cn(
-                'flex items-start space-x-3 border p-4 rounded-lg cursor-pointer transition-all',
+                'flex items-start space-x-4 border p-5 rounded-xl cursor-pointer transition-all duration-200',
                 primary === 'original'
-                  ? 'bg-emerald-50 border-emerald-300 shadow-sm ring-1 ring-emerald-500/20'
-                  : 'bg-white hover:bg-slate-50',
+                  ? 'bg-primary/5 border-primary shadow-sm ring-1 ring-primary/20'
+                  : 'bg-white hover:bg-slate-50 hover:border-slate-300',
               )}
               onClick={() => setPrimary('original')}
             >
@@ -128,24 +136,26 @@ export function MergeModal({
                 >
                   Manter Registro Original
                 </Label>
-                <p
-                  className="text-sm text-slate-600 mt-1 line-clamp-1"
-                  title={original?.company_name}
-                >
-                  {original?.company_name}
-                </p>
-                <p className="text-xs text-muted-foreground font-mono">
-                  CNPJ: {original?.cnpj || 'Sem CNPJ'}
-                </p>
+                <div className="mt-2 space-y-1">
+                  <p
+                    className="text-sm font-medium text-slate-700 line-clamp-1"
+                    title={original?.company_name}
+                  >
+                    {original?.company_name}
+                  </p>
+                  <p className="text-xs text-muted-foreground font-mono">
+                    CNPJ: {original?.cnpj || 'Sem CNPJ'}
+                  </p>
+                </div>
               </div>
             </div>
 
             <div
               className={cn(
-                'flex items-start space-x-3 border p-4 rounded-lg cursor-pointer transition-all',
+                'flex items-start space-x-4 border p-5 rounded-xl cursor-pointer transition-all duration-200',
                 primary === 'duplicate'
-                  ? 'bg-emerald-50 border-emerald-300 shadow-sm ring-1 ring-emerald-500/20'
-                  : 'bg-white hover:bg-slate-50',
+                  ? 'bg-primary/5 border-primary shadow-sm ring-1 ring-primary/20'
+                  : 'bg-white hover:bg-slate-50 hover:border-slate-300',
               )}
               onClick={() => setPrimary('duplicate')}
             >
@@ -155,48 +165,47 @@ export function MergeModal({
                   htmlFor="r-dup"
                   className="font-semibold text-base cursor-pointer text-slate-800"
                 >
-                  Manter Registro Novo (Duplicado)
+                  Manter Registro Duplicado
                 </Label>
-                <p
-                  className="text-sm text-slate-600 mt-1 line-clamp-1"
-                  title={duplicate?.company_name}
-                >
-                  {duplicate?.company_name}
-                </p>
-                <p className="text-xs text-muted-foreground font-mono">
-                  CNPJ: {duplicate?.cnpj || 'Sem CNPJ'}
-                </p>
+                <div className="mt-2 space-y-1">
+                  <p
+                    className="text-sm font-medium text-slate-700 line-clamp-1"
+                    title={duplicate?.company_name}
+                  >
+                    {duplicate?.company_name}
+                  </p>
+                  <p className="text-xs text-muted-foreground font-mono">
+                    CNPJ: {duplicate?.cnpj || 'Sem CNPJ'}
+                  </p>
+                </div>
               </div>
             </div>
           </RadioGroup>
         </div>
 
-        <div className="bg-amber-50 p-3 rounded-md border border-amber-100 flex items-start gap-2 text-amber-800 text-xs mb-2">
-          <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-          <p>
-            A ação de mesclagem atualizará os vínculos de histórico e não exclui os dados da empresa
-            absorvida, garantindo a possibilidade de reversão futura.
+        <div className="bg-warning-50 p-4 rounded-lg border border-warning-200 flex items-start gap-3 mt-4">
+          <AlertCircle className="h-5 w-5 shrink-0 mt-0.5 text-warning-600" />
+          <p className="text-sm text-warning-800 leading-relaxed">
+            A ação de mesclagem atualizará os vínculos e manterá o histórico. Os dados da empresa
+            absorvida não são excluídos definitivamente, permitindo reversão futura se necessário.
           </p>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="mt-6">
           <DialogClose asChild>
             <Button variant="outline" disabled={loading}>
               Cancelar
             </Button>
           </DialogClose>
-          <Button
+          <SubmitButton
             onClick={handleMerge}
-            disabled={loading}
-            className="gap-2 bg-emerald-600 hover:bg-emerald-700"
+            isLoading={loading}
+            className="gap-2"
+            loadingText="Mesclando..."
           >
-            {loading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <GitMerge className="h-4 w-4" />
-            )}
-            Confirmar Mesclagem
-          </Button>
+            {!loading && <GitMerge className="h-4 w-4" />}
+            {!loading && 'Confirmar Mesclagem'}
+          </SubmitButton>
         </DialogFooter>
       </DialogContent>
     </Dialog>

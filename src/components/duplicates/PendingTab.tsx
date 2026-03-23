@@ -19,12 +19,13 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
-import { toast } from 'sonner'
-import { Eye, GitMerge, Ban } from 'lucide-react'
+import { Eye, GitMerge, Ban, Filter } from 'lucide-react'
 import { CompareModal } from '@/components/duplicates/CompareModal'
 import { MergeModal } from '@/components/duplicates/MergeModal'
 import { EmptyState, LoadingTableRows } from '@/components/Notifications/StateBlocks'
 import { designTokens } from '@/constants/designTokens'
+import { notify } from '@/components/Notifications/NotificationSystem'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
 export function PendingTab() {
   const [data, setData] = useState<any[]>([])
@@ -54,7 +55,10 @@ export function PendingTab() {
       setData(res || [])
     } catch (err) {
       console.error(err)
-      toast.error('Erro ao buscar registros de duplicidades.')
+      notify.error(
+        'Erro ao buscar registros',
+        'Não foi possível carregar as duplicidades pendentes.',
+      )
     } finally {
       setLoading(false)
     }
@@ -67,10 +71,10 @@ export function PendingTab() {
   const handleIgnore = async (id: string) => {
     try {
       await supabase.from('company_duplicates').update({ status: 'ignored' }).eq('id', id)
-      toast.success('Registro ignorado com sucesso.')
+      notify.success('Registro ignorado', 'A duplicidade foi marcada como ignorada com sucesso.')
       fetchData()
     } catch (err) {
-      toast.error('Erro ao ignorar registro.')
+      notify.error('Erro ao ignorar', 'Ocorreu um erro ao processar sua solicitação.')
     }
   }
 
@@ -94,22 +98,27 @@ export function PendingTab() {
   }
 
   return (
-    <div className="space-y-6">
-      <Card className="shadow-sm transition-all duration-300 hover:shadow-md">
-        <CardHeader className="pb-4 border-b">
-          <CardTitle className="text-base font-semibold">Pendentes de Revisão</CardTitle>
-          <CardDescription>
-            Filtre os registros para priorizar as validações mais críticas.
-          </CardDescription>
+    <div className="space-y-6 animate-fade-in">
+      <Card>
+        <CardHeader className="pb-4 border-b bg-slate-50/50">
+          <div className="flex items-center gap-2">
+            <Filter className="w-5 h-5 text-muted-foreground" />
+            <div>
+              <CardTitle className="text-base font-semibold">Filtros de Análise</CardTitle>
+              <CardDescription>
+                Filtre os registros para priorizar as validações mais críticas.
+              </CardDescription>
+            </div>
+          </div>
         </CardHeader>
-        <CardContent className="p-4 sm:p-6 bg-slate-50/50">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="space-y-1.5">
+        <CardContent className="p-4 sm:p-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6">
+            <div className="space-y-2">
               <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 Tipo de Correspondência
               </label>
               <Select value={matchType} onValueChange={setMatchType}>
-                <SelectTrigger className="bg-white">
+                <SelectTrigger>
                   <SelectValue placeholder="Todos" />
                 </SelectTrigger>
                 <SelectContent>
@@ -120,7 +129,7 @@ export function PendingTab() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 Score Mínimo (%)
               </label>
@@ -131,18 +140,16 @@ export function PendingTab() {
                 placeholder="Ex: 80"
                 value={minScore}
                 onChange={(e) => setMinScore(e.target.value)}
-                className="bg-white"
               />
             </div>
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Data Encontrada
+                Data de Detecção
               </label>
               <Input
                 type="date"
                 value={searchDate}
                 onChange={(e) => setSearchDate(e.target.value)}
-                className="bg-white"
               />
             </div>
           </div>
@@ -151,7 +158,7 @@ export function PendingTab() {
 
       <div className={designTokens.layout.tableContainer}>
         <Table>
-          <TableHeader className="bg-slate-50">
+          <TableHeader>
             <TableRow>
               <TableHead>Empresa Original</TableHead>
               <TableHead>Empresa Duplicada</TableHead>
@@ -166,11 +173,10 @@ export function PendingTab() {
               <LoadingTableRows columns={6} rows={5} />
             ) : filteredData.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="p-0">
+                <TableCell colSpan={6} className="h-64">
                   <EmptyState
                     title="Nenhuma duplicidade pendente"
-                    description="Sua base de dados está em ordem no momento ou não há resultados para os filtros."
-                    className="py-12"
+                    description="Sua base de dados está em ordem ou os filtros não retornaram resultados."
                     actionLabel={
                       matchType !== 'Todos' || minScore || searchDate ? 'Limpar Filtros' : undefined
                     }
@@ -184,7 +190,7 @@ export function PendingTab() {
               </TableRow>
             ) : (
               filteredData.map((item) => (
-                <TableRow key={item.id} className="hover:bg-slate-50/80 transition-colors">
+                <TableRow key={item.id}>
                   <TableCell>
                     <div
                       className="font-medium text-slate-800 line-clamp-1"
@@ -192,7 +198,7 @@ export function PendingTab() {
                     >
                       {item.original?.company_name || 'Desconhecido'}
                     </div>
-                    <div className="text-xs text-muted-foreground font-mono">
+                    <div className="text-xs text-muted-foreground font-mono mt-0.5">
                       {item.original?.cnpj || 'Sem CNPJ'}
                     </div>
                   </TableCell>
@@ -203,15 +209,12 @@ export function PendingTab() {
                     >
                       {item.duplicate?.company_name || 'Desconhecido'}
                     </div>
-                    <div className="text-xs text-muted-foreground font-mono">
+                    <div className="text-xs text-muted-foreground font-mono mt-0.5">
                       {item.duplicate?.cnpj || 'Sem CNPJ'}
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge
-                      variant="outline"
-                      className="bg-slate-100 font-normal text-[10px] uppercase"
-                    >
+                    <Badge variant="secondary" className="font-normal text-[10px] uppercase">
                       {getMatchTypeLabel(item.match_type)}
                     </Badge>
                   </TableCell>
@@ -219,10 +222,17 @@ export function PendingTab() {
                     <Badge
                       className={
                         (item.similarity_score || 0) >= 90
-                          ? 'bg-emerald-500'
+                          ? 'bg-success-500 hover:bg-success-600'
                           : (item.similarity_score || 0) >= 75
-                            ? 'bg-amber-500'
-                            : 'bg-red-500'
+                            ? 'bg-warning-500 hover:bg-warning-600 text-white'
+                            : 'bg-error-500 hover:bg-error-600'
+                      }
+                      style={
+                        (item.similarity_score || 0) >= 90
+                          ? { backgroundColor: designTokens.colors.success[500], color: '#fff' }
+                          : (item.similarity_score || 0) >= 75
+                            ? { backgroundColor: designTokens.colors.warning[500], color: '#fff' }
+                            : { backgroundColor: designTokens.colors.error[500], color: '#fff' }
                       }
                     >
                       {Number(item.similarity_score || 0).toFixed(1)}%
@@ -233,36 +243,36 @@ export function PendingTab() {
                   </TableCell>
                   <TableCell className="text-right pr-4">
                     <div className="flex justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 hover:bg-blue-50 text-accent"
-                        onClick={() => setCompareRecord(item)}
-                        title="Visualizar Detalhes"
-                        aria-label="Visualizar Detalhes"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 hover:bg-emerald-50 text-emerald-600"
-                        onClick={() => setMergeRecord(item)}
-                        title="Mesclar (Merge)"
-                        aria-label="Mesclar Empresas"
-                      >
-                        <GitMerge className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 hover:bg-red-50 text-destructive"
-                        onClick={() => handleIgnore(item.id)}
-                        title="Ignorar"
-                        aria-label="Ignorar Duplicidade"
-                      >
-                        <Ban className="h-4 w-4" />
-                      </Button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setCompareRecord(item)}
+                          >
+                            <Eye className="h-4 w-4 text-secondary-500" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Visualizar Detalhes</TooltipContent>
+                      </Tooltip>
+
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="ghost" size="icon" onClick={() => setMergeRecord(item)}>
+                            <GitMerge className="h-4 w-4 text-success-600" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Mesclar Empresas</TooltipContent>
+                      </Tooltip>
+
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="ghost" size="icon" onClick={() => handleIgnore(item.id)}>
+                            <Ban className="h-4 w-4 text-error-500" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Ignorar</TooltipContent>
+                      </Tooltip>
                     </div>
                   </TableCell>
                 </TableRow>
