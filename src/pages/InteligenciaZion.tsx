@@ -24,7 +24,7 @@ import {
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 import { PieChart, Pie, Cell } from 'recharts'
 import { Badge, badgeVariants } from '@/components/ui/badge'
-import { ScrollArea } from '@/components/ui/scroll-area'
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
 import {
   Dialog,
   DialogContent,
@@ -714,17 +714,19 @@ export default function InteligenciaZion() {
               <Table>
                 <TableHeader className="bg-slate-50 sticky top-0 z-10 shadow-sm">
                   <TableRow>
-                    <TableHead className="w-[45%]">
+                    <TableHead className="w-[45%] lg:w-[50%] min-w-[150px]">
                       <div className="flex items-center gap-2">
-                        <Briefcase className="h-3.5 w-3.5" /> CNAE Principal
+                        <Briefcase className="h-3.5 w-3.5 shrink-0" /> CNAE Principal
                       </div>
                     </TableHead>
-                    <TableHead className="text-center w-[15%]">
+                    <TableHead className="text-center whitespace-nowrap w-[15%]">
                       <div className="flex items-center justify-center gap-2">
-                        <Users className="h-3.5 w-3.5" /> Qtd. Clientes
+                        <Users className="h-3.5 w-3.5 shrink-0" /> Qtd. Clientes
                       </div>
                     </TableHead>
-                    <TableHead className="text-right pr-6 w-[40%]">Ações</TableHead>
+                    <TableHead className="text-right pr-6 whitespace-nowrap w-[40%] lg:w-[35%]">
+                      Ações
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -745,21 +747,21 @@ export default function InteligenciaZion() {
                         className="group hover:bg-primary-50/40 transition-colors cursor-pointer"
                         onClick={() => handleOpenModal(row.cnae)}
                       >
-                        <TableCell className="font-medium text-slate-700">
+                        <TableCell className="font-medium text-slate-700 w-full max-w-0">
                           <div className="flex items-center gap-2.5">
                             <div
                               className="w-3 h-3 rounded-full shrink-0 shadow-sm"
                               style={{ backgroundColor: chartConfig[row.cnae]?.color || '#cbd5e1' }}
                             />
                             <span
-                              className="truncate max-w-[180px] sm:max-w-[250px] md:max-w-[300px] group-hover:text-primary transition-colors"
+                              className="truncate group-hover:text-primary transition-colors block w-full"
                               title={row.cnae}
                             >
                               {row.cnae}
                             </span>
                           </div>
                         </TableCell>
-                        <TableCell className="text-center">
+                        <TableCell className="text-center whitespace-nowrap">
                           <Badge
                             variant="secondary"
                             className="font-mono bg-slate-100/80 group-hover:bg-white transition-colors"
@@ -767,25 +769,25 @@ export default function InteligenciaZion() {
                             {row.count}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-right pr-4">
-                          <div className="flex justify-end items-center gap-2">
+                        <TableCell className="text-right pr-4 whitespace-nowrap">
+                          <div className="flex justify-end items-center gap-2 flex-nowrap">
                             <Button
-                              variant="ghost"
+                              variant="outline"
                               size="sm"
-                              className="text-slate-500 hover:bg-slate-100 hover:text-slate-900 gap-1.5 h-8 px-2 shadow-sm border border-slate-200 bg-white"
+                              className="text-slate-600 hover:bg-slate-100 hover:text-slate-900 gap-1.5 h-8 px-2.5 text-xs shadow-sm border-slate-200 bg-white shrink-0"
                               onClick={(e) => {
                                 e.stopPropagation()
                                 handleOpenModal(row.cnae)
                               }}
                               title="Ver empresas deste CNAE"
                             >
-                              <Eye className="h-3.5 w-3.5" />
+                              <Eye className="h-3.5 w-3.5 shrink-0" />
                               <span className="hidden xl:inline">Ver Empresas</span>
                             </Button>
                             <Button
                               variant="primary"
                               size="sm"
-                              className="gap-1.5 h-8 px-3 shadow-sm whitespace-nowrap"
+                              className="gap-1.5 h-8 px-2.5 text-xs shadow-sm shrink-0"
                               onClick={(e) => {
                                 e.stopPropagation()
                                 handleBuscarLeads(row.cnae)
@@ -793,8 +795,8 @@ export default function InteligenciaZion() {
                               disabled={row.cnae.toLowerCase() === 'não informado'}
                               title="Buscar empresas semelhantes"
                             >
-                              <Search className="h-3.5 w-3.5" />
-                              <span className="hidden sm:inline">Buscar Semelhantes</span>
+                              <Search className="h-3.5 w-3.5 shrink-0" />
+                              <span className="hidden xl:inline">Buscar Semelhante</span>
                             </Button>
                           </div>
                         </TableCell>
@@ -803,6 +805,7 @@ export default function InteligenciaZion() {
                   )}
                 </TableBody>
               </Table>
+              <ScrollBar orientation="horizontal" />
             </ScrollArea>
           </CardContent>
         </Card>
