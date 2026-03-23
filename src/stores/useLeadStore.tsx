@@ -30,6 +30,12 @@ export type FilteredLead = {
   contatadoPor?: string
   contatadoEm?: string
   status_contato?: string
+  faturamento_anual?: number
+  numero_funcionarios?: number
+  score_credito?: number
+  contatos_principais?: any[]
+  dados_incompletos?: boolean
+  potencial?: 'Alto' | 'Médio' | 'Baixo' | 'Indefinido'
 }
 
 export type Filters = {
@@ -44,6 +50,9 @@ export type Filters = {
   sizeQuick: string
   contactStatus: string
   limit: number
+  faturamento: number[]
+  funcionarios: number[]
+  scoreMin: number
 }
 
 type Pagination = {
@@ -82,6 +91,9 @@ const defaultFilters: Filters = {
   sizeQuick: 'Todos',
   contactStatus: 'Todos',
   limit: 10,
+  faturamento: [0, 10000000],
+  funcionarios: [0, 500],
+  scoreMin: 0,
 }
 
 const LeadContext = createContext<LeadStoreContextType | null>(null)
@@ -258,12 +270,53 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
         return
       }
 
-      const results = (data?.cnpjs || []).map(mapEmpresaToLead)
-      setLeadsRaw(results)
+      const initialResults = (data?.cnpjs || []).map(mapEmpresaToLead)
+      let finalResults = initialResults
+
+      // Enrich Data
+      if (initialResults.length > 0) {
+        try {
+          const { data: enrichedData, error: enrichError } = await supabase.functions.invoke(
+            'enrich-lead-data-on-search',
+            {
+              body: { leads: initialResults },
+            },
+          )
+
+          if (!enrichError && enrichedData?.results) {
+            finalResults = enrichedData.results.map((r: any) => {
+              const base = r
+              const enr = r.enriquecimento || {}
+              const fat = enr.faturamento_anual || 0
+              const score = enr.score_credito || 0
+              let pot: 'Alto' | 'Médio' | 'Baixo' | 'Indefinido' = 'Indefinido'
+
+              if (enr.dados_incompletos) pot = 'Indefinido'
+              else if (fat > 1000000 && score > 70) pot = 'Alto'
+              else if (fat < 250000 || score < 40) pot = 'Baixo'
+              else pot = 'Médio'
+
+              return {
+                ...base,
+                faturamento_anual: fat,
+                numero_funcionarios: enr.numero_funcionarios || 0,
+                score_credito: score,
+                contatos_principais: enr.contatos_principais || [],
+                dados_incompletos: enr.dados_incompletos || false,
+                potencial: pot,
+              }
+            })
+          }
+        } catch (e) {
+          console.error('Failed to enrich leads:', e)
+        }
+      }
+
+      setLeadsRaw(finalResults)
       setPagination({
         page: data?.page || targetPage,
         totalPages: data?.pages || 1,
-        totalCount: data?.count || results.length,
+        totalCount: data?.count || finalResults.length,
       })
 
       if (targetPage === 1 && user?.user_id) {
@@ -278,15 +331,15 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
               typeof filters.municipio === 'string' && filters.municipio.trim() !== ''
                 ? filters.municipio.trim()
                 : 'Todas',
-            total_results: data?.count || results.length,
+            total_results: data?.count || finalResults.length,
           })
           .then(({ error }) => {
             if (error) console.error('Erro ao salvar histórico de pesquisa:', error)
           })
       }
 
-      if (results.length > 0) {
-        toast.success(`${results.length} leads encontrados.`)
+      if (finalResults.length > 0) {
+        toast.success(`${finalResults.length} leads encontrados.`)
       } else {
         toast.info('Nenhum lead encontrado com estes filtros.')
       }
@@ -411,6 +464,22 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
           return false
         if (filters.contactStatus === 'Em Negociação' && lead.status_contato !== 'Em Negociação')
           return false
+      }
+
+      // Enriched filters
+      if (filters.faturamento[0] > 0 || filters.faturamento[1] < 10000000) {
+        const fat = lead.faturamento_anual || 0
+        if (fat < filters.faturamento[0]) return false
+        if (filters.faturamento[1] < 10000000 && fat > filters.faturamento[1]) return false
+      }
+      if (filters.funcionarios[0] > 0 || filters.funcionarios[1] < 500) {
+        const func = lead.numero_funcionarios || 0
+        if (func < filters.funcionarios[0]) return false
+        if (filters.funcionarios[1] < 500 && func > filters.funcionarios[1]) return false
+      }
+      if (filters.scoreMin > 0) {
+        const score = lead.score_credito || 0
+        if (score < filters.scoreMin) return false
       }
 
       return true

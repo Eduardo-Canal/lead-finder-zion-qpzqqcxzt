@@ -83,6 +83,7 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
         socios: leadData.socios,
         salvo_por: profile.id,
         status_contato: 'Não Contatado',
+        observacoes: leadData.potencial ? `Potencial: ${leadData.potencial}` : null,
       }
 
       const { error } = await supabase.from('leads_salvos').insert(newLead)
@@ -123,7 +124,7 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
   }
 
   const displayData = enrichedData || lead
-  const isEnriched = !!enrichedData
+  const isEnriched = !!enrichedData || displayData.faturamento_anual !== undefined
 
   return (
     <div className="flex flex-col h-full w-full bg-slate-50 min-h-0 overflow-hidden rounded-xl">
@@ -138,17 +139,36 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
             </DialogDescription>
           </div>
           <div className="flex flex-col items-end gap-2 shrink-0">
-            <Badge
-              variant={displayData.situacao?.toUpperCase() === 'ATIVA' ? 'default' : 'destructive'}
-              className={cn(
-                'px-3 py-1 text-xs uppercase tracking-wider font-bold shadow-sm',
-                displayData.situacao?.toUpperCase() === 'ATIVA'
-                  ? 'bg-emerald-500 hover:bg-emerald-600 text-white'
-                  : 'bg-red-500 hover:bg-red-600 text-white',
+            <div className="flex gap-2">
+              {displayData.potencial && displayData.potencial !== 'Indefinido' && (
+                <Badge
+                  variant="outline"
+                  className={cn(
+                    'px-3 py-1 text-xs uppercase tracking-wider font-bold shadow-sm border',
+                    displayData.potencial === 'Alto' &&
+                      'bg-emerald-100 text-emerald-800 border-emerald-200',
+                    displayData.potencial === 'Médio' &&
+                      'bg-amber-100 text-amber-800 border-amber-200',
+                    displayData.potencial === 'Baixo' && 'bg-red-100 text-red-800 border-red-200',
+                  )}
+                >
+                  Potencial: {displayData.potencial}
+                </Badge>
               )}
-            >
-              {displayData.situacao || displayData.situacao_cadastral || 'Desconhecida'}
-            </Badge>
+              <Badge
+                variant={
+                  displayData.situacao?.toUpperCase() === 'ATIVA' ? 'default' : 'destructive'
+                }
+                className={cn(
+                  'px-3 py-1 text-xs uppercase tracking-wider font-bold shadow-sm',
+                  displayData.situacao?.toUpperCase() === 'ATIVA'
+                    ? 'bg-emerald-500 hover:bg-emerald-600 text-white'
+                    : 'bg-red-500 hover:bg-red-600 text-white',
+                )}
+              >
+                {displayData.situacao || displayData.situacao_cadastral || 'Desconhecida'}
+              </Badge>
+            </div>
             {isEnriched && (
               <Badge
                 variant="outline"
@@ -192,6 +212,44 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
 
           <div className="flex-1 overflow-y-auto px-5 md:px-6 pb-6 min-h-0 custom-scrollbar">
             <TabsContent value="resumo" className="space-y-6 mt-5 animate-fade-in outline-none">
+              {!displayData.dados_incompletos && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                  <div className="p-5 bg-indigo-50/50 rounded-xl border border-indigo-100 flex flex-col gap-1 shadow-sm">
+                    <span className="text-xs font-bold text-indigo-400 uppercase tracking-wider">
+                      Faturamento Estimado
+                    </span>
+                    <span className="text-lg font-bold text-indigo-900 font-mono">
+                      {formatCurrency(displayData.faturamento_anual)}
+                    </span>
+                  </div>
+                  <div className="p-5 bg-indigo-50/50 rounded-xl border border-indigo-100 flex flex-col gap-1 shadow-sm">
+                    <span className="text-xs font-bold text-indigo-400 uppercase tracking-wider">
+                      Funcionários
+                    </span>
+                    <span className="text-lg font-bold text-indigo-900">
+                      {displayData.numero_funcionarios || 'N/I'}
+                    </span>
+                  </div>
+                  <div className="p-5 bg-indigo-50/50 rounded-xl border border-indigo-100 flex flex-col gap-1 shadow-sm">
+                    <span className="text-xs font-bold text-indigo-400 uppercase tracking-wider">
+                      Score de Crédito
+                    </span>
+                    <span
+                      className={cn(
+                        'text-lg font-bold',
+                        (displayData.score_credito || 0) > 70
+                          ? 'text-emerald-600'
+                          : (displayData.score_credito || 0) > 40
+                            ? 'text-amber-600'
+                            : 'text-red-600',
+                      )}
+                    >
+                      {displayData.score_credito || 'N/I'} / 100
+                    </span>
+                  </div>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-sm flex items-start gap-4 hover:border-primary/30 transition-colors">
                   <div className="bg-primary/10 p-3 rounded-lg text-primary shrink-0">
@@ -271,6 +329,37 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
             </TabsContent>
 
             <TabsContent value="contato" className="space-y-6 mt-5 animate-fade-in outline-none">
+              {displayData.contatos_principais && displayData.contatos_principais.length > 0 && (
+                <div className="p-6 bg-white rounded-xl border border-slate-200 shadow-sm space-y-5 col-span-full">
+                  <h4 className="font-bold flex items-center gap-2 text-slate-800 border-b border-slate-100 pb-3">
+                    <Users className="w-5 h-5 text-indigo-500" /> Contatos Principais (Enriquecido)
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {displayData.contatos_principais.map((c: any, i: number) => (
+                      <div
+                        key={i}
+                        className="p-4 border border-slate-100 bg-slate-50 rounded-lg flex flex-col gap-2"
+                      >
+                        <div className="font-bold text-slate-800">{c.nome}</div>
+                        <div className="text-xs font-semibold text-indigo-600 uppercase tracking-wider">
+                          {c.cargo}
+                        </div>
+                        {c.telefone && (
+                          <div className="text-sm text-slate-600 font-mono flex items-center gap-2">
+                            <Phone className="w-3.5 h-3.5" /> {c.telefone}
+                          </div>
+                        )}
+                        {c.email && (
+                          <div className="text-sm text-slate-600 flex items-center gap-2">
+                            <Mail className="w-3.5 h-3.5" /> {c.email}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="p-6 bg-white rounded-xl border border-slate-200 shadow-sm space-y-5">
                   <h4 className="font-bold flex items-center gap-2 text-slate-800 border-b border-slate-100 pb-3">
@@ -371,7 +460,7 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
 
       <DialogFooter className="p-4 md:px-6 bg-white border-t border-slate-200 shrink-0 flex flex-col sm:flex-row gap-3 relative z-10 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
         <div className="flex-1 flex items-center justify-start">
-          {!isEnriched && (
+          {(!isEnriched || displayData.dados_incompletos) && (
             <Button
               variant="outline"
               onClick={handleEnrichLead}
@@ -383,7 +472,7 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
               ) : (
                 <Sparkles className="w-4 h-4" />
               )}
-              {enriching ? 'Buscando...' : 'Enriquecer Lead (API Externa)'}
+              {enriching ? 'Buscando...' : 'Enriquecer Lead Manualmente'}
             </Button>
           )}
         </div>

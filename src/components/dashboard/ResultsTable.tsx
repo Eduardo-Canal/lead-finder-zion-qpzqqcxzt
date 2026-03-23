@@ -54,7 +54,6 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { EmptyState, LoadingTableRows } from '@/components/Notifications/StateBlocks'
-import { designTokens } from '@/constants/designTokens'
 
 const formatCnpj = (cnpj: string) => {
   if (!cnpj) return ''
@@ -152,7 +151,6 @@ export function ResultsTable() {
     toast.success(`${label} copiado para a área de transferência!`)
   }
 
-  // Componente extraído para não repetir o cabeçalho complexo e evitar bugs visuais
   const renderTableHeader = () => (
     <TableHeader>
       <TableRow className="bg-slate-50 hover:bg-slate-50 border-b-slate-200">
@@ -164,6 +162,24 @@ export function ResultsTable() {
         <TableHead className="min-w-[280px] w-[280px] font-semibold text-slate-700">
           <div className="flex items-center gap-1.5">
             <Building2 className="w-4 h-4 text-slate-400" /> Razão Social
+          </div>
+        </TableHead>
+        <TableHead className="min-w-[120px] w-[120px] font-semibold text-slate-700">
+          Potencial
+        </TableHead>
+        <TableHead className="min-w-[150px] w-[150px] font-semibold text-slate-700">
+          <div className="flex items-center gap-1.5">
+            <DollarSign className="w-4 h-4 text-slate-400" /> Faturamento
+          </div>
+        </TableHead>
+        <TableHead className="min-w-[100px] w-[100px] font-semibold text-slate-700">
+          <div className="flex items-center gap-1.5">
+            <Users className="w-4 h-4 text-slate-400" /> Func.
+          </div>
+        </TableHead>
+        <TableHead className="min-w-[110px] w-[110px] font-semibold text-slate-700">
+          <div className="flex items-center gap-1.5">
+            <Activity className="w-4 h-4 text-slate-400" /> Score
           </div>
         </TableHead>
         <TableHead className="min-w-[320px] w-[320px] font-semibold text-slate-700">
@@ -219,7 +235,7 @@ export function ResultsTable() {
 
   return (
     <div className="flex flex-col space-y-4">
-      {/* Top Bar with UI Hints - Aparece apenas se houver resultados */}
+      {/* Top Bar with UI Hints */}
       {filteredLeads.length > 0 && !isSearching && (
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-3 px-1 animate-fade-in w-full mt-2">
           <div className="text-sm text-slate-500 font-medium bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-lg shadow-sm">
@@ -253,14 +269,13 @@ export function ResultsTable() {
       {/* Main Table Area */}
       <div className="w-full animate-fade-in-up z-0 relative">
         {isSearching ? (
-          <Table className="w-full min-w-[2200px] bg-white">
+          <Table className="w-full min-w-[2800px] bg-white">
             {renderTableHeader()}
             <TableBody className="bg-white">
-              <LoadingTableRows columns={13} rows={10} />
+              <LoadingTableRows columns={17} rows={10} />
             </TableBody>
           </Table>
         ) : filteredLeads.length === 0 ? (
-          // Empty State isolado para evitar a largura de 2200px
           <div className="bg-white border border-slate-200 rounded-xl shadow-sm h-[400px] flex items-center justify-center w-full">
             <EmptyState
               title="Nenhum lead encontrado"
@@ -271,7 +286,7 @@ export function ResultsTable() {
             />
           </div>
         ) : (
-          <Table className="w-full min-w-[2200px] bg-white">
+          <Table className="w-full min-w-[2800px] bg-white">
             {renderTableHeader()}
             <TableBody className="bg-white">
               {filteredLeads.map((lead) => (
@@ -315,6 +330,42 @@ export function ResultsTable() {
                         {formatObjectField(lead.razao_social) || '-'}
                       </TooltipContent>
                     </Tooltip>
+                  </TableCell>
+                  <TableCell className="align-middle">
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        'font-semibold border',
+                        lead.potencial === 'Alto' &&
+                          'bg-emerald-100 text-emerald-800 border-emerald-200',
+                        lead.potencial === 'Médio' &&
+                          'bg-amber-100 text-amber-800 border-amber-200',
+                        lead.potencial === 'Baixo' && 'bg-red-100 text-red-800 border-red-200',
+                        lead.potencial === 'Indefinido' &&
+                          'bg-slate-100 text-slate-600 border-slate-200',
+                      )}
+                    >
+                      {lead.potencial || 'Indefinido'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="align-middle font-mono text-slate-700 whitespace-nowrap">
+                    {lead.faturamento_anual ? formatCurrency(lead.faturamento_anual) : '-'}
+                  </TableCell>
+                  <TableCell className="align-middle font-medium text-slate-700 text-center">
+                    {lead.numero_funcionarios || '-'}
+                  </TableCell>
+                  <TableCell className="align-middle text-center font-bold">
+                    <span
+                      className={cn(
+                        (lead.score_credito || 0) > 70
+                          ? 'text-emerald-600'
+                          : (lead.score_credito || 0) > 40
+                            ? 'text-amber-600'
+                            : 'text-red-600',
+                      )}
+                    >
+                      {lead.score_credito || '-'}
+                    </span>
                   </TableCell>
                   <TableCell className="text-slate-600 align-middle">
                     <Tooltip>

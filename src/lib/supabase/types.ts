@@ -306,6 +306,27 @@ export type Database = {
           },
         ]
       }
+      company_enriched_cache: {
+        Row: {
+          cnpj: string
+          created_at: string
+          data: Json
+          expires_at: string
+        }
+        Insert: {
+          cnpj: string
+          created_at?: string
+          data?: Json
+          expires_at?: string
+        }
+        Update: {
+          cnpj?: string
+          created_at?: string
+          data?: Json
+          expires_at?: string
+        }
+        Relationships: []
+      }
       company_merge_history: {
         Row: {
           created_at: string
@@ -1086,6 +1107,11 @@ export const Constants = {
 //   merged_at: timestamp with time zone (nullable)
 //   notes: text (nullable)
 //   created_at: timestamp with time zone (not null, default: now())
+// Table: company_enriched_cache
+//   cnpj: text (not null)
+//   data: jsonb (not null, default: '{}'::jsonb)
+//   created_at: timestamp with time zone (not null, default: now())
+//   expires_at: timestamp with time zone (not null, default: (now() + '24:00:00'::interval))
 // Table: company_merge_history
 //   id: uuid (not null, default: gen_random_uuid())
 //   original_company_id: integer (not null)
@@ -1241,6 +1267,8 @@ export const Constants = {
 //   FOREIGN KEY company_duplicates_original_company_id_fkey: FOREIGN KEY (original_company_id) REFERENCES bitrix_clients_zion(bitrix_id) ON DELETE CASCADE
 //   PRIMARY KEY company_duplicates_pkey: PRIMARY KEY (id)
 //   CHECK company_duplicates_similarity_score_check: CHECK (((similarity_score >= (0)::numeric) AND (similarity_score <= (100)::numeric)))
+// Table: company_enriched_cache
+//   PRIMARY KEY company_enriched_cache_pkey: PRIMARY KEY (cnpj)
 // Table: company_merge_history
 //   FOREIGN KEY company_merge_history_merged_by_fkey: FOREIGN KEY (merged_by) REFERENCES auth.users(id) ON DELETE SET NULL
 //   FOREIGN KEY company_merge_history_merged_to_company_id_fkey: FOREIGN KEY (merged_to_company_id) REFERENCES bitrix_clients_zion(bitrix_id) ON DELETE CASCADE
@@ -1321,6 +1349,16 @@ export const Constants = {
 //     WITH CHECK: true
 // Table: company_duplicates
 //   Policy "Enable ALL for authenticated users on company_duplicates" (ALL, PERMISSIVE) roles={authenticated}
+//     USING: true
+//     WITH CHECK: true
+// Table: company_enriched_cache
+//   Policy "Allow authenticated users to delete enriched cache" (DELETE, PERMISSIVE) roles={authenticated}
+//     USING: true
+//   Policy "Allow authenticated users to insert enriched cache" (INSERT, PERMISSIVE) roles={authenticated}
+//     WITH CHECK: true
+//   Policy "Allow authenticated users to select enriched cache" (SELECT, PERMISSIVE) roles={authenticated}
+//     USING: true
+//   Policy "Allow authenticated users to update enriched cache" (UPDATE, PERMISSIVE) roles={authenticated}
 //     USING: true
 //     WITH CHECK: true
 // Table: company_merge_history

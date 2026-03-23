@@ -3,6 +3,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
+import { Slider } from '@/components/ui/slider'
 import {
   Select,
   SelectContent,
@@ -24,6 +25,7 @@ import {
   Building,
   Activity,
   DollarSign,
+  Users,
 } from 'lucide-react'
 import useLeadStore from '@/stores/useLeadStore'
 import useAuthStore from '@/stores/useAuthStore'
@@ -75,6 +77,12 @@ const COMPANY_SIZES = [
   { label: 'Demais (Médio/Grande)', value: 'DEMAIS' },
 ]
 
+const formatCurrencyShort = (val: number) => {
+  if (val >= 1000000) return `R$ ${(val / 1000000).toFixed(1)}M`
+  if (val >= 1000) return `R$ ${(val / 1000).toFixed(0)}k`
+  return `R$ ${val}`
+}
+
 export function FilterPanel() {
   const {
     filters,
@@ -86,6 +94,7 @@ export function FilterPanel() {
     clearFilters,
     searchLeads,
     isSearching,
+    filteredLeads,
   } = useLeadStore()
   const { hasPermission } = useAuthStore()
   const [cnaeInput, setCnaeInput] = useState('')
@@ -97,6 +106,60 @@ export function FilterPanel() {
       addCnae(cnaeInput.trim())
       setCnaeInput('')
     }
+  }
+
+  const exportToCsv = () => {
+    if (filteredLeads.length === 0) {
+      toast.error('Nenhum lead para exportar.')
+      return
+    }
+
+    const headers = [
+      'CNPJ',
+      'Razão Social',
+      'CNAE',
+      'Município',
+      'UF',
+      'Porte',
+      'Situação',
+      'Capital Social',
+      'Potencial',
+      'Faturamento',
+      'Funcionários',
+      'Score',
+      'Email',
+      'Telefone',
+    ]
+
+    const rows = filteredLeads.map((lead) => [
+      lead.cnpj,
+      `"${(lead.razao_social || '').replace(/"/g, '""')}"`,
+      `"${(lead.cnae_principal || '').replace(/"/g, '""')}"`,
+      `"${lead.municipio || ''}"`,
+      lead.uf,
+      lead.porte,
+      lead.situacao,
+      lead.capital_social || 0,
+      lead.potencial || '-',
+      lead.faturamento_anual || 0,
+      lead.numero_funcionarios || 0,
+      lead.score_credito || 0,
+      `"${(lead.email || '').replace(/"/g, '""')}"`,
+      `"${(lead.telefone || '').replace(/"/g, '""')}"`,
+    ])
+
+    const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n')
+
+    const blob = new Blob([`\ufeff${csvContent}`], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.setAttribute('href', url)
+    link.setAttribute('download', `leads_zion_${new Date().toISOString().split('T')[0]}.csv`)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+
+    toast.success('Lista exportada com sucesso!')
   }
 
   const isSearchDisabled = filters.cnaes.length === 0
@@ -315,17 +378,62 @@ export function FilterPanel() {
               </Select>
             </div>
 
-            {/* Capital Mínimo */}
-            <div className="space-y-2">
-              <Label className="text-xs font-bold text-slate-600 flex items-center gap-1.5">
-                <DollarSign className="h-3.5 w-3.5 text-slate-400" /> Capital Social Mín.
-              </Label>
-              <Input
-                type="number"
-                placeholder="Ex: 50000"
-                value={filters.capitalMinimo}
-                onChange={(e) => setFilter('capitalMinimo', e.target.value)}
-                className="bg-white focus:bg-white transition-colors border-slate-200"
+            {/* Faturamento (Enriquecido) */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-bold text-indigo-600 flex items-center gap-1.5">
+                  <DollarSign className="h-3.5 w-3.5 text-indigo-400" /> Faturamento Anual
+                </Label>
+                <span className="text-xs text-slate-500 font-medium">
+                  {formatCurrencyShort(filters.faturamento[0])} -{' '}
+                  {filters.faturamento[1] >= 10000000
+                    ? 'R$ 10M+'
+                    : formatCurrencyShort(filters.faturamento[1])}
+                </span>
+              </div>
+              <Slider
+                min={0}
+                max={10000000}
+                step={100000}
+                value={filters.faturamento}
+                onValueChange={(val) => setFilter('faturamento', val)}
+              />
+            </div>
+
+            {/* Funcionários (Enriquecido) */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-bold text-indigo-600 flex items-center gap-1.5">
+                  <Users className="h-3.5 w-3.5 text-indigo-400" /> Funcionários
+                </Label>
+                <span className="text-xs text-slate-500 font-medium">
+                  {filters.funcionarios[0]} -{' '}
+                  {filters.funcionarios[1] >= 500 ? '500+' : filters.funcionarios[1]}
+                </span>
+              </div>
+              <Slider
+                min={0}
+                max={500}
+                step={10}
+                value={filters.funcionarios}
+                onValueChange={(val) => setFilter('funcionarios', val)}
+              />
+            </div>
+
+            {/* Score (Enriquecido) */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-bold text-indigo-600 flex items-center gap-1.5">
+                  <Activity className="h-3.5 w-3.5 text-indigo-400" /> Score Crédito Mín.
+                </Label>
+                <span className="text-xs text-slate-500 font-medium">{filters.scoreMin}</span>
+              </div>
+              <Slider
+                min={0}
+                max={100}
+                step={5}
+                value={[filters.scoreMin]}
+                onValueChange={(val) => setFilter('scoreMin', val[0])}
               />
             </div>
 
@@ -365,8 +473,8 @@ export function FilterPanel() {
             <Button
               variant="outline"
               size="sm"
-              disabled={!hasPermission('Exportar Lista')}
-              onClick={() => toast.success('Lista exportada com sucesso!')}
+              disabled={!hasPermission('Exportar Lista') || filteredLeads.length === 0}
+              onClick={exportToCsv}
               className="gap-2 w-full sm:w-auto bg-white hover:bg-slate-50 border-slate-200 shadow-sm font-medium text-slate-700"
             >
               <Download className="h-4 w-4 text-slate-400" />

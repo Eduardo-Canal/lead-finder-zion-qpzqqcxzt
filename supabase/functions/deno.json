@@ -10,6 +10,6 @@
     "validate-cnpj": 2,
     "send-reminders": 1,
     "sync-lead-to-bitrix-dedup": 10,
-    "enrich-lead-data-on-search": 1
+    "enrich-lead-data-on-search": 2
   }
 }
