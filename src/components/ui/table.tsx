@@ -6,21 +6,48 @@ import { designTokens } from '@/constants/designTokens'
 
 const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableElement>>(
   ({ className, style, ...props }, ref) => {
-    const wrapperStyles: React.CSSProperties = {
+    const scrollRef = React.useRef<HTMLDivElement>(null)
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+      // Não interceptar rolagem se o usuário estiver digitando em um input dentro da tabela
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
+
+      if (!scrollRef.current) return
+      const scrollAmount = 250 // Quantidade de pixels rolados por clique na seta
+
+      if (e.key === 'ArrowRight') {
+        scrollRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' })
+        e.preventDefault()
+      } else if (e.key === 'ArrowLeft') {
+        scrollRef.current.scrollBy({ left: -scrollAmount, behavior: 'smooth' })
+        e.preventDefault()
+      }
+    }
+
+    const outerStyles: React.CSSProperties = {
       borderRadius: designTokens.effects.borderRadius.lg,
       border: `1px solid ${designTokens.colors.neutral[200]}`,
-      overflow: 'hidden',
       boxShadow: designTokens.effects.shadows.sm,
+      overflow: 'hidden', // Mantém as bordas arredondadas intactas
     }
 
     return (
-      <div className="relative w-full overflow-auto" style={wrapperStyles}>
-        <table
-          ref={ref}
-          className={cn('w-full caption-bottom text-sm', className)}
-          style={{ fontFamily: designTokens.typography.fontFamily.sans, ...style }}
-          {...props}
-        />
+      <div style={outerStyles} className="relative w-full bg-white group/table-outer">
+        {/* Scroll container interno */}
+        <div
+          ref={scrollRef}
+          tabIndex={0}
+          onKeyDown={handleKeyDown}
+          className="w-full overflow-x-auto custom-scrollbar focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/30 pb-0.5 transition-shadow"
+          aria-label="Tabela de dados. Use as setas esquerda e direita para rolar horizontalmente."
+        >
+          <table
+            ref={ref}
+            className={cn('w-full caption-bottom text-sm', className)}
+            style={{ fontFamily: designTokens.typography.fontFamily.sans, ...style }}
+            {...props}
+          />
+        </div>
       </div>
     )
   },
