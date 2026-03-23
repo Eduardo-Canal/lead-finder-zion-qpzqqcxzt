@@ -782,7 +782,7 @@ export default function InteligenciaZion() {
                               title="Ver empresas deste CNAE"
                             >
                               <Eye className="h-3.5 w-3.5 shrink-0" />
-                              <span className="hidden xl:inline">Ver Empresas</span>
+                              <span className="hidden 2xl:inline">Ver Empresas</span>
                             </Button>
                             <Button
                               variant="primary"
@@ -796,7 +796,7 @@ export default function InteligenciaZion() {
                               title="Buscar empresas semelhantes"
                             >
                               <Search className="h-3.5 w-3.5 shrink-0" />
-                              <span className="hidden xl:inline">Buscar Semelhante</span>
+                              <span className="hidden 2xl:inline">Buscar Semelhante</span>
                             </Button>
                           </div>
                         </TableCell>

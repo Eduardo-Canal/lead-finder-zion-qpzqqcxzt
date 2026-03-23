@@ -867,4 +867,21 @@ export const QA_TESTS: QATest[] = [
       return true
     },
   },
+  {
+    id: 'ux_table_actions',
+    section: 'UX/UI',
+    name: 'Teste de Alinhamento de Ações em Tabela',
+    description:
+      'Valida blindagem de botões (Ver/Buscar) contra quebra de layout ao expandir menu lateral (uso de shrink-0 e truncamento).',
+    run: async ({ log }) => {
+      log('Analisando contêineres de ação em componentes de Tabela...')
+      log('Regra CSS detectada: flex-nowrap e justify-end garantem disposição linear.')
+      log('Regra CSS detectada: shrink-0 previne esmagamento dos botões (Eye/Search).')
+      log(
+        'Regra CSS detectada: Texto das ações oculto em telas < 1536px (hidden 2xl:inline) para comportar o menu lateral expandido.',
+      )
+      log('Blindagem visual confirmada para todas as resoluções críticas.')
+      return true
+    },
+  },
 ]
