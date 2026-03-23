@@ -33,6 +33,8 @@ import { cn, isValidCNPJ } from '@/lib/utils'
 import { toast } from 'sonner'
 import { InteractionHistoryModal } from './InteractionHistoryModal'
 import { OpportunityModal } from './OpportunityModal'
+import { EmptyState } from '@/components/Notifications/StateBlocks'
+import { designTokens } from '@/constants/designTokens'
 
 const statusColors: Record<string, string> = {
   'Não Contatado': 'text-slate-600 bg-slate-100',
@@ -80,8 +82,8 @@ export function MyLeadsTable() {
 
   return (
     <>
-      <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
-        <Table>
+      <div className={cn(designTokens.layout.tableContainer, 'overflow-x-auto')}>
+        <Table className="min-w-[1200px]">
           <TableHeader>
             <TableRow className="bg-muted/50">
               <TableHead className="min-w-[200px]">Razão Social</TableHead>
@@ -99,8 +101,12 @@ export function MyLeadsTable() {
           <TableBody>
             {filteredLeads.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={10} className="text-center py-10 text-muted-foreground">
-                  Nenhum lead encontrado com os filtros atuais.
+                <TableCell colSpan={10} className="p-0">
+                  <EmptyState
+                    title="Nenhum lead encontrado"
+                    description="Tente ajustar seus filtros de busca ou adicione novos leads na Prospecção."
+                    className="py-16"
+                  />
                 </TableCell>
               </TableRow>
             ) : (
@@ -108,7 +114,10 @@ export function MyLeadsTable() {
                 const hasOpp = opportunities.some((o) => o.lead_id === lead.id)
 
                 return (
-                  <TableRow key={lead.id} className="animate-fade-in">
+                  <TableRow
+                    key={lead.id}
+                    className="animate-fade-in group transition-colors hover:bg-slate-50/50"
+                  >
                     <TableCell className="font-medium">
                       {lead.razao_social}
                       <div className="text-xs text-muted-foreground font-normal mt-0.5">
@@ -140,7 +149,7 @@ export function MyLeadsTable() {
                       >
                         <SelectTrigger
                           className={cn(
-                            'h-8 text-xs font-medium border-0 ring-1 ring-inset ring-black/5 focus:ring-2 focus:ring-primary',
+                            'h-8 text-xs font-medium border-0 ring-1 ring-inset ring-black/5 focus:ring-2 focus:ring-primary transition-all',
                             statusColors[lead.status_contato] || statusColors['Não Contatado'],
                           )}
                         >
@@ -177,16 +186,17 @@ export function MyLeadsTable() {
                       {lead.decisor_email || '-'}
                     </TableCell>
                     <TableCell className="text-center">
-                      <div className="flex items-center justify-center gap-1">
+                      <div className="flex items-center justify-center gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
                         <Button
                           variant="ghost"
                           size="icon"
                           onClick={() => setOppModalLead(lead)}
                           className={cn(
-                            'h-8 w-8',
+                            'h-8 w-8 hover:scale-105 transition-transform',
                             hasOpp ? 'text-emerald-600 bg-emerald-50' : 'text-muted-foreground',
                           )}
                           title={hasOpp ? 'Editar Oportunidade' : 'Criar Oportunidade'}
+                          aria-label={hasOpp ? 'Editar Oportunidade' : 'Criar Oportunidade'}
                         >
                           <DollarSign className="h-4 w-4" />
                         </Button>
@@ -195,12 +205,13 @@ export function MyLeadsTable() {
                           size="icon"
                           onClick={() => openDecisorModal(lead)}
                           className={cn(
-                            'h-8 w-8',
+                            'h-8 w-8 hover:scale-105 transition-transform',
                             lead.decisor_nome || lead.decisor_telefone || lead.decisor_email
-                              ? 'text-primary'
+                              ? 'text-primary bg-primary/10'
                               : 'text-muted-foreground',
                           )}
                           title="Editar Decisor"
+                          aria-label="Editar Decisor"
                         >
                           <User className="h-4 w-4" />
                         </Button>
@@ -209,12 +220,13 @@ export function MyLeadsTable() {
                           size="icon"
                           onClick={() => setEditingInteractionsLead(lead)}
                           className={cn(
-                            'h-8 w-8',
+                            'h-8 w-8 hover:scale-105 transition-transform',
                             lead.historico_interacoes && lead.historico_interacoes.length > 0
-                              ? 'text-primary'
+                              ? 'text-accent bg-accent/10'
                               : 'text-muted-foreground',
                           )}
                           title="Histórico de Atividades"
+                          aria-label="Histórico de Atividades"
                         >
                           <MessageSquare className="h-4 w-4" />
                         </Button>
@@ -228,16 +240,20 @@ export function MyLeadsTable() {
         </Table>
       </div>
 
-      <InteractionHistoryModal
-        lead={editingInteractionsLead}
-        onClose={() => setEditingInteractionsLead(null)}
-      />
+      {editingInteractionsLead && (
+        <InteractionHistoryModal
+          lead={editingInteractionsLead}
+          onClose={() => setEditingInteractionsLead(null)}
+        />
+      )}
 
-      <OpportunityModal
-        lead={oppModalLead}
-        opportunity={opportunities.find((o) => o.lead_id === oppModalLead?.id) || null}
-        onClose={() => setOppModalLead(null)}
-      />
+      {oppModalLead && (
+        <OpportunityModal
+          lead={oppModalLead}
+          opportunity={opportunities.find((o) => o.lead_id === oppModalLead?.id) || null}
+          onClose={() => setOppModalLead(null)}
+        />
+      )}
 
       <Dialog open={!!editingDecisor} onOpenChange={(open) => !open && setEditingDecisor(null)}>
         <DialogContent className="sm:max-w-[400px]">

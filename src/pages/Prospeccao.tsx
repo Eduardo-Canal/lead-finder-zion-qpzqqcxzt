@@ -1,6 +1,7 @@
 import { FilterPanel } from '@/components/dashboard/FilterPanel'
 import { ResultsTable } from '@/components/dashboard/ResultsTable'
 import useLeadStore from '@/stores/useLeadStore'
+import { designTokens } from '@/constants/designTokens'
 
 export default function Prospeccao() {
   const { filters } = useLeadStore()
@@ -8,10 +9,10 @@ export default function Prospeccao() {
   const isSearchDisabled = filters.cnaes.length === 0
 
   return (
-    <div className="max-w-7xl mx-auto space-y-8 animate-fade-in pb-12">
+    <div className={designTokens.layout.page}>
       {/* Page Header */}
       <div className="flex flex-col space-y-1.5">
-        <h2 className="text-3xl font-bold tracking-tight text-[#0066CC]">Prospecção de Leads</h2>
+        <h2 className="text-3xl font-bold tracking-tight text-accent">Prospecção de Leads</h2>
         <p className="text-muted-foreground text-base max-w-3xl">
           Utilize o painel abaixo para buscar, filtrar e organizar novas empresas. Lembre-se de que
           o CNAE Principal é obrigatório para iniciar a busca na base de dados.

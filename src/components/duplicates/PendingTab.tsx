@@ -20,9 +20,11 @@ import {
 } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
-import { Loader2, Eye, GitMerge, Ban } from 'lucide-react'
+import { Eye, GitMerge, Ban } from 'lucide-react'
 import { CompareModal } from '@/components/duplicates/CompareModal'
 import { MergeModal } from '@/components/duplicates/MergeModal'
+import { EmptyState, LoadingTableRows } from '@/components/Notifications/StateBlocks'
+import { designTokens } from '@/constants/designTokens'
 
 export function PendingTab() {
   const [data, setData] = useState<any[]>([])
@@ -93,7 +95,7 @@ export function PendingTab() {
 
   return (
     <div className="space-y-6">
-      <Card className="shadow-sm">
+      <Card className="shadow-sm transition-all duration-300 hover:shadow-md">
         <CardHeader className="pb-4 border-b">
           <CardTitle className="text-base font-semibold">Pendentes de Revisão</CardTitle>
           <CardDescription>
@@ -147,122 +149,120 @@ export function PendingTab() {
         </CardContent>
       </Card>
 
-      <Card className="shadow-sm">
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader className="bg-slate-50">
+      <div className={designTokens.layout.tableContainer}>
+        <Table>
+          <TableHeader className="bg-slate-50">
+            <TableRow>
+              <TableHead>Empresa Original</TableHead>
+              <TableHead>Empresa Duplicada</TableHead>
+              <TableHead>Correspondência</TableHead>
+              <TableHead className="text-center">Score</TableHead>
+              <TableHead>Data Detecção</TableHead>
+              <TableHead className="text-right pr-6">Ações</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {loading ? (
+              <LoadingTableRows columns={6} rows={5} />
+            ) : filteredData.length === 0 ? (
               <TableRow>
-                <TableHead>Empresa Original</TableHead>
-                <TableHead>Empresa Duplicada</TableHead>
-                <TableHead>Correspondência</TableHead>
-                <TableHead className="text-center">Score</TableHead>
-                <TableHead>Data Detecção</TableHead>
-                <TableHead className="text-right pr-6">Ações</TableHead>
+                <TableCell colSpan={6} className="p-0">
+                  <EmptyState
+                    title="Nenhuma duplicidade pendente"
+                    description="Sua base de dados está em ordem no momento."
+                    className="py-12"
+                  />
+                </TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="h-32 text-center">
-                    <div className="flex flex-col items-center justify-center text-muted-foreground">
-                      <Loader2 className="h-6 w-6 animate-spin mb-2" />
-                      Carregando duplicidades...
+            ) : (
+              filteredData.map((item) => (
+                <TableRow key={item.id} className="hover:bg-slate-50/80 transition-colors">
+                  <TableCell>
+                    <div
+                      className="font-medium text-slate-800 line-clamp-1"
+                      title={item.original?.company_name}
+                    >
+                      {item.original?.company_name || 'Desconhecido'}
+                    </div>
+                    <div className="text-xs text-muted-foreground font-mono">
+                      {item.original?.cnpj || 'Sem CNPJ'}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div
+                      className="font-medium text-slate-800 line-clamp-1"
+                      title={item.duplicate?.company_name}
+                    >
+                      {item.duplicate?.company_name || 'Desconhecido'}
+                    </div>
+                    <div className="text-xs text-muted-foreground font-mono">
+                      {item.duplicate?.cnpj || 'Sem CNPJ'}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant="outline"
+                      className="bg-slate-100 font-normal text-[10px] uppercase"
+                    >
+                      {getMatchTypeLabel(item.match_type)}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Badge
+                      className={
+                        (item.similarity_score || 0) >= 90
+                          ? 'bg-emerald-500'
+                          : (item.similarity_score || 0) >= 75
+                            ? 'bg-amber-500'
+                            : 'bg-red-500'
+                      }
+                    >
+                      {Number(item.similarity_score || 0).toFixed(1)}%
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                    {new Date(item.created_at).toLocaleDateString('pt-BR')}
+                  </TableCell>
+                  <TableCell className="text-right pr-4">
+                    <div className="flex justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 hover:bg-blue-50 text-accent"
+                        onClick={() => setCompareRecord(item)}
+                        title="Visualizar Detalhes"
+                        aria-label="Visualizar Detalhes"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 hover:bg-emerald-50 text-emerald-600"
+                        onClick={() => setMergeRecord(item)}
+                        title="Mesclar (Merge)"
+                        aria-label="Mesclar Empresas"
+                      >
+                        <GitMerge className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 hover:bg-red-50 text-destructive"
+                        onClick={() => handleIgnore(item.id)}
+                        title="Ignorar"
+                        aria-label="Ignorar Duplicidade"
+                      >
+                        <Ban className="h-4 w-4" />
+                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>
-              ) : filteredData.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="h-32 text-center text-muted-foreground">
-                    Nenhum registro pendente de revisão encontrado.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredData.map((item) => (
-                  <TableRow key={item.id} className="hover:bg-slate-50/80">
-                    <TableCell>
-                      <div
-                        className="font-medium text-slate-800 line-clamp-1"
-                        title={item.original?.company_name}
-                      >
-                        {item.original?.company_name || 'Desconhecido'}
-                      </div>
-                      <div className="text-xs text-muted-foreground font-mono">
-                        {item.original?.cnpj || 'Sem CNPJ'}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div
-                        className="font-medium text-slate-800 line-clamp-1"
-                        title={item.duplicate?.company_name}
-                      >
-                        {item.duplicate?.company_name || 'Desconhecido'}
-                      </div>
-                      <div className="text-xs text-muted-foreground font-mono">
-                        {item.duplicate?.cnpj || 'Sem CNPJ'}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant="outline"
-                        className="bg-slate-100 font-normal text-[10px] uppercase"
-                      >
-                        {getMatchTypeLabel(item.match_type)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Badge
-                        className={
-                          (item.similarity_score || 0) >= 90
-                            ? 'bg-emerald-500'
-                            : (item.similarity_score || 0) >= 75
-                              ? 'bg-amber-500'
-                              : 'bg-red-500'
-                        }
-                      >
-                        {Number(item.similarity_score || 0).toFixed(1)}%
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                      {new Date(item.created_at).toLocaleDateString('pt-BR')}
-                    </TableCell>
-                    <TableCell className="text-right pr-4">
-                      <div className="flex justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 hover:bg-blue-50"
-                          onClick={() => setCompareRecord(item)}
-                          title="Visualizar Detalhes"
-                        >
-                          <Eye className="h-4 w-4 text-blue-600" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 hover:bg-emerald-50"
-                          onClick={() => setMergeRecord(item)}
-                          title="Mesclar (Merge)"
-                        >
-                          <GitMerge className="h-4 w-4 text-emerald-600" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 hover:bg-red-50"
-                          onClick={() => handleIgnore(item.id)}
-                          title="Ignorar"
-                        >
-                          <Ban className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
 
       <CompareModal
         isOpen={!!compareRecord}

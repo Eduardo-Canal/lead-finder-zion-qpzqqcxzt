@@ -36,8 +36,10 @@ import useLeadStore from '@/stores/useLeadStore'
 import useAuthStore from '@/stores/useAuthStore'
 import { LeadDetailsModal } from './LeadDetailsModal'
 import { cn, isValidCNPJ } from '@/lib/utils'
-import { Loader2, Copy } from 'lucide-react'
+import { Copy } from 'lucide-react'
 import { toast } from 'sonner'
+import { EmptyState, LoadingTableRows } from '@/components/Notifications/StateBlocks'
+import { designTokens } from '@/constants/designTokens'
 
 const formatCnpj = (cnpj: string) => {
   if (!cnpj) return ''
@@ -135,7 +137,9 @@ export function ResultsTable() {
 
   return (
     <>
-      <div className="bg-white rounded-lg shadow-sm border overflow-hidden flex flex-col w-full overflow-x-auto">
+      <div
+        className={cn(designTokens.layout.tableContainer, 'flex flex-col w-full overflow-x-auto')}
+      >
         <Table className="min-w-[1600px]">
           <TableHeader>
             <TableRow className="bg-muted/50">
@@ -156,18 +160,15 @@ export function ResultsTable() {
           </TableHeader>
           <TableBody>
             {isSearching ? (
-              <TableRow>
-                <TableCell colSpan={13} className="text-center py-20 text-muted-foreground">
-                  <div className="flex flex-col items-center justify-center space-y-3">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    <p>Buscando leads na base de dados...</p>
-                  </div>
-                </TableCell>
-              </TableRow>
+              <LoadingTableRows columns={13} rows={10} />
             ) : filteredLeads.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={13} className="text-center py-10 text-muted-foreground">
-                  Nenhum lead encontrado com os filtros atuais.
+                <TableCell colSpan={13} className="p-0">
+                  <EmptyState
+                    title="Nenhum lead encontrado"
+                    description="Ajuste os filtros ou inicie uma nova busca para obter resultados."
+                    className="py-16"
+                  />
                 </TableCell>
               </TableRow>
             ) : (
@@ -264,6 +265,7 @@ export function ResultsTable() {
                           className="h-6 w-6 opacity-0 group-hover/copy:opacity-100 shrink-0 text-muted-foreground hover:text-primary transition-all"
                           onClick={() => copyToClipboard(formatObjectField(lead.email), 'E-mail')}
                           title="Copiar E-mail"
+                          aria-label="Copiar E-mail"
                         >
                           <Copy className="h-3.5 w-3.5" />
                         </Button>
@@ -282,6 +284,7 @@ export function ResultsTable() {
                             copyToClipboard(formatObjectField(lead.telefone), 'Telefone')
                           }
                           title="Copiar Telefone"
+                          aria-label="Copiar Telefone"
                         >
                           <Copy className="h-3.5 w-3.5" />
                         </Button>
@@ -345,6 +348,7 @@ export function ResultsTable() {
                           onCheckedChange={() =>
                             canContact && updateContactStatus(lead.cnpj, 'Contatado')
                           }
+                          aria-label="Marcar como Contatado"
                         />
                         <label
                           htmlFor={`contact-${lead.cnpj}`}
@@ -366,6 +370,7 @@ export function ResultsTable() {
                       size="sm"
                       onClick={() => setSelectedLeadCnpj(lead.cnpj)}
                       className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
+                      aria-label="Visualizar Detalhes"
                     >
                       Detalhes
                     </Button>
@@ -447,7 +452,7 @@ export function ResultsTable() {
       </div>
 
       <Dialog open={!!selectedLead} onOpenChange={(open) => !open && setSelectedLeadCnpj(null)}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent>
           <DialogTitle className="sr-only">Detalhes do Lead</DialogTitle>
           {selectedLead && (
             <LeadDetailsModal lead={selectedLead} onClose={() => setSelectedLeadCnpj(null)} />

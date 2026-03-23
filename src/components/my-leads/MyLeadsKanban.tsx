@@ -81,7 +81,7 @@ export function MyLeadsKanban() {
             <div
               key={stage.id}
               className={cn(
-                'flex-1 min-w-[300px] rounded-lg p-3 flex flex-col border transition-colors duration-200',
+                'flex-1 min-w-[300px] rounded-xl p-3 flex flex-col border transition-colors duration-200 shadow-sm',
                 activeStage === stage.id
                   ? `bg-slate-100 border-dashed border-primary`
                   : 'bg-slate-50/80 border-slate-200',
@@ -121,7 +121,7 @@ export function MyLeadsKanban() {
                       draggable
                       onDragStart={(e) => onDragStart(e, opp.id)}
                       onClick={() => setEditingOpp(opp)}
-                      className="bg-white p-4 rounded-lg shadow-sm border border-slate-200 cursor-grab active:cursor-grabbing hover:border-primary/50 transition-all hover:shadow-md animate-fade-in"
+                      className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 cursor-grab active:cursor-grabbing hover:border-primary/50 transition-all duration-300 hover:shadow-md hover:-translate-y-0.5 animate-fade-in"
                     >
                       <div className="font-medium text-sm text-slate-900 leading-tight mb-1 truncate">
                         {opp.leads_salvos?.razao_social || 'Lead Desconhecido'}
@@ -157,11 +157,13 @@ export function MyLeadsKanban() {
         })}
       </div>
 
-      <OpportunityModal
-        lead={editingLead}
-        opportunity={editingOpp}
-        onClose={() => setEditingOpp(null)}
-      />
+      {editingLead && (
+        <OpportunityModal
+          lead={editingLead}
+          opportunity={editingOpp}
+          onClose={() => setEditingOpp(null)}
+        />
+      )}
     </>
   )
 }

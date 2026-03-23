@@ -9,6 +9,8 @@ import {
 import { Search } from 'lucide-react'
 import useMyLeadsStore from '@/stores/useMyLeadsStore'
 import { useMemo } from 'react'
+import { designTokens } from '@/constants/designTokens'
+import { cn } from '@/lib/utils'
 
 export function MyLeadsFilters() {
   const { filters, setFilter, myLeads, executives } = useMyLeadsStore()
@@ -24,19 +26,19 @@ export function MyLeadsFilters() {
   }, [myLeads, executives])
 
   return (
-    <div className="bg-white p-4 rounded-lg shadow-sm border mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+    <div className={cn(designTokens.layout.card, 'mb-6 grid grid-cols-1 md:grid-cols-4 gap-4 p-4')}>
       <div className="relative col-span-1 md:col-span-1">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           placeholder="Busque por Razão Social ou CNPJ"
           value={filters.search}
           onChange={(e) => setFilter('search', e.target.value)}
-          className="pl-9"
+          className="pl-9 bg-slate-50/50"
         />
       </div>
 
       <Select value={filters.municipio} onValueChange={(v) => setFilter('municipio', v)}>
-        <SelectTrigger>
+        <SelectTrigger className="bg-slate-50/50">
           <SelectValue placeholder="Município" />
         </SelectTrigger>
         <SelectContent>
@@ -50,7 +52,7 @@ export function MyLeadsFilters() {
       </Select>
 
       <Select value={filters.status} onValueChange={(v) => setFilter('status', v)}>
-        <SelectTrigger>
+        <SelectTrigger className="bg-slate-50/50">
           <SelectValue placeholder="Status" />
         </SelectTrigger>
         <SelectContent>
@@ -64,7 +66,7 @@ export function MyLeadsFilters() {
       </Select>
 
       <Select value={filters.executivo} onValueChange={(v) => setFilter('executivo', v)}>
-        <SelectTrigger>
+        <SelectTrigger className="bg-slate-50/50">
           <SelectValue placeholder="Executivo Responsável" />
         </SelectTrigger>
         <SelectContent>

@@ -20,11 +20,14 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { toast } from 'sonner'
-import { Loader2, Eye, GitMerge, Ban, TrendingUp, CheckCircle, Search } from 'lucide-react'
+import { Eye, GitMerge, Ban, TrendingUp, CheckCircle, Search } from 'lucide-react'
 import { CompareModal } from '@/components/duplicates/CompareModal'
 import { SuggestMergeModal } from '@/components/duplicates/SuggestMergeModal'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid } from 'recharts'
+import { EmptyState, LoadingTableRows } from '@/components/Notifications/StateBlocks'
+import { designTokens } from '@/constants/designTokens'
+import { cn } from '@/lib/utils'
 
 export function PotentialTab() {
   const [potentials, setPotentials] = useState<any[]>([])
@@ -56,7 +59,7 @@ export function PotentialTab() {
           d.setDate(d.getDate() - (29 - i))
           return d.toISOString().split('T')[0]
         })
-        .reverse() // reverte para ficar em ordem cronológica (antigo -> novo)
+        .reverse()
 
       const chart = last30Days.reverse().map((date) => {
         const dCount = dups?.filter((d) => d.created_at.startsWith(date)).length || 0
@@ -157,7 +160,7 @@ export function PotentialTab() {
     <div className="space-y-6 animate-fade-in">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="space-y-6">
-          <Card className="shadow-sm">
+          <Card className="shadow-sm transition-all hover:shadow-md">
             <CardContent className="p-6">
               <div className="flex items-center gap-4">
                 <div className="p-3 bg-blue-100 text-blue-600 rounded-lg">
@@ -172,7 +175,7 @@ export function PotentialTab() {
               </div>
             </CardContent>
           </Card>
-          <Card className="shadow-sm">
+          <Card className="shadow-sm transition-all hover:shadow-md">
             <CardContent className="p-6">
               <div className="flex items-center gap-4">
                 <div className="p-3 bg-emerald-100 text-emerald-600 rounded-lg">
@@ -189,7 +192,7 @@ export function PotentialTab() {
           </Card>
         </div>
 
-        <Card className="shadow-sm lg:col-span-2">
+        <Card className="shadow-sm transition-all hover:shadow-md lg:col-span-2">
           <CardHeader className="pb-2">
             <CardTitle className="text-base font-semibold">
               Tendência de Duplicatas (30 dias)
@@ -238,7 +241,7 @@ export function PotentialTab() {
         </Card>
       </div>
 
-      <Card className="shadow-sm">
+      <Card className="shadow-sm transition-all hover:shadow-md">
         <CardHeader className="pb-4 border-b">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
@@ -248,12 +251,13 @@ export function PotentialTab() {
                 nomes muito semelhantes.
               </CardDescription>
             </div>
-            <Button onClick={fetchPotentials} disabled={loading} size="sm" className="gap-2">
-              {loading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Search className="h-4 w-4" />
-              )}
+            <Button
+              onClick={fetchPotentials}
+              disabled={loading}
+              size="sm"
+              className={cn(designTokens.animations.buttonClick, 'gap-2')}
+            >
+              <Search className="h-4 w-4" />
               Varrer Base Novamente
             </Button>
           </div>
@@ -302,118 +306,116 @@ export function PotentialTab() {
         </CardContent>
       </Card>
 
-      <Card className="shadow-sm">
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader className="bg-slate-50">
+      <div className={designTokens.layout.tableContainer}>
+        <Table>
+          <TableHeader className="bg-slate-50">
+            <TableRow>
+              <TableHead>Empresa 1</TableHead>
+              <TableHead>Empresa 2</TableHead>
+              <TableHead className="text-center">Score (%)</TableHead>
+              <TableHead>Tipo de Similaridade</TableHead>
+              <TableHead className="text-right pr-6">Ações</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {loading ? (
+              <LoadingTableRows columns={5} rows={5} />
+            ) : filteredData.length === 0 ? (
               <TableRow>
-                <TableHead>Empresa 1</TableHead>
-                <TableHead>Empresa 2</TableHead>
-                <TableHead className="text-center">Score (%)</TableHead>
-                <TableHead>Tipo de Similaridade</TableHead>
-                <TableHead className="text-right pr-6">Ações</TableHead>
+                <TableCell colSpan={5} className="p-0">
+                  <EmptyState
+                    title="Nenhuma potencial duplicidade"
+                    description="Não foram detectadas empresas com nomes similares baseados nos seus filtros atuais."
+                    className="py-12"
+                  />
+                </TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="h-32 text-center">
-                    <div className="flex flex-col items-center justify-center text-muted-foreground">
-                      <Loader2 className="h-6 w-6 animate-spin mb-2" />
-                      Executando varredura inteligente...
+            ) : (
+              filteredData.map((item, i) => (
+                <TableRow key={i} className="hover:bg-slate-50/80 transition-colors">
+                  <TableCell>
+                    <div
+                      className="font-medium text-slate-800 line-clamp-1"
+                      title={item.empresa1?.company_name}
+                    >
+                      {item.empresa1?.company_name}
+                    </div>
+                    <div className="text-xs text-muted-foreground font-mono">
+                      {item.empresa1?.cnpj || 'Sem CNPJ'}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div
+                      className="font-medium text-slate-800 line-clamp-1"
+                      title={item.empresa2?.company_name}
+                    >
+                      {item.empresa2?.company_name}
+                    </div>
+                    <div className="text-xs text-muted-foreground font-mono">
+                      {item.empresa2?.cnpj || 'Sem CNPJ'}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Badge
+                      className={
+                        item.similarity_score >= 90
+                          ? 'bg-emerald-500'
+                          : item.similarity_score >= 80
+                            ? 'bg-amber-500'
+                            : 'bg-orange-500'
+                      }
+                    >
+                      {Number(item.similarity_score).toFixed(1)}%
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant="outline"
+                      className="bg-slate-100 font-normal text-[10px] uppercase"
+                    >
+                      {item.tipo_similaridade}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right pr-4">
+                    <div className="flex justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 hover:bg-blue-50 text-accent"
+                        onClick={() => handleReview(item)}
+                        title="Revisar Manualmente"
+                        aria-label="Revisar Manualmente"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 hover:bg-emerald-50 text-emerald-600"
+                        onClick={() => setSuggestRecord(item)}
+                        title="Sugerir Merge"
+                        aria-label="Sugerir Merge"
+                      >
+                        <GitMerge className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 hover:bg-red-50 text-destructive"
+                        onClick={() => handleIgnore(item)}
+                        title="Ignorar"
+                        aria-label="Ignorar Potencial Duplicidade"
+                      >
+                        <Ban className="h-4 w-4" />
+                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>
-              ) : filteredData.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="h-32 text-center text-muted-foreground">
-                    Nenhuma duplicata potencial detectada com os parâmetros atuais.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredData.map((item, i) => (
-                  <TableRow key={i} className="hover:bg-slate-50/80">
-                    <TableCell>
-                      <div
-                        className="font-medium text-slate-800 line-clamp-1"
-                        title={item.empresa1?.company_name}
-                      >
-                        {item.empresa1?.company_name}
-                      </div>
-                      <div className="text-xs text-muted-foreground font-mono">
-                        {item.empresa1?.cnpj || 'Sem CNPJ'}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div
-                        className="font-medium text-slate-800 line-clamp-1"
-                        title={item.empresa2?.company_name}
-                      >
-                        {item.empresa2?.company_name}
-                      </div>
-                      <div className="text-xs text-muted-foreground font-mono">
-                        {item.empresa2?.cnpj || 'Sem CNPJ'}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Badge
-                        className={
-                          item.similarity_score >= 90
-                            ? 'bg-emerald-500'
-                            : item.similarity_score >= 80
-                              ? 'bg-amber-500'
-                              : 'bg-orange-500'
-                        }
-                      >
-                        {Number(item.similarity_score).toFixed(1)}%
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant="outline"
-                        className="bg-slate-100 font-normal text-[10px] uppercase"
-                      >
-                        {item.tipo_similaridade}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right pr-4">
-                      <div className="flex justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 hover:bg-blue-50"
-                          onClick={() => handleReview(item)}
-                          title="Revisar Manualmente"
-                        >
-                          <Eye className="h-4 w-4 text-blue-600" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 hover:bg-emerald-50"
-                          onClick={() => setSuggestRecord(item)}
-                          title="Sugerir Merge"
-                        >
-                          <GitMerge className="h-4 w-4 text-emerald-600" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 hover:bg-red-50"
-                          onClick={() => handleIgnore(item)}
-                          title="Ignorar"
-                        >
-                          <Ban className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
 
       <CompareModal
         isOpen={!!compareRecord}

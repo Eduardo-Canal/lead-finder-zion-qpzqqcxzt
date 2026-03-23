@@ -19,9 +19,11 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
-import { Loader2, Eye, RotateCcw } from 'lucide-react'
+import { Eye, RotateCcw } from 'lucide-react'
 import { HistoryDetailsModal } from './HistoryDetailsModal'
 import { UndoMergeModal } from './UndoMergeModal'
+import { designTokens } from '@/constants/designTokens'
+import { EmptyState, LoadingTableRows } from '@/components/Notifications/StateBlocks'
 
 export function HistoryTab() {
   const [data, setData] = useState<any[]>([])
@@ -77,7 +79,7 @@ export function HistoryTab() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <Card className="shadow-sm">
+      <Card className="shadow-sm transition-all duration-300 hover:shadow-md">
         <CardHeader className="pb-4 border-b">
           <CardTitle className="text-base font-semibold">Histórico de Merges</CardTitle>
           <CardDescription>
@@ -134,88 +136,88 @@ export function HistoryTab() {
         </CardContent>
       </Card>
 
-      <Card className="shadow-sm">
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader className="bg-slate-50">
+      <div className={designTokens.layout.tableContainer}>
+        <Table>
+          <TableHeader className="bg-slate-50">
+            <TableRow>
+              <TableHead>Empresa Original (Absorvida)</TableHead>
+              <TableHead>Empresa Principal (Merged)</TableHead>
+              <TableHead>Quem Fez</TableHead>
+              <TableHead>Data/Hora</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-right pr-6">Ações</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {loading ? (
+              <LoadingTableRows columns={6} rows={5} />
+            ) : filteredData.length === 0 ? (
               <TableRow>
-                <TableHead>Empresa Original (Absorvida)</TableHead>
-                <TableHead>Empresa Principal (Merged)</TableHead>
-                <TableHead>Quem Fez</TableHead>
-                <TableHead>Data/Hora</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right pr-6">Ações</TableHead>
+                <TableCell colSpan={6} className="p-0">
+                  <EmptyState
+                    title="Histórico vazio"
+                    description="Nenhum merge foi realizado ainda."
+                    className="py-12"
+                  />
+                </TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="h-32 text-center">
-                    <Loader2 className="mx-auto animate-spin h-6 w-6 text-muted-foreground" />
+            ) : (
+              filteredData.map((item) => (
+                <TableRow key={item.id} className="hover:bg-slate-50/80 transition-colors">
+                  <TableCell className="font-medium text-slate-800">
+                    {item.original_company_name || `ID: ${item.original_company_id}`}
                   </TableCell>
-                </TableRow>
-              ) : filteredData.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="h-32 text-center text-muted-foreground">
-                    Nenhum histórico encontrado.
+                  <TableCell className="font-medium text-accent">
+                    {item.merged_to_company_name || `ID: ${item.merged_to_company_id}`}
                   </TableCell>
-                </TableRow>
-              ) : (
-                filteredData.map((item) => (
-                  <TableRow key={item.id} className="hover:bg-slate-50/80">
-                    <TableCell className="font-medium text-slate-800">
-                      {item.original_company_name || `ID: ${item.original_company_id}`}
-                    </TableCell>
-                    <TableCell className="font-medium text-[#0066CC]">
-                      {item.merged_to_company_name || `ID: ${item.merged_to_company_id}`}
-                    </TableCell>
-                    <TableCell>{profiles[item.merged_by] || 'Sistema'}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {new Date(item.created_at).toLocaleString('pt-BR')}
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant="outline"
-                        className={
-                          item.status === 'reversed'
-                            ? 'bg-amber-100 text-amber-800 border-amber-200'
-                            : 'bg-emerald-100 text-emerald-800 border-emerald-200'
-                        }
+                  <TableCell>{profiles[item.merged_by] || 'Sistema'}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {new Date(item.created_at).toLocaleString('pt-BR')}
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant="outline"
+                      className={
+                        item.status === 'reversed'
+                          ? 'bg-amber-100 text-amber-800 border-amber-200'
+                          : 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                      }
+                    >
+                      {item.status === 'reversed' ? 'Revertido' : 'Concluído'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right pr-4">
+                    <div className="flex justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-accent hover:bg-blue-50"
+                        onClick={() => setDetailsRecord(item)}
+                        title="Ver Detalhes"
+                        aria-label="Ver Detalhes do Merge"
                       >
-                        {item.status === 'reversed' ? 'Revertido' : 'Concluído'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right pr-4">
-                      <div className="flex justify-end gap-1">
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      {item.status !== 'reversed' && item.reversible !== false && (
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 text-blue-600 hover:bg-blue-50"
-                          onClick={() => setDetailsRecord(item)}
-                          title="Ver Detalhes"
+                          className="h-8 w-8 text-amber-600 hover:bg-amber-50"
+                          onClick={() => setUndoRecord(item)}
+                          title="Desfazer Merge"
+                          aria-label="Desfazer Merge"
                         >
-                          <Eye className="h-4 w-4" />
+                          <RotateCcw className="h-4 w-4" />
                         </Button>
-                        {item.status !== 'reversed' && item.reversible !== false && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-amber-600 hover:bg-amber-50"
-                            onClick={() => setUndoRecord(item)}
-                            title="Desfazer Merge"
-                          >
-                            <RotateCcw className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
 
       <HistoryDetailsModal
         isOpen={!!detailsRecord}

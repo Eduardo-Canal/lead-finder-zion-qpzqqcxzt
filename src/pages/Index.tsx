@@ -3,7 +3,7 @@ import { supabase } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
-import { Users, Loader2 } from 'lucide-react'
+import { Users } from 'lucide-react'
 import {
   Table,
   TableBody,
@@ -13,6 +13,8 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
+import { designTokens } from '@/constants/designTokens'
 
 const chartConfig = {
   count: {
@@ -35,14 +37,12 @@ export default function Index() {
       setLoading(true)
 
       try {
-        // Fetch top 5 recent leads
         const { data: recentData } = await supabase
           .from('leads_salvos')
           .select('id, razao_social, status_contato, created_at, profiles(nome)')
           .order('created_at', { ascending: false })
           .limit(5)
 
-        // Fetch all leads for aggregation
         const { data: allData } = await supabase
           .from('leads_salvos')
           .select('status_contato, profiles(nome)')
@@ -50,7 +50,6 @@ export default function Index() {
         if (allData) {
           const total = allData.length
 
-          // Init base statuses required by AC
           const statusCounts: Record<string, number> = {
             'Não Contatado': 0,
             'Em Prospecção': 0,
@@ -62,7 +61,6 @@ export default function Index() {
           const execCounts: Record<string, number> = {}
 
           allData.forEach((lead) => {
-            // Aggregate by status
             const st = lead.status_contato || 'Não Contatado'
             if (statusCounts[st] !== undefined) {
               statusCounts[st]++
@@ -70,7 +68,6 @@ export default function Index() {
               statusCounts[st] = (statusCounts[st] || 0) + 1
             }
 
-            // Aggregate by Executive
             const execName = (lead.profiles as any)?.nome || 'Sem Responsável'
             execCounts[execName] = (execCounts[execName] || 0) + 1
           })
@@ -102,26 +99,34 @@ export default function Index() {
 
   if (loading) {
     return (
-      <div className="flex h-[60vh] w-full items-center justify-center text-muted-foreground animate-fade-in">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-sm font-medium">Carregando métricas...</p>
+      <div className={designTokens.layout.page}>
+        <div>
+          <Skeleton className="h-8 w-48 mb-2" />
+          <Skeleton className="h-4 w-96" />
         </div>
+        <div className="grid gap-4 md:grid-cols-3">
+          <Skeleton className="h-[120px] w-full rounded-xl" />
+        </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Skeleton className="h-[400px] w-full rounded-xl" />
+          <Skeleton className="h-[400px] w-full rounded-xl" />
+        </div>
+        <Skeleton className="h-[300px] w-full rounded-xl mt-6" />
       </div>
     )
   }
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6 animate-fade-in">
+    <div className={designTokens.layout.page}>
       <div>
-        <h2 className="text-2xl font-semibold tracking-tight">Dashboard</h2>
-        <p className="text-muted-foreground mt-1">
+        <h2 className={designTokens.typography.pageTitle}>Dashboard</h2>
+        <p className={designTokens.typography.small}>
           Visão geral do desempenho de prospecção e produtividade da equipe.
         </p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        <Card className="bg-primary text-primary-foreground shadow-md">
+        <Card className="bg-primary text-primary-foreground shadow-md hover:shadow-lg transition-all duration-300">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-primary-foreground/90">
               Total de Leads Salvos

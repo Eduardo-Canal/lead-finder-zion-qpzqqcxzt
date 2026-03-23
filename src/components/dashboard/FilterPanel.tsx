@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
+import { designTokens } from '@/constants/designTokens'
 
 const BRAZIL_STATES = [
   'AC',
@@ -88,7 +89,7 @@ export function FilterPanel() {
   const isSearchDisabled = filters.cnaes.length === 0
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border p-5 md:p-6 space-y-5 animate-fade-in-up">
+    <div className={cn(designTokens.layout.card, 'p-5 md:p-6 space-y-5 animate-fade-in-up')}>
       {/* Top Bar - Main Actions & Quick Search */}
       <div className="flex flex-col lg:flex-row gap-5 items-start lg:items-end">
         <div className="w-full lg:flex-1 grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -110,7 +111,7 @@ export function FilterPanel() {
 
           {/* Mandatory CNAE (API) */}
           <div className="space-y-1.5">
-            <Label className="text-xs font-bold text-[#0066CC] uppercase tracking-wide">
+            <Label className="text-xs font-bold text-accent uppercase tracking-wide">
               CNAE Principal (Obrigatório)*
             </Label>
             <div className="flex gap-2">
@@ -119,7 +120,7 @@ export function FilterPanel() {
                 value={cnaeInput}
                 onChange={(e) => setCnaeInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleAddCnae()}
-                className={cn('bg-slate-50/50', filters.cnaes.length === 0 && 'border-blue-300')}
+                className={cn('bg-slate-50/50', filters.cnaes.length === 0 && 'border-accent/30')}
               />
               <Button
                 type="button"
@@ -146,7 +147,7 @@ export function FilterPanel() {
           <Button
             onClick={() => searchLeads(1)}
             disabled={isSearching || isSearchDisabled}
-            className="flex-1 sm:flex-none gap-2 bg-[#F59E0B] hover:bg-[#D97706] text-white border-none shadow-sm font-semibold transition-all active:scale-95"
+            className="flex-1 sm:flex-none gap-2 bg-primary hover:bg-primary/90 text-primary-foreground border-none shadow-sm font-semibold transition-all active:scale-95"
           >
             <Search className="h-4 w-4" />
             Buscar Leads
@@ -162,7 +163,7 @@ export function FilterPanel() {
             <Badge
               key={cnae}
               variant="secondary"
-              className="flex items-center gap-1.5 bg-blue-50 text-[#0066CC] hover:bg-blue-100 border-blue-200 py-1 px-2.5 shadow-sm"
+              className="flex items-center gap-1.5 bg-blue-50 text-accent hover:bg-blue-100 border-blue-200 py-1 px-2.5 shadow-sm"
             >
               {cnae}
               <X

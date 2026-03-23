@@ -1,50 +1,57 @@
-import { ReactNode } from 'react'
+import { Suspense, lazy } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { Toaster } from '@/components/ui/toaster'
 import { Toaster as Sonner } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
-import Layout from '@/components/Layout'
-import Login from '@/pages/Login'
-import Index from '@/pages/Index'
-import Prospeccao from '@/pages/Prospeccao'
-import MyLeads from '@/pages/MyLeads'
-import SearchHistory from '@/pages/SearchHistory'
-import UserManagement from '@/pages/UserManagement'
-import ConfiguracoesAvancadas from '@/pages/ConfiguracoesAvancadas'
-import RemindersConfig from '@/pages/RemindersConfig'
-import AuditLogs from '@/pages/AuditLogs'
-import Reports from '@/pages/Reports'
-import DebugAPI from '@/pages/DebugAPI'
-import DebugBitrix from '@/pages/DebugBitrix'
-import MonitoramentoBitrix from '@/pages/MonitoramentoBitrix'
-import TestesValidacao from '@/pages/TestesValidacao'
-import EmpresasDuplicadas from '@/pages/EmpresasDuplicadas'
-import InteligenciaZion from '@/pages/InteligenciaZion'
-import NotFound from '@/pages/NotFound'
-import UpdatePassword from '@/pages/UpdatePassword'
-import ChangePassword from '@/pages/ChangePassword'
+import { Loader2 } from 'lucide-react'
+
 import useAuthStore, { AuthProvider } from '@/stores/useAuthStore'
 import { LeadStoreProvider } from '@/stores/useLeadStore'
 import { MyLeadsStoreProvider } from '@/stores/useMyLeadsStore'
 import { UserManagementStoreProvider } from '@/stores/useUserManagementStore'
 import { NotificationStoreProvider } from '@/stores/useNotificationStore'
 
+const Layout = lazy(() => import('@/components/Layout'))
+const Login = lazy(() => import('@/pages/Login'))
+const Index = lazy(() => import('@/pages/Index'))
+const Prospeccao = lazy(() => import('@/pages/Prospeccao'))
+const MyLeads = lazy(() => import('@/pages/MyLeads'))
+const SearchHistory = lazy(() => import('@/pages/SearchHistory'))
+const UserManagement = lazy(() => import('@/pages/UserManagement'))
+const ConfiguracoesAvancadas = lazy(() => import('@/pages/ConfiguracoesAvancadas'))
+const RemindersConfig = lazy(() => import('@/pages/RemindersConfig'))
+const AuditLogs = lazy(() => import('@/pages/AuditLogs'))
+const Reports = lazy(() => import('@/pages/Reports'))
+const DebugAPI = lazy(() => import('@/pages/DebugAPI'))
+const DebugBitrix = lazy(() => import('@/pages/DebugBitrix'))
+const MonitoramentoBitrix = lazy(() => import('@/pages/MonitoramentoBitrix'))
+const TestesValidacao = lazy(() => import('@/pages/TestesValidacao'))
+const EmpresasDuplicadas = lazy(() => import('@/pages/EmpresasDuplicadas'))
+const InteligenciaZion = lazy(() => import('@/pages/InteligenciaZion'))
+const NotFound = lazy(() => import('@/pages/NotFound'))
+const UpdatePassword = lazy(() => import('@/pages/UpdatePassword'))
+const ChangePassword = lazy(() => import('@/pages/ChangePassword'))
+
+const GlobalLoading = () => (
+  <div className="flex min-h-screen w-full items-center justify-center bg-background/50 backdrop-blur-sm">
+    <div className="flex flex-col items-center gap-4">
+      <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      <p className="text-sm font-medium text-muted-foreground animate-pulse">Carregando...</p>
+    </div>
+  </div>
+)
+
 const ProtectedRoute = ({
   children,
   isPasswordReset = false,
 }: {
-  children: ReactNode
+  children: React.ReactNode
   isPasswordReset?: boolean
 }) => {
   const { user, loading } = useAuthStore()
   const location = useLocation()
 
-  if (loading)
-    return (
-      <div className="min-h-screen flex items-center justify-center text-muted-foreground">
-        Carregando...
-      </div>
-    )
+  if (loading) return <GlobalLoading />
 
   if (!user) return <Navigate to="/login" state={{ from: location }} replace />
 
@@ -69,45 +76,47 @@ const App = () => (
               <TooltipProvider>
                 <Toaster />
                 <Sonner />
-                <Routes>
-                  <Route path="/login" element={<Login />} />
-                  <Route
-                    path="/atualizar-senha"
-                    element={
-                      <ProtectedRoute isPasswordReset>
-                        <UpdatePassword />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    element={
-                      <ProtectedRoute>
-                        <Layout />
-                      </ProtectedRoute>
-                    }
-                  >
-                    <Route path="/" element={<Index />} />
-                    <Route path="/inteligencia-zion" element={<InteligenciaZion />} />
-                    <Route path="/prospeccao" element={<Prospeccao />} />
-                    <Route path="/meus-leads" element={<MyLeads />} />
-                    <Route path="/meu-historico" element={<SearchHistory />} />
-                    <Route path="/gestao-usuarios" element={<UserManagement />} />
-                    <Route path="/perfil/alterar-senha" element={<ChangePassword />} />
-                    <Route path="/configuracoes/lembretes" element={<RemindersConfig />} />
-                    <Route path="/configuracoes/auditoria" element={<AuditLogs />} />
-                    <Route path="/configuracoes/relatorios" element={<Reports />} />
-                    <Route path="/configuracoes/avancado" element={<ConfiguracoesAvancadas />} />
+                <Suspense fallback={<GlobalLoading />}>
+                  <Routes>
+                    <Route path="/login" element={<Login />} />
                     <Route
-                      path="/configuracoes/empresas-duplicadas"
-                      element={<EmpresasDuplicadas />}
+                      path="/atualizar-senha"
+                      element={
+                        <ProtectedRoute isPasswordReset>
+                          <UpdatePassword />
+                        </ProtectedRoute>
+                      }
                     />
-                    <Route path="/admin/debug-api" element={<DebugAPI />} />
-                    <Route path="/admin/debug-bitrix" element={<DebugBitrix />} />
-                    <Route path="/admin/monitoramento-bitrix" element={<MonitoramentoBitrix />} />
-                    <Route path="/admin/testes-validacao" element={<TestesValidacao />} />
-                  </Route>
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
+                    <Route
+                      element={
+                        <ProtectedRoute>
+                          <Layout />
+                        </ProtectedRoute>
+                      }
+                    >
+                      <Route path="/" element={<Index />} />
+                      <Route path="/inteligencia-zion" element={<InteligenciaZion />} />
+                      <Route path="/prospeccao" element={<Prospeccao />} />
+                      <Route path="/meus-leads" element={<MyLeads />} />
+                      <Route path="/meu-historico" element={<SearchHistory />} />
+                      <Route path="/gestao-usuarios" element={<UserManagement />} />
+                      <Route path="/perfil/alterar-senha" element={<ChangePassword />} />
+                      <Route path="/configuracoes/lembretes" element={<RemindersConfig />} />
+                      <Route path="/configuracoes/auditoria" element={<AuditLogs />} />
+                      <Route path="/configuracoes/relatorios" element={<Reports />} />
+                      <Route path="/configuracoes/avancado" element={<ConfiguracoesAvancadas />} />
+                      <Route
+                        path="/configuracoes/empresas-duplicadas"
+                        element={<EmpresasDuplicadas />}
+                      />
+                      <Route path="/admin/debug-api" element={<DebugAPI />} />
+                      <Route path="/admin/debug-bitrix" element={<DebugBitrix />} />
+                      <Route path="/admin/monitoramento-bitrix" element={<MonitoramentoBitrix />} />
+                      <Route path="/admin/testes-validacao" element={<TestesValidacao />} />
+                    </Route>
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </Suspense>
               </TooltipProvider>
             </BrowserRouter>
           </UserManagementStoreProvider>
