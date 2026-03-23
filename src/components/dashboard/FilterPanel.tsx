@@ -378,6 +378,43 @@ export function FilterPanel() {
               </Select>
             </div>
 
+            {/* Capital Social Mínimo */}
+            <div className="space-y-2">
+              <Label className="text-xs font-bold text-slate-600 flex items-center gap-1.5">
+                <DollarSign className="h-3.5 w-3.5 text-slate-400" /> Capital Social Mín.
+              </Label>
+              <Input
+                placeholder="Ex: 50000"
+                type="number"
+                min="0"
+                value={filters.capitalMinimo}
+                onChange={(e) => setFilter('capitalMinimo', e.target.value)}
+                className="bg-white focus:bg-white transition-colors border-slate-200"
+              />
+            </div>
+
+            {/* Quantidade (Limit) da Busca */}
+            <div className="space-y-2">
+              <Label className="text-xs font-bold text-slate-600 flex items-center gap-1.5">
+                <Search className="h-3.5 w-3.5 text-slate-400" /> Qtde. por Busca
+              </Label>
+              <Select
+                value={filters.limit?.toString() || '10'}
+                onValueChange={(v) => setFilter('limit', Number(v))}
+              >
+                <SelectTrigger className="bg-white hover:bg-slate-50 border-slate-200 transition-colors">
+                  <SelectValue placeholder="Selecione a quantidade" />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl shadow-lg border-slate-100">
+                  <SelectItem value="5">5 leads</SelectItem>
+                  <SelectItem value="10">10 leads</SelectItem>
+                  <SelectItem value="20">20 leads</SelectItem>
+                  <SelectItem value="50">50 leads</SelectItem>
+                  <SelectItem value="100">100 leads</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* Faturamento (Enriquecido) */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">

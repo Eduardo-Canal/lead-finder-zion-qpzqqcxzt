@@ -466,6 +466,13 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
           return false
       }
 
+      if (filters.capitalMinimo) {
+        const minCap = Number(filters.capitalMinimo)
+        if (!isNaN(minCap) && (lead.capital_social || 0) < minCap) {
+          return false
+        }
+      }
+
       // Enriched filters
       if (filters.faturamento[0] > 0 || filters.faturamento[1] < 10000000) {
         const fat = lead.faturamento_anual || 0

@@ -1,6 +1,6 @@
 {
   "_versions": {
-    "buscar-leads": 36,
+    "buscar-leads": 37,
     "enriquecer-lead": 11,
     "functions": 6,
     "admin-create-user": 7,
@@ -10,6 +10,6 @@
     "validate-cnpj": 2,
     "send-reminders": 1,
     "sync-lead-to-bitrix-dedup": 10,
-    "enrich-lead-data-on-search": 3
+    "enrich-lead-data-on-search": 4
   }
 }
