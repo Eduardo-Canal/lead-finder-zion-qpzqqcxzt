@@ -714,17 +714,17 @@ export default function InteligenciaZion() {
               <Table>
                 <TableHeader className="bg-slate-50 sticky top-0 z-10 shadow-sm">
                   <TableRow>
-                    <TableHead className="w-[50%]">
+                    <TableHead className="w-[45%]">
                       <div className="flex items-center gap-2">
                         <Briefcase className="h-3.5 w-3.5" /> CNAE Principal
                       </div>
                     </TableHead>
-                    <TableHead className="text-center w-[20%]">
+                    <TableHead className="text-center w-[15%]">
                       <div className="flex items-center justify-center gap-2">
                         <Users className="h-3.5 w-3.5" /> Qtd. Clientes
                       </div>
                     </TableHead>
-                    <TableHead className="text-right pr-6 w-[30%]">Ações</TableHead>
+                    <TableHead className="text-right pr-6 w-[40%]">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -752,7 +752,7 @@ export default function InteligenciaZion() {
                               style={{ backgroundColor: chartConfig[row.cnae]?.color || '#cbd5e1' }}
                             />
                             <span
-                              className="truncate max-w-[200px] sm:max-w-[300px] md:max-w-[400px] group-hover:text-primary transition-colors"
+                              className="truncate max-w-[180px] sm:max-w-[250px] md:max-w-[300px] group-hover:text-primary transition-colors"
                               title={row.cnae}
                             >
                               {row.cnae}
@@ -768,31 +768,33 @@ export default function InteligenciaZion() {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right pr-4">
-                          <div className="flex justify-end items-center gap-1.5 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity focus-within:opacity-100">
+                          <div className="flex justify-end items-center gap-2">
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="text-slate-500 hover:bg-white hover:text-slate-900 gap-1.5 h-8 px-2 shadow-sm border border-transparent hover:border-slate-200"
+                              className="text-slate-500 hover:bg-slate-100 hover:text-slate-900 gap-1.5 h-8 px-2 shadow-sm border border-slate-200 bg-white"
                               onClick={(e) => {
                                 e.stopPropagation()
                                 handleOpenModal(row.cnae)
                               }}
+                              title="Ver empresas deste CNAE"
                             >
                               <Eye className="h-3.5 w-3.5" />
-                              <span className="hidden xl:inline">Ver</span>
+                              <span className="hidden xl:inline">Ver Empresas</span>
                             </Button>
                             <Button
                               variant="primary"
                               size="sm"
-                              className="gap-1.5 h-8 px-3 shadow-sm"
+                              className="gap-1.5 h-8 px-3 shadow-sm whitespace-nowrap"
                               onClick={(e) => {
                                 e.stopPropagation()
                                 handleBuscarLeads(row.cnae)
                               }}
                               disabled={row.cnae.toLowerCase() === 'não informado'}
+                              title="Buscar empresas semelhantes"
                             >
                               <Search className="h-3.5 w-3.5" />
-                              <span className="hidden xl:inline">Buscar</span>
+                              <span className="hidden sm:inline">Buscar Semelhantes</span>
                             </Button>
                           </div>
                         </TableCell>
