@@ -175,3 +175,16 @@ export const EFFECTS = {
     8: '8px',
   },
 } as const
+
+export const designTokens = {
+  COLORS,
+  TYPOGRAPHY,
+  SPACING,
+  BREAKPOINTS,
+  EFFECTS,
+  colors: COLORS,
+  typography: TYPOGRAPHY,
+  spacing: SPACING,
+  breakpoints: BREAKPOINTS,
+  effects: EFFECTS,
+} as const
