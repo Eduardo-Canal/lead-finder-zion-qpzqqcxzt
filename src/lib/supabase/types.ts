@@ -821,6 +821,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      find_potential_duplicates: {
+        Args: { min_score?: number }
+        Returns: {
+          empresa1_id: number
+          empresa2_id: number
+          similarity_score: number
+          tipo_similaridade: string
+        }[]
+      }
       get_due_followups: {
         Args: never
         Returns: {
@@ -848,6 +857,8 @@ export type Database = {
         }[]
       }
       limpar_cache_pesquisas: { Args: { p_cnae?: string }; Returns: number }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { '': string }; Returns: string[] }
     }
     Enums: {
       duplicate_match_type: 'cnpj_exact' | 'razao_social_single' | 'razao_social_multiple'
@@ -1376,6 +1387,38 @@ export const Constants = {
 //     WITH CHECK: (user_id = auth.uid())
 
 // --- DATABASE FUNCTIONS ---
+// FUNCTION find_potential_duplicates(numeric)
+//   CREATE OR REPLACE FUNCTION public.find_potential_duplicates(min_score numeric DEFAULT 0.75)
+//    RETURNS TABLE(empresa1_id integer, empresa2_id integer, similarity_score numeric, tipo_similaridade text)
+//    LANGUAGE plpgsql
+//    SECURITY DEFINER
+//   AS $function$
+//   BEGIN
+//       -- Configure the similarity threshold locally for this transaction
+//       -- This allows the '%' operator to utilize the GiST index efficiently
+//       PERFORM set_config('pg_trgm.similarity_threshold', min_score::text, true);
+//
+//       RETURN QUERY
+//       SELECT
+//           a.bitrix_id as empresa1_id,
+//           b.bitrix_id as empresa2_id,
+//           (similarity(a.company_name, b.company_name) * 100)::numeric as similarity_score,
+//           'Razão Social (Fuzzy)'::text as tipo_similaridade
+//       FROM public.bitrix_clients_zion a
+//       JOIN public.bitrix_clients_zion b
+//         ON a.company_name % b.company_name
+//         AND a.bitrix_id < b.bitrix_id
+//       WHERE a.company_name IS NOT NULL AND b.company_name IS NOT NULL
+//       AND NOT EXISTS (
+//           SELECT 1 FROM public.company_duplicates cd
+//           WHERE (cd.original_company_id = a.bitrix_id AND cd.duplicate_company_id = b.bitrix_id)
+//              OR (cd.original_company_id = b.bitrix_id AND cd.duplicate_company_id = a.bitrix_id)
+//       )
+//       ORDER BY similarity(a.company_name, b.company_name) DESC
+//       LIMIT 50;
+//   END;
+//   $function$
+//
 // FUNCTION get_due_followups()
 //   CREATE OR REPLACE FUNCTION public.get_due_followups()
 //    RETURNS TABLE(lead_id uuid, user_id uuid, razao_social text, executivo_email text, executivo_nome text, opp_stage text, dias_sem_contato integer, reminder_type text)
@@ -1544,6 +1587,7 @@ export const Constants = {
 //   CREATE UNIQUE INDEX bitrix_clients_zion_bitrix_id_key ON public.bitrix_clients_zion USING btree (bitrix_id)
 //   CREATE INDEX idx_bitrix_clients_zion_bitrix_id ON public.bitrix_clients_zion USING btree (bitrix_id)
 //   CREATE INDEX idx_bitrix_clients_zion_cnae_principal ON public.bitrix_clients_zion USING btree (cnae_principal)
+//   CREATE INDEX trgm_idx_bitrix_clients_company_name ON public.bitrix_clients_zion USING gist (company_name gist_trgm_ops)
 // Table: bitrix_webhook_events
 //   CREATE INDEX idx_bitrix_webhook_events_event_type ON public.bitrix_webhook_events USING btree (event_type)
 // Table: cache_pesquisas
