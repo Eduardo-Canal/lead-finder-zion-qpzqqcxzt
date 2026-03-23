@@ -18,6 +18,7 @@ type TestState = {
 const SECTIONS = [
   'Funcionalidade',
   'Deduplicação',
+  'Resiliência e Falha',
   'Integração',
   'Performance',
   'Segurança',
@@ -161,6 +162,9 @@ export default function TestesValidacao() {
         } else if (t.id.includes('dedup')) {
           recommendation =
             'Revisar triggers de integridade referencial, regras de RLS na company_merge_history ou inspecionar logs da Edge Function de deduplicação.'
+        } else if (t.id.includes('res_')) {
+          recommendation =
+            'Verificar configurações de timeout (sugerido 15s+ para chamadas externas). Revisar políticas de retry nas Edge Functions e integridade dos Distributed Locks do Redis.'
         } else {
           recommendation =
             'Revisar os logs técnicos no console ou no Supabase Dashboard para identificar a raiz primária da falha.'
