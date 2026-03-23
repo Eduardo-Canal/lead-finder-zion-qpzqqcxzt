@@ -50,6 +50,7 @@ import {
   ChevronRight,
   Activity,
   DollarSign,
+  Search,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { EmptyState, LoadingTableRows } from '@/components/Notifications/StateBlocks'
