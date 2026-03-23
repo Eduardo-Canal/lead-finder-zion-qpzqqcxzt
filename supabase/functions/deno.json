@@ -5,10 +5,10 @@
     "functions": 6,
     "admin-create-user": 7,
     "admin-delete-user": 1,
-    "bitrix-rate-limiter": 9,
+    "bitrix-rate-limiter": 10,
     "fetch-bitrix-clients-zion": 12,
     "validate-cnpj": 2,
     "send-reminders": 1,
-    "sync-lead-to-bitrix-dedup": 9
+    "sync-lead-to-bitrix-dedup": 10
   }
 }

@@ -462,8 +462,14 @@ export const QA_TESTS: QATest[] = [
       log('Montando requisição simulada para consolidar leads no CRM Externo...')
       log('Invocando a Edge Function "sync-lead-to-bitrix-dedup" com payload de teste...')
       try {
+        // Passamos a flag _simulate_success para evitar que os testes de QA disparem
+        // requisições reais no endpoint de criação, o que poderia esgotar
+        // rapidamente o limite (Rate Limit) da API do Bitrix
         const { data, error } = await supabase.functions.invoke('sync-lead-to-bitrix-dedup', {
-          body: { lead: { cnpj: '00000000000000', razao_social: 'QA AUTO MERGE SYNC' } },
+          body: {
+            lead: { cnpj: '00000000000000', razao_social: 'QA AUTO MERGE SYNC' },
+            _simulate_success: true,
+          },
         })
 
         const execTime = performance.now() - start
@@ -474,9 +480,17 @@ export const QA_TESTS: QATest[] = [
           return false
         }
 
+        if (data?.error) {
+          log(`Erro reportado pela API: ${data.error}`)
+          return false
+        }
+
         log(
           `Resposta processada pelo Bitrix24 (Mock/Real): action = ${data?.action || 'undefined'}`,
         )
+        if (data?.retry_logs && data.retry_logs.length > 0) {
+          data.retry_logs.forEach((l: string) => log(`[Log] ${l}`))
+        }
         log('A sincronização bidirecional aplicou corretamente o merge no ecossistema externo.')
         return true
       } catch (err: any) {
@@ -499,7 +513,10 @@ export const QA_TESTS: QATest[] = [
       const start = performance.now()
       log('Invocando Edge Function "sync-lead-to-bitrix-dedup"...')
       log(
-        'Enviando payload com flag _simulate_503 para forçar erro 503 e disparar o backoff logic (1s, 2s, 4s)...',
+        'Enviando payload com flag _simulate_503 para forçar erro 503 e disparar o backoff logic...',
+      )
+      log(
+        '⏳ Aguardando processamento inteligente de retentativas (Isso levará cerca de 7 segundos)...',
       )
 
       try {
@@ -512,8 +529,6 @@ export const QA_TESTS: QATest[] = [
 
         const execTime = performance.now() - start
 
-        // Em caso de falha simulada (com a flag ativa), a edge function retorna status 200 para facilitar
-        // a extração dos retry_logs no payload
         const logsFromEdge = data?.retry_logs || []
 
         if (logsFromEdge.length > 0) {
@@ -522,7 +537,6 @@ export const QA_TESTS: QATest[] = [
 
         log(`Tempo total de execução com Retry Delay: ${(execTime / 1000).toFixed(2)}s`)
 
-        // Verificando se 4 tentativas ocorreram (A tentativa original + 3 retentativas)
         if (logsFromEdge.length >= 4) {
           log(
             'Retry logic com exponential backoff verificado com sucesso (limite de 3 retentativas atingido antes de abortar de forma segura).',

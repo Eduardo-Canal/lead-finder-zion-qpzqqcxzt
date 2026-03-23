@@ -156,7 +156,14 @@ export default function TestesValidacao() {
 
       let recommendation = ''
       if (s.status === 'failed') {
-        if (t.id === 'dedup_performance') {
+        const hasRateLimit = s.logs.some(
+          (l) => l.includes('Rate limit') || l.includes('excessivo') || l.includes('429'),
+        )
+
+        if (hasRateLimit) {
+          recommendation =
+            'Limite de requisições (Rate Limit) atingido na API externa. O backoff inteligente interrompeu as tentativas para proteger o sistema. Aguarde alguns instantes e tente novamente.'
+        } else if (t.id === 'dedup_performance') {
           recommendation =
             'Otimizar índices de banco de dados (pg_trgm) e aplicar paginação e limits restritos nas RPCs.'
         } else if (t.id.includes('dedup')) {
