@@ -61,7 +61,7 @@ export default function Login() {
             <Input
               id="email"
               type="email"
-              placeholder="admin@zion.com"
+              placeholder="seu@email.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -86,18 +86,6 @@ export default function Login() {
             {isLoading ? 'Entrando...' : 'Entrar'}
           </Button>
         </form>
-
-        <div className="mt-8 text-center text-xs text-muted-foreground p-4 bg-muted/50 rounded-lg">
-          <p className="font-medium mb-2">Dados de demonstração:</p>
-          <div className="space-y-1">
-            <p>
-              Admin: <strong>admin@zion.com</strong> / password123
-            </p>
-            <p>
-              Visualizador: <strong>user@zion.com</strong> / password123
-            </p>
-          </div>
-        </div>
       </div>
     </div>
   )
