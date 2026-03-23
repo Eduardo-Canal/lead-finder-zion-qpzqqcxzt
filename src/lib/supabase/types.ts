@@ -252,6 +252,104 @@ export type Database = {
         }
         Relationships: []
       }
+      company_duplicates: {
+        Row: {
+          created_at: string
+          duplicate_company_id: number
+          id: string
+          match_type: Database['public']['Enums']['duplicate_match_type']
+          merged_at: string | null
+          merged_by: string | null
+          notes: string | null
+          original_company_id: number
+          similarity_score: number | null
+          status: Database['public']['Enums']['duplicate_status']
+        }
+        Insert: {
+          created_at?: string
+          duplicate_company_id: number
+          id?: string
+          match_type: Database['public']['Enums']['duplicate_match_type']
+          merged_at?: string | null
+          merged_by?: string | null
+          notes?: string | null
+          original_company_id: number
+          similarity_score?: number | null
+          status?: Database['public']['Enums']['duplicate_status']
+        }
+        Update: {
+          created_at?: string
+          duplicate_company_id?: number
+          id?: string
+          match_type?: Database['public']['Enums']['duplicate_match_type']
+          merged_at?: string | null
+          merged_by?: string | null
+          notes?: string | null
+          original_company_id?: number
+          similarity_score?: number | null
+          status?: Database['public']['Enums']['duplicate_status']
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'company_duplicates_duplicate_company_id_fkey'
+            columns: ['duplicate_company_id']
+            isOneToOne: false
+            referencedRelation: 'bitrix_clients_zion'
+            referencedColumns: ['bitrix_id']
+          },
+          {
+            foreignKeyName: 'company_duplicates_original_company_id_fkey'
+            columns: ['original_company_id']
+            isOneToOne: false
+            referencedRelation: 'bitrix_clients_zion'
+            referencedColumns: ['bitrix_id']
+          },
+        ]
+      }
+      company_merge_history: {
+        Row: {
+          created_at: string
+          fields_updated: Json | null
+          id: string
+          merged_at: string | null
+          merged_by: string | null
+          merged_to_company_id: number
+          original_company_id: number
+          reason: string | null
+          reversible: boolean | null
+        }
+        Insert: {
+          created_at?: string
+          fields_updated?: Json | null
+          id?: string
+          merged_at?: string | null
+          merged_by?: string | null
+          merged_to_company_id: number
+          original_company_id: number
+          reason?: string | null
+          reversible?: boolean | null
+        }
+        Update: {
+          created_at?: string
+          fields_updated?: Json | null
+          id?: string
+          merged_at?: string | null
+          merged_by?: string | null
+          merged_to_company_id?: number
+          original_company_id?: number
+          reason?: string | null
+          reversible?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'company_merge_history_merged_to_company_id_fkey'
+            columns: ['merged_to_company_id']
+            isOneToOne: false
+            referencedRelation: 'bitrix_clients_zion'
+            referencedColumns: ['bitrix_id']
+          },
+        ]
+      }
       configuracoes_sistema: {
         Row: {
           casadosdados_api_token: string | null
@@ -737,6 +835,8 @@ export type Database = {
       limpar_cache_pesquisas: { Args: { p_cnae?: string }; Returns: number }
     }
     Enums: {
+      duplicate_match_type: 'cnpj_exact' | 'razao_social_single' | 'razao_social_multiple'
+      duplicate_status: 'pending_review' | 'merged' | 'ignored'
       opportunity_stage: 'prospecting' | 'qualification' | 'proposal' | 'closing'
       reminder_type_enum: 'follow_up' | 'proposal' | 'closing'
     }
@@ -864,6 +964,8 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      duplicate_match_type: ['cnpj_exact', 'razao_social_single', 'razao_social_multiple'],
+      duplicate_status: ['pending_review', 'merged', 'ignored'],
       opportunity_stage: ['prospecting', 'qualification', 'proposal', 'closing'],
       reminder_type_enum: ['follow_up', 'proposal', 'closing'],
     },
@@ -947,6 +1049,27 @@ export const Constants = {
 //   criado_em: timestamp with time zone (not null, default: now())
 //   expira_em: timestamp with time zone (not null, default: (now() + '30 days'::interval))
 //   parametros: jsonb (nullable, default: '{}'::jsonb)
+// Table: company_duplicates
+//   id: uuid (not null, default: gen_random_uuid())
+//   original_company_id: integer (not null)
+//   duplicate_company_id: integer (not null)
+//   similarity_score: numeric (nullable)
+//   match_type: duplicate_match_type (not null)
+//   status: duplicate_status (not null, default: 'pending_review'::duplicate_status)
+//   merged_by: uuid (nullable)
+//   merged_at: timestamp with time zone (nullable)
+//   notes: text (nullable)
+//   created_at: timestamp with time zone (not null, default: now())
+// Table: company_merge_history
+//   id: uuid (not null, default: gen_random_uuid())
+//   original_company_id: integer (not null)
+//   merged_to_company_id: integer (not null)
+//   merged_by: uuid (nullable)
+//   merged_at: timestamp with time zone (nullable)
+//   fields_updated: jsonb (nullable)
+//   reason: text (nullable)
+//   reversible: boolean (nullable, default: true)
+//   created_at: timestamp with time zone (not null, default: now())
 // Table: configuracoes_sistema
 //   id: integer (not null, default: 1)
 //   data_ultima_atualizacao_rfb: timestamp with time zone (nullable)
@@ -1081,6 +1204,16 @@ export const Constants = {
 // Table: cache_pesquisas
 //   UNIQUE cache_pesquisas_chave_cache_key: UNIQUE (chave_cache)
 //   PRIMARY KEY cache_pesquisas_pkey: PRIMARY KEY (id)
+// Table: company_duplicates
+//   FOREIGN KEY company_duplicates_duplicate_company_id_fkey: FOREIGN KEY (duplicate_company_id) REFERENCES bitrix_clients_zion(bitrix_id) ON DELETE CASCADE
+//   FOREIGN KEY company_duplicates_merged_by_fkey: FOREIGN KEY (merged_by) REFERENCES auth.users(id) ON DELETE SET NULL
+//   FOREIGN KEY company_duplicates_original_company_id_fkey: FOREIGN KEY (original_company_id) REFERENCES bitrix_clients_zion(bitrix_id) ON DELETE CASCADE
+//   PRIMARY KEY company_duplicates_pkey: PRIMARY KEY (id)
+//   CHECK company_duplicates_similarity_score_check: CHECK (((similarity_score >= (0)::numeric) AND (similarity_score <= (100)::numeric)))
+// Table: company_merge_history
+//   FOREIGN KEY company_merge_history_merged_by_fkey: FOREIGN KEY (merged_by) REFERENCES auth.users(id) ON DELETE SET NULL
+//   FOREIGN KEY company_merge_history_merged_to_company_id_fkey: FOREIGN KEY (merged_to_company_id) REFERENCES bitrix_clients_zion(bitrix_id) ON DELETE CASCADE
+//   PRIMARY KEY company_merge_history_pkey: PRIMARY KEY (id)
 // Table: configuracoes_sistema
 //   PRIMARY KEY configuracoes_sistema_pkey: PRIMARY KEY (id)
 // Table: contatos_realizados
@@ -1152,6 +1285,14 @@ export const Constants = {
 //   Policy "Allow authenticated users to select cache" (SELECT, PERMISSIVE) roles={authenticated}
 //     USING: true
 //   Policy "Allow authenticated users to update cache" (UPDATE, PERMISSIVE) roles={authenticated}
+//     USING: true
+//     WITH CHECK: true
+// Table: company_duplicates
+//   Policy "Enable ALL for authenticated users on company_duplicates" (ALL, PERMISSIVE) roles={authenticated}
+//     USING: true
+//     WITH CHECK: true
+// Table: company_merge_history
+//   Policy "Enable ALL for authenticated users on company_merge_history" (ALL, PERMISSIVE) roles={authenticated}
 //     USING: true
 //     WITH CHECK: true
 // Table: configuracoes_sistema
@@ -1386,6 +1527,13 @@ export const Constants = {
 //   CREATE INDEX idx_bitrix_webhook_events_event_type ON public.bitrix_webhook_events USING btree (event_type)
 // Table: cache_pesquisas
 //   CREATE UNIQUE INDEX cache_pesquisas_chave_cache_key ON public.cache_pesquisas USING btree (chave_cache)
+// Table: company_duplicates
+//   CREATE INDEX idx_company_duplicates_duplicate ON public.company_duplicates USING btree (duplicate_company_id)
+//   CREATE INDEX idx_company_duplicates_original ON public.company_duplicates USING btree (original_company_id)
+//   CREATE INDEX idx_company_duplicates_status ON public.company_duplicates USING btree (status)
+// Table: company_merge_history
+//   CREATE INDEX idx_company_merge_history_merged_to ON public.company_merge_history USING btree (merged_to_company_id)
+//   CREATE INDEX idx_company_merge_history_original ON public.company_merge_history USING btree (original_company_id)
 // Table: notifications
 //   CREATE INDEX idx_notifications_read ON public.notifications USING btree (read)
 //   CREATE INDEX idx_notifications_user_id ON public.notifications USING btree (user_id)

@@ -1,0 +1,233 @@
+import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
+import { corsHeaders } from '../_shared/cors.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
+
+// Utility function to remove accents for better comparison
+function removeAccents(str: string) {
+  return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+}
+
+// Levenshtein distance algorithm
+function editDistance(s1: string, s2: string) {
+  s1 = removeAccents(s1.toLowerCase().trim())
+  s2 = removeAccents(s2.toLowerCase().trim())
+
+  let costs = []
+  for (let i = 0; i <= s1.length; i++) {
+    let lastValue = i
+    for (let j = 0; j <= s2.length; j++) {
+      if (i === 0) {
+        costs[j] = j
+      } else if (j > 0) {
+        let newValue = costs[j - 1]
+        if (s1.charAt(i - 1) !== s2.charAt(j - 1)) {
+          newValue = Math.min(Math.min(newValue, lastValue), costs[j]) + 1
+        }
+        costs[j - 1] = lastValue
+        lastValue = newValue
+      }
+    }
+    if (i > 0) costs[s2.length] = lastValue
+  }
+  return costs[s2.length]
+}
+
+// Calculates percentage similarity between two strings
+function calculateSimilarity(s1: string, s2: string): number {
+  if (!s1 || !s2) return 0
+  let longer = s1
+  let shorter = s2
+  if (s1.length < s2.length) {
+    longer = s2
+    shorter = s1
+  }
+  let longerLength = longer.length
+  if (longerLength === 0) return 100.0
+  return (
+    ((longerLength - editDistance(longer, shorter)) / parseFloat(longerLength.toString())) * 100
+  )
+}
+
+Deno.serve(async (req: Request) => {
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
+
+  try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
+    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey)
+
+    const payload = await req.json().catch(() => ({}))
+    const { lead } = payload
+
+    if (!lead || (!lead.cnpj && !lead.razao_social)) {
+      return new Response(
+        JSON.stringify({
+          error: 'Dados insuficientes. CNPJ ou Razão Social são obrigatórios.',
+        }),
+        { status: 400, headers: corsHeaders },
+      )
+    }
+
+    const cleanCnpj = lead.cnpj ? lead.cnpj.replace(/\D/g, '') : ''
+    const razaoSocial = lead.razao_social ? lead.razao_social.trim() : ''
+
+    const baseUrl = `https://zionlogtec.bitrix24.com.br/rest/5/eiyn7hzhaeu2lcm0/`
+    const rateLimiterUrl = `${supabaseUrl}/functions/v1/bitrix-rate-limiter`
+
+    async function callBitrix(endpoint: string, method: string = 'GET', body?: any) {
+      const res = await fetch(rateLimiterUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${serviceRoleKey}` },
+        body: JSON.stringify({ endpoint: baseUrl + endpoint, method, body }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.success)
+        throw new Error(data.message || data.error || 'Bitrix API error')
+      return data.data
+    }
+
+    let bitrix_company_id: number | null = null
+    let action: 'found' | 'enriched' | 'created' = 'created'
+    let duplicates_found: any[] = []
+    let requires_review = false
+
+    // NÍVEL 1: Busca sequencial (CNPJ exato)
+    if (cleanCnpj) {
+      const searchCnpjEndpoint = `crm.company.list.json?filter[UF_CRM_1742992784]=${cleanCnpj}&select[]=ID&select[]=TITLE&select[]=UF_CRM_1742992784`
+      const cnpjResult = await callBitrix(searchCnpjEndpoint)
+      const companies = cnpjResult?.result || []
+
+      if (companies.length > 0) {
+        bitrix_company_id = parseInt(companies[0].ID)
+        action = 'found'
+        return new Response(
+          JSON.stringify({
+            bitrix_company_id,
+            bitrix_lead_id: null, // Reserved for future lead creation
+            action,
+            duplicates_found,
+            requires_review,
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
+        )
+      }
+    }
+
+    // NÍVEL 2: Razão Social com validação rigorosa
+    let potentialDuplicates: any[] = []
+    if (razaoSocial) {
+      // Usamos wildcard para buscar empresas que comecem ou contenham o nome
+      // A API do Bitrix permite %TITLE para busca parcial
+      const encodedTitle = encodeURIComponent(`%${razaoSocial}%`)
+      const searchNameEndpoint = `crm.company.list.json?filter[%TITLE]=${encodedTitle}&select[]=ID&select[]=TITLE&select[]=UF_CRM_1742992784`
+      const nameResult = await callBitrix(searchNameEndpoint)
+      const companies = nameResult?.result || []
+
+      for (const comp of companies) {
+        const simScore = calculateSimilarity(razaoSocial, comp.TITLE)
+        // Limite de similaridade para considerar como um possível duplicado
+        if (simScore >= 75) {
+          potentialDuplicates.push({
+            company: comp,
+            similarity_score: parseFloat(simScore.toFixed(2)),
+          })
+        }
+      }
+
+      // Validação de Falso Positivos:
+      // Se encontrou EXATAMENTE 1 match com similaridade MUITO alta (>= 95%),
+      // podemos confiar que é a mesma empresa (ex: pequenas diferenças de acento).
+      if (potentialDuplicates.length === 1 && potentialDuplicates[0].similarity_score >= 95) {
+        bitrix_company_id = parseInt(potentialDuplicates[0].company.ID)
+        action = 'found' // Ou 'enriched' caso no futuro atualizemos dados
+        return new Response(
+          JSON.stringify({
+            bitrix_company_id,
+            bitrix_lead_id: null,
+            action,
+            duplicates_found,
+            requires_review,
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
+        )
+      }
+
+      // Se não passou na validação acima (seja por ter múltiplos ou a similaridade ser < 95%),
+      // seguimos para o Nível 3 para criar uma nova, mas registraremos os duplicados.
+    }
+
+    // NÍVEL 3: Criar novo registro
+    const createEndpoint = `crm.company.add.json`
+    const createBody = {
+      fields: {
+        TITLE: razaoSocial || 'Empresa Sem Nome',
+        UF_CRM_1742992784: cleanCnpj,
+        EMAIL: lead.email ? [{ VALUE: lead.email, VALUE_TYPE: 'WORK' }] : [],
+        PHONE: lead.telefone ? [{ VALUE: lead.telefone, VALUE_TYPE: 'WORK' }] : [],
+        ADDRESS_CITY: lead.municipio || '',
+        ADDRESS_PROVINCE: lead.uf || '',
+        // Outros campos customizados podem ser mapeados aqui
+      },
+    }
+
+    const createResult = await callBitrix(createEndpoint, 'POST', createBody)
+    bitrix_company_id = parseInt(createResult?.result)
+    action = 'created'
+
+    // Registro na tabela company_duplicates caso tenham sido encontrados resultados similares
+    if (potentialDuplicates.length > 0 && bitrix_company_id) {
+      requires_review = true
+
+      for (const pot of potentialDuplicates) {
+        const original_id = parseInt(pot.company.ID)
+
+        // Evita referenciar a si mesmo (caso a API Bitrix retorne de forma assíncrona algo estranho)
+        if (original_id === bitrix_company_id) continue
+
+        const { data: dupRecord, error: dupError } = await supabaseAdmin
+          .from('company_duplicates')
+          .insert({
+            original_company_id: original_id,
+            duplicate_company_id: bitrix_company_id,
+            similarity_score: pot.similarity_score,
+            match_type:
+              potentialDuplicates.length > 1 ? 'razao_social_multiple' : 'razao_social_single',
+            status: 'pending_review',
+            notes: `Auto-detectado pela Edge Function. Razão Social pesquisada: "${razaoSocial}" vs Encontrada: "${pot.company.TITLE}"`,
+          })
+          .select()
+          .single()
+
+        if (!dupError && dupRecord) {
+          duplicates_found.push({
+            id: dupRecord.id,
+            original_id: original_id,
+            duplicate_id: bitrix_company_id,
+            similarity_score: pot.similarity_score,
+          })
+        } else if (dupError) {
+          console.error(`Erro ao inserir duplicidade para Bitrix ID ${original_id}:`, dupError)
+        }
+      }
+    }
+
+    return new Response(
+      JSON.stringify({
+        bitrix_company_id,
+        bitrix_lead_id: null,
+        action,
+        duplicates_found,
+        requires_review,
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
+    )
+  } catch (error: any) {
+    console.error('Edge function errored:', error)
+    return new Response(
+      JSON.stringify({
+        error: error.message || 'Erro interno na sincronização com Bitrix',
+      }),
+      { status: 500, headers: corsHeaders },
+    )
+  }
+})
