@@ -638,7 +638,7 @@ export const QA_TESTS: QATest[] = [
       )
 
       // Simulação Nó São Paulo
-      const pSP = new Promise<{ region: string; success: boolean }>(async (resolve) => {
+      const pSP = (async (): Promise<{ region: string; success: boolean }> => {
         const startWait = performance.now()
         await new Promise((r) => setTimeout(r, 45)) // SP reaches the lock manager faster
         const waitTime = performance.now() - startWait
@@ -652,11 +652,11 @@ export const QA_TESTS: QATest[] = [
         await new Promise((r) => setTimeout(r, 300))
 
         log(`[Nó SP] Transação concluída com sucesso. Lock RELEASED.`)
-        resolve({ region: 'SP', success: true })
-      })
+        return { region: 'SP', success: true }
+      })()
 
       // Simulação Nó Rio de Janeiro
-      const pRJ = new Promise<{ region: string; success: boolean }>(async (resolve) => {
+      const pRJ = (async (): Promise<{ region: string; success: boolean }> => {
         const startWait = performance.now()
         await new Promise((r) => setTimeout(r, 75)) // RJ arrives slightly later
 
@@ -675,8 +675,8 @@ export const QA_TESTS: QATest[] = [
         )
         log(`[Nó RJ] Lock RELEASED.`)
 
-        resolve({ region: 'RJ', success: true })
-      })
+        return { region: 'RJ', success: true }
+      })()
 
       await Promise.all([pSP, pRJ])
 
