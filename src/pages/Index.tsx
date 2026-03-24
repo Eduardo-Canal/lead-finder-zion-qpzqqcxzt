@@ -15,6 +15,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { LoadingCard, ErrorState } from '@/components/Notifications/StateBlocks'
 import { designTokens } from '@/constants/designTokens'
+import { ZionGlobalBackground } from '@/components/ZionGlobalBackground'
 
 const chartConfig = {
   count: {
@@ -135,14 +136,21 @@ export default function Index() {
 
   return (
     <div className={designTokens.layout.page}>
-      <div>
-        <h2 className={designTokens.typography.pageTitle}>Dashboard</h2>
-        <p className={designTokens.typography.small}>
-          Visão geral do desempenho de prospecção e produtividade da equipe.
-        </p>
+      <div className="relative overflow-hidden rounded-2xl p-6 sm:p-10 shadow-md border-0 bg-[#020617] mb-2">
+        <ZionGlobalBackground />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#020617]/95 via-[#020617]/70 to-transparent pointer-events-none z-0" />
+        <div className="relative z-10 max-w-2xl">
+          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-white mb-3">
+            Dashboard Lead Finder Zion
+          </h2>
+          <p className="text-slate-300 font-medium text-lg leading-relaxed">
+            Conectividade global e inteligência de dados para maximizar suas oportunidades e
+            impulsionar a performance da equipe comercial.
+          </p>
+        </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-3 mt-4">
         <Card className="bg-primary text-primary-foreground shadow-md hover:shadow-lg transition-all duration-300">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-primary-foreground/90">

@@ -16,6 +16,7 @@ import { useToast } from '@/hooks/use-toast'
 import { Loader2, Mail, Lock, ArrowRight, Rocket, AlertCircle, CheckCircle2 } from 'lucide-react'
 import logoUrl from '../assets/lead-finder-zion-8b551.jpg'
 import { cn } from '@/lib/utils'
+import { ZionGlobalBackground } from '@/components/ZionGlobalBackground'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -102,10 +103,10 @@ export default function Login() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4 dark:bg-slate-900 overflow-hidden relative">
-      {/* Decorative background elements */}
-      <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+    <div className="flex min-h-screen items-center justify-center bg-[#020617] p-4 overflow-hidden relative">
+      <ZionGlobalBackground />
+
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#020617]/70 pointer-events-none z-0" />
 
       <Card
         className="w-full max-w-md bg-gradient-to-b from-white to-[#f9fafb] shadow-[0_4px_12px_rgba(0,0,0,0.15)] border-slate-100 rounded-2xl animate-fade-in-up z-10 relative !overflow-visible"
