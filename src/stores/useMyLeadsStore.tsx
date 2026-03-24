@@ -36,6 +36,7 @@ export interface LeadSalvo {
   historico_interacoes?: any[]
   observacoes?: string
   status?: LeadStatus
+  profiles?: { nome: string }
 }
 
 export type Lead = LeadSalvo
@@ -102,13 +103,33 @@ export const useMyLeadsStore = create<MyLeadsStore>((set, get) => ({
       const { data: userData } = await supabase.auth.getUser()
       if (!userData.user) throw new Error('Usuário não autenticado')
 
-      const { data: leadsData, error: leadsError } = await supabase
-        .from('leads_salvos')
-        .select('*')
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*, perfis_acesso(*)')
         .eq('user_id', userData.user.id)
+        .single()
+
+      const pa: any = profile?.perfis_acesso
+      const isAdmin =
+        pa?.nome === 'Administrador' || (pa?.permissoes || []).includes('Acessar Admin')
+
+      let query = supabase
+        .from('leads_salvos')
+        .select('*, profiles!leads_salvos_salvo_por_fkey(nome)')
         .order('created_at', { ascending: false })
 
+      if (!isAdmin) {
+        query = query.eq('user_id', userData.user.id)
+      }
+
+      const { data: leadsData, error: leadsError } = await query
+
       if (leadsError) throw leadsError
+
+      const mappedLeads = (leadsData || []).map((lead: any) => ({
+        ...lead,
+        executivo_nome: lead.profiles?.nome || 'Não atribuído',
+      }))
 
       const { data: oppsData, error: oppsError } = await supabase
         .from('opportunities')
@@ -120,8 +141,8 @@ export const useMyLeadsStore = create<MyLeadsStore>((set, get) => ({
       }
 
       set({
-        myLeads: (leadsData as LeadSalvo[]) || [],
-        leads: (leadsData as LeadSalvo[]) || [],
+        myLeads: mappedLeads as LeadSalvo[],
+        leads: mappedLeads as LeadSalvo[],
         opportunities: finalOpps,
         isLoading: false,
       })
@@ -245,10 +266,18 @@ export const useMyLeadsStore = create<MyLeadsStore>((set, get) => ({
   addInteraction: async (leadId: string, text: string) => {
     try {
       const lead = get().myLeads.find((l) => l.id === leadId)
+
+      const { data: userData } = await supabase.auth.getUser()
+      const profileRes = await supabase
+        .from('profiles')
+        .select('nome')
+        .eq('user_id', userData.user?.id)
+        .single()
+
       const newInteraction = {
         data: new Date().toISOString(),
         texto: text,
-        executivo_nome: 'Atual',
+        executivo_nome: profileRes.data?.nome || 'Atual',
       }
       const historico = [...(lead?.historico_interacoes || []), newInteraction]
       await supabase

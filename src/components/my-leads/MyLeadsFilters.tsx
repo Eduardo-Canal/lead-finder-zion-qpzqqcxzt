@@ -13,17 +13,17 @@ import { designTokens } from '@/constants/designTokens'
 import { cn } from '@/lib/utils'
 
 export function MyLeadsFilters() {
-  const { filters, setFilter, myLeads, executives } = useMyLeadsStore()
+  const { filters, setFilter, myLeads } = useMyLeadsStore()
 
   const availableCities = useMemo(() => {
-    const cities = new Set(myLeads.map((l) => l.municipio))
+    const cities = new Set(myLeads.map((l) => l.municipio).filter(Boolean))
     return Array.from(cities).sort()
   }, [myLeads])
 
   const availableExecutives = useMemo(() => {
-    const execs = new Set([...executives, ...myLeads.map((l) => l.executivo_nome)])
+    const execs = new Set(myLeads.map((l) => l.executivo_nome).filter(Boolean))
     return Array.from(execs).sort()
-  }, [myLeads, executives])
+  }, [myLeads])
 
   return (
     <div className={cn(designTokens.layout.card, 'mb-6 grid grid-cols-1 md:grid-cols-4 gap-4 p-4')}>
@@ -44,8 +44,8 @@ export function MyLeadsFilters() {
         <SelectContent>
           <SelectItem value="Todos">Todos os Municípios</SelectItem>
           {availableCities.map((c) => (
-            <SelectItem key={c} value={c}>
-              {c}
+            <SelectItem key={c as string} value={c as string}>
+              {c as string}
             </SelectItem>
           ))}
         </SelectContent>
@@ -72,8 +72,8 @@ export function MyLeadsFilters() {
         <SelectContent>
           <SelectItem value="Todos">Todos os Executivos</SelectItem>
           {availableExecutives.map((e) => (
-            <SelectItem key={e} value={e}>
-              {e}
+            <SelectItem key={e as string} value={e as string}>
+              {e as string}
             </SelectItem>
           ))}
         </SelectContent>
