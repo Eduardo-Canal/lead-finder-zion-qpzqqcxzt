@@ -194,6 +194,16 @@ export function AppSidebar() {
                           </Link>
                         </SidebarMenuSubButton>
                       </SidebarMenuSubItem>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton
+                          asChild
+                          isActive={location.pathname === '/configuracoes/historico-sincronizacao'}
+                        >
+                          <Link to="/configuracoes/historico-sincronizacao">
+                            <span>Histórico Bitrix24</span>
+                          </Link>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
 
                       {isAdmin && (
                         <>

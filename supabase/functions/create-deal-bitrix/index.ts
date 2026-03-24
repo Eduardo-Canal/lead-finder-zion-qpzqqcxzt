@@ -152,7 +152,10 @@ Deno.serve(async (req: Request) => {
           lead_id: lead_id,
           company_id: finalCompanyId,
           deal_id: returnedDealId,
-          status: 'success',
+          kanban_id: kanban_id,
+          stage_id: stage_id,
+          status: 'SUCESSO',
+          user_id: leadData?.user_id || null,
         })
       }
 
@@ -160,8 +163,8 @@ Deno.serve(async (req: Request) => {
       return new Response(
         JSON.stringify({
           success: true,
-          status: 'success',
-          deal_id: dealRes?.result,
+          status: 'SUCESSO',
+          deal_id: returnedDealId,
           company_id: finalCompanyId,
         }),
         {
@@ -179,14 +182,17 @@ Deno.serve(async (req: Request) => {
         await supabaseAdmin.from('leads_bitrix_sync').insert({
           lead_id: lead_id,
           company_id: finalCompanyId,
-          status: 'error',
-          error_log: dealError.message,
+          kanban_id: kanban_id,
+          stage_id: stage_id,
+          status: 'ERRO',
+          error_message: dealError.message,
+          user_id: leadData?.user_id || null,
         })
       }
       throw dealError
     }
   } catch (error: any) {
-    return new Response(JSON.stringify({ success: false, status: 'error', error: error.message }), {
+    return new Response(JSON.stringify({ success: false, status: 'ERRO', error: error.message }), {
       status: 200,
       headers: corsHeaders,
     })

@@ -523,6 +523,44 @@ export type Database = {
         }
         Relationships: []
       }
+      leads_bitrix_sync: {
+        Row: {
+          company_id: number | null
+          created_at: string | null
+          deal_id: number | null
+          error_log: string | null
+          id: string
+          lead_id: string | null
+          status: string
+        }
+        Insert: {
+          company_id?: number | null
+          created_at?: string | null
+          deal_id?: number | null
+          error_log?: string | null
+          id?: string
+          lead_id?: string | null
+          status: string
+        }
+        Update: {
+          company_id?: number | null
+          created_at?: string | null
+          deal_id?: number | null
+          error_log?: string | null
+          id?: string
+          lead_id?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'leads_bitrix_sync_lead_id_fkey'
+            columns: ['lead_id']
+            isOneToOne: false
+            referencedRelation: 'leads_salvos'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       leads_salvos: {
         Row: {
           capital_social: number | null
@@ -1188,6 +1226,14 @@ export const Constants = {
 //   socios: jsonb (nullable, default: '[]'::jsonb)
 //   cnaes_secundarios: jsonb (nullable, default: '[]'::jsonb)
 //   data_abertura: date (nullable)
+// Table: leads_bitrix_sync
+//   id: uuid (not null, default: gen_random_uuid())
+//   lead_id: uuid (nullable)
+//   company_id: integer (nullable)
+//   deal_id: integer (nullable)
+//   status: text (not null)
+//   error_log: text (nullable)
+//   created_at: timestamp with time zone (nullable, default: now())
 // Table: leads_salvos
 //   id: uuid (not null, default: gen_random_uuid())
 //   razao_social: text (nullable)
@@ -1311,6 +1357,9 @@ export const Constants = {
 //   PRIMARY KEY contatos_realizados_pkey: PRIMARY KEY (id)
 // Table: empresas_rfb
 //   PRIMARY KEY empresas_rfb_pkey: PRIMARY KEY (cnpj)
+// Table: leads_bitrix_sync
+//   FOREIGN KEY leads_bitrix_sync_lead_id_fkey: FOREIGN KEY (lead_id) REFERENCES leads_salvos(id) ON DELETE SET NULL
+//   PRIMARY KEY leads_bitrix_sync_pkey: PRIMARY KEY (id)
 // Table: leads_salvos
 //   PRIMARY KEY leads_salvos_pkey: PRIMARY KEY (id)
 //   FOREIGN KEY leads_salvos_salvo_por_fkey: FOREIGN KEY (salvo_por) REFERENCES profiles(id) ON DELETE SET NULL
@@ -1417,6 +1466,10 @@ export const Constants = {
 //   Policy "Enable SELECT for authenticated users" (SELECT, PERMISSIVE) roles={authenticated}
 //     USING: true
 //   Policy "Enable UPDATE for authenticated users" (UPDATE, PERMISSIVE) roles={authenticated}
+//     USING: true
+//     WITH CHECK: true
+// Table: leads_bitrix_sync
+//   Policy "Enable ALL for authenticated users on leads_bitrix_sync" (ALL, PERMISSIVE) roles={authenticated}
 //     USING: true
 //     WITH CHECK: true
 // Table: leads_salvos
