@@ -11,6 +11,6 @@
     "send-reminders": 1,
     "sync-lead-to-bitrix-dedup": 11,
     "enrich-lead-data-on-search": 4,
-    "get-bitrix-kanbans": 1
+    "get-bitrix-kanbans": 2
   }
 }

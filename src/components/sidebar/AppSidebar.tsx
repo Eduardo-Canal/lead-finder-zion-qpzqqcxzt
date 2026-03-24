@@ -200,6 +200,16 @@ export function AppSidebar() {
                           <SidebarMenuSubItem>
                             <SidebarMenuSubButton
                               asChild
+                              isActive={location.pathname === '/configuracoes/bitrix24'}
+                            >
+                              <Link to="/configuracoes/bitrix24">
+                                <span>Integração Bitrix24</span>
+                              </Link>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                          <SidebarMenuSubItem>
+                            <SidebarMenuSubButton
+                              asChild
                               isActive={location.pathname === '/configuracoes/auditoria'}
                             >
                               <Link to="/configuracoes/auditoria">

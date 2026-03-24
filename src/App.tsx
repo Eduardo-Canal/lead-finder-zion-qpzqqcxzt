@@ -30,6 +30,7 @@ const InteligenciaZion = lazy(() => import('@/pages/InteligenciaZion'))
 const NotFound = lazy(() => import('@/pages/NotFound'))
 const UpdatePassword = lazy(() => import('@/pages/UpdatePassword'))
 const ChangePassword = lazy(() => import('@/pages/ChangePassword'))
+const ConfiguracoesBitrix = lazy(() => import('@/pages/ConfiguracoesBitrix'))
 
 const GlobalLoading = () => (
   <div className="flex min-h-screen w-full items-center justify-center bg-background/50 backdrop-blur-sm">
@@ -103,6 +104,7 @@ const App = () => (
                     <Route path="/configuracoes/auditoria" element={<AuditLogs />} />
                     <Route path="/configuracoes/relatorios" element={<Reports />} />
                     <Route path="/configuracoes/avancado" element={<ConfiguracoesAvancadas />} />
+                    <Route path="/configuracoes/bitrix24" element={<ConfiguracoesBitrix />} />
                     <Route
                       path="/configuracoes/empresas-duplicadas"
                       element={<EmpresasDuplicadas />}
