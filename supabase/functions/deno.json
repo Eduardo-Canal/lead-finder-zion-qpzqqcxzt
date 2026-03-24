@@ -9,7 +9,8 @@
     "fetch-bitrix-clients-zion": 12,
     "validate-cnpj": 2,
     "send-reminders": 1,
-    "sync-lead-to-bitrix-dedup": 10,
-    "enrich-lead-data-on-search": 4
+    "sync-lead-to-bitrix-dedup": 11,
+    "enrich-lead-data-on-search": 4,
+    "get-bitrix-kanbans": 1
   }
 }
