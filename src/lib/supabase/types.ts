@@ -813,6 +813,27 @@ export type Database = {
         }
         Relationships: []
       }
+      settings: {
+        Row: {
+          id: string
+          key: string
+          updated_at: string
+          value: Json
+        }
+        Insert: {
+          id?: string
+          key: string
+          updated_at?: string
+          value?: Json
+        }
+        Update: {
+          id?: string
+          key?: string
+          updated_at?: string
+          value?: Json
+        }
+        Relationships: []
+      }
       user_reminder_settings: {
         Row: {
           closing_days: number
@@ -1239,6 +1260,11 @@ export const Constants = {
 //   cidade: text (nullable)
 //   total_results: integer (nullable)
 //   created_at: timestamp with time zone (not null, default: now())
+// Table: settings
+//   id: uuid (not null, default: gen_random_uuid())
+//   key: text (not null)
+//   value: jsonb (not null, default: '{}'::jsonb)
+//   updated_at: timestamp with time zone (not null, default: now())
 // Table: user_reminder_settings
 //   user_id: uuid (not null)
 //   follow_up_days: integer (not null, default: 7)
@@ -1309,6 +1335,9 @@ export const Constants = {
 // Table: search_history
 //   PRIMARY KEY search_history_pkey: PRIMARY KEY (id)
 //   FOREIGN KEY search_history_user_id_fkey: FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
+// Table: settings
+//   UNIQUE settings_key_key: UNIQUE (key)
+//   PRIMARY KEY settings_pkey: PRIMARY KEY (id)
 // Table: user_reminder_settings
 //   PRIMARY KEY user_reminder_settings_pkey: PRIMARY KEY (user_id)
 //   FOREIGN KEY user_reminder_settings_user_id_fkey: FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
@@ -1424,6 +1453,10 @@ export const Constants = {
 //     WITH CHECK: (user_id = auth.uid())
 //   Policy "Users can view their own search history" (SELECT, PERMISSIVE) roles={authenticated}
 //     USING: (user_id = auth.uid())
+// Table: settings
+//   Policy "settings_auth_all" (ALL, PERMISSIVE) roles={authenticated}
+//     USING: true
+//     WITH CHECK: true
 // Table: user_reminder_settings
 //   Policy "Users can manage their own reminder settings" (ALL, PERMISSIVE) roles={authenticated}
 //     USING: (user_id = auth.uid())
@@ -1657,3 +1690,5 @@ export const Constants = {
 // Table: search_history
 //   CREATE INDEX idx_search_history_created_at ON public.search_history USING btree (created_at DESC)
 //   CREATE INDEX idx_search_history_user_id ON public.search_history USING btree (user_id)
+// Table: settings
+//   CREATE UNIQUE INDEX settings_key_key ON public.settings USING btree (key)

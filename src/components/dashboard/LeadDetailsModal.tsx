@@ -1,5 +1,14 @@
 import { useState, useMemo } from 'react'
 import { DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
@@ -17,6 +26,7 @@ import {
   DollarSign,
   Users,
   Loader2,
+  Send,
 } from 'lucide-react'
 import useLeadStore, { FilteredLead } from '@/stores/useLeadStore'
 import useMyLeadsStore from '@/stores/useMyLeadsStore'
@@ -41,6 +51,11 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
   const [saving, setSaving] = useState(false)
   const [enriching, setEnriching] = useState(false)
   const [enrichedData, setEnrichedData] = useState<any>(null)
+
+  // Bitrix states
+  const [showBitrixConfirm, setShowBitrixConfirm] = useState(false)
+  const [sendingBitrix, setSendingBitrix] = useState(false)
+  const [bitrixSent, setBitrixSent] = useState(false)
 
   const isSaved = useMemo(() => {
     return myLeads.some((l) => l.cnpj === lead.cnpj)
@@ -125,6 +140,60 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
 
   const displayData = enrichedData || lead
   const isEnriched = !!enrichedData || displayData.faturamento_anual !== undefined
+
+  const handleSendBitrix = async () => {
+    setSendingBitrix(true)
+    try {
+      const { data: settingsData, error: settingsError } = await supabase
+        .from('settings')
+        .select('value')
+        .eq('key', 'bitrix24_defaults')
+        .single()
+
+      if (settingsError || !settingsData?.value) {
+        throw new Error(
+          'Configurações do Bitrix24 não encontradas. Acesse Configurações > Integração Bitrix24.',
+        )
+      }
+
+      const { kanban_id, stage_id } = settingsData.value as any
+
+      if (!kanban_id || !stage_id) {
+        throw new Error('Kanban ou Fase padrão não configurados.')
+      }
+
+      const savedLead = myLeads.find((l) => l.cnpj === lead.cnpj)
+      const lead_id = savedLead?.id || lead.id
+      const company_id = savedLead?.bitrix_id || null
+
+      const { data, error } = await supabase.functions.invoke('create-deal-bitrix', {
+        body: {
+          lead_id,
+          company_id,
+          kanban_id,
+          stage_id,
+          lead_data: displayData,
+        },
+      })
+
+      if (error) throw error
+      if (data?.error) throw new Error(data.error)
+
+      setBitrixSent(true)
+      toast.success('Lead enviado para Bitrix24 com sucesso!')
+      setShowBitrixConfirm(false)
+
+      if (data?.company_id && savedLead && !savedLead.bitrix_id) {
+        const event = new CustomEvent('refetch-my-leads')
+        window.dispatchEvent(event)
+      }
+    } catch (err: any) {
+      console.error(err)
+      toast.error(err.message || 'Erro ao enviar para Bitrix24.')
+    } finally {
+      setSendingBitrix(false)
+    }
+  }
 
   return (
     <div className="flex flex-col h-full w-full bg-slate-50 min-h-0 overflow-hidden rounded-xl">
@@ -459,7 +528,7 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
       </div>
 
       <DialogFooter className="p-4 md:px-6 bg-white border-t border-slate-200 shrink-0 flex flex-col sm:flex-row gap-3 relative z-10 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-        <div className="flex-1 flex items-center justify-start">
+        <div className="flex-1 flex flex-wrap items-center justify-start gap-2">
           {(!isEnriched || displayData.dados_incompletos) && (
             <Button
               variant="outline"
@@ -475,6 +544,24 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
               {enriching ? 'Buscando...' : 'Enriquecer Lead Manualmente'}
             </Button>
           )}
+
+          <Button
+            variant="default"
+            onClick={() => setShowBitrixConfirm(true)}
+            disabled={sendingBitrix || bitrixSent}
+            className="gap-2 bg-[#3b82f6] hover:bg-[#2563eb] text-white font-semibold shadow-sm w-full sm:w-auto transition-colors"
+          >
+            {sendingBitrix ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Send className="w-4 h-4" />
+            )}
+            {sendingBitrix
+              ? 'Enviando...'
+              : bitrixSent
+                ? 'Enviado para Bitrix24'
+                : 'Enviar para Bitrix24'}
+          </Button>
         </div>
         <Button variant="ghost" onClick={onClose} className="font-medium w-full sm:w-auto">
           Cancelar
@@ -499,6 +586,28 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
           {saving ? 'Salvando...' : isSaved ? 'Lead na Carteira' : 'Salvar em Meus Leads'}
         </Button>
       </DialogFooter>
+
+      <AlertDialog open={showBitrixConfirm} onOpenChange={setShowBitrixConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmação de Envio</AlertDialogTitle>
+            <AlertDialogDescription>
+              Deseja enviar este lead para o Bitrix24?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={sendingBitrix}>Cancelar</AlertDialogCancel>
+            <Button
+              onClick={handleSendBitrix}
+              disabled={sendingBitrix}
+              className="bg-[#3b82f6] hover:bg-[#2563eb] text-white"
+            >
+              {sendingBitrix ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              Confirmar
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
