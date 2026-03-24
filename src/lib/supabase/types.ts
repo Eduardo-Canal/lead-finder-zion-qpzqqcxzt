@@ -547,6 +547,7 @@ export type Database = {
           telefone: string | null
           uf: string | null
           ultima_data_contato: string | null
+          user_id: string | null
         }
         Insert: {
           capital_social?: number | null
@@ -571,6 +572,7 @@ export type Database = {
           telefone?: string | null
           uf?: string | null
           ultima_data_contato?: string | null
+          user_id?: string | null
         }
         Update: {
           capital_social?: number | null
@@ -595,6 +597,7 @@ export type Database = {
           telefone?: string | null
           uf?: string | null
           ultima_data_contato?: string | null
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -1187,6 +1190,7 @@ export const Constants = {
 //   decisor_telefone: text (nullable)
 //   decisor_email: text (nullable)
 //   historico_interacoes: jsonb (nullable, default: '[]'::jsonb)
+//   user_id: uuid (nullable)
 // Table: notifications
 //   id: uuid (not null, default: gen_random_uuid())
 //   user_id: uuid (not null)
@@ -1284,6 +1288,7 @@ export const Constants = {
 // Table: leads_salvos
 //   PRIMARY KEY leads_salvos_pkey: PRIMARY KEY (id)
 //   FOREIGN KEY leads_salvos_salvo_por_fkey: FOREIGN KEY (salvo_por) REFERENCES profiles(id) ON DELETE SET NULL
+//   FOREIGN KEY leads_salvos_user_id_fkey: FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
 // Table: notifications
 //   PRIMARY KEY notifications_pkey: PRIMARY KEY (id)
 //   FOREIGN KEY notifications_user_id_fkey: FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
@@ -1637,6 +1642,8 @@ export const Constants = {
 // Table: company_merge_history
 //   CREATE INDEX idx_company_merge_history_merged_to ON public.company_merge_history USING btree (merged_to_company_id)
 //   CREATE INDEX idx_company_merge_history_original ON public.company_merge_history USING btree (original_company_id)
+// Table: leads_salvos
+//   CREATE INDEX idx_leads_salvos_user_id ON public.leads_salvos USING btree (user_id)
 // Table: notifications
 //   CREATE INDEX idx_notifications_read ON public.notifications USING btree (read)
 //   CREATE INDEX idx_notifications_user_id ON public.notifications USING btree (user_id)
