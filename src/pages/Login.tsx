@@ -103,13 +103,15 @@ export default function Login() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#020617] p-4 overflow-hidden relative">
-      <ZionGlobalBackground />
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-white to-[#f9fafb] md:bg-[#020617] p-4 overflow-hidden relative">
+      <ZionGlobalBackground fallbackVariant="light" />
 
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#020617]/70 pointer-events-none z-0" />
+      {/* Overlays dark background gradient on desktop only to avoid conflicting with mobile white fallback */}
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#020617]/70 pointer-events-none z-0 hidden md:block" />
 
+      {/* z-20 applied here to ensure the card is always on the top plane */}
       <Card
-        className="w-full max-w-md bg-gradient-to-b from-white to-[#f9fafb] shadow-[0_4px_12px_rgba(0,0,0,0.15)] border-slate-100 rounded-2xl animate-fade-in-up z-10 relative !overflow-visible"
+        className="w-full max-w-md bg-gradient-to-b from-white to-[#f9fafb] shadow-[0_4px_12px_rgba(0,0,0,0.15)] border-slate-100 rounded-2xl animate-fade-in-up z-20 relative !overflow-visible"
         style={{ padding: '0px' }}
       >
         <div className="p-6 sm:p-10">

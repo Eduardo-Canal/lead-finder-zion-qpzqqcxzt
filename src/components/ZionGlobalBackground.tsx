@@ -1,10 +1,50 @@
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 
-export function ZionGlobalBackground() {
+interface ZionGlobalBackgroundProps {
+  fallbackVariant?: 'dark' | 'light'
+}
+
+export function ZionGlobalBackground({ fallbackVariant = 'dark' }: ZionGlobalBackgroundProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const [shouldRenderAnimation, setShouldRenderAnimation] = useState(false)
+  const [isLoaded, setIsLoaded] = useState(false)
 
   useEffect(() => {
+    // 1. Lazy loading: Evaluate environment after FCP to not block initial render
+    const checkEnvironment = () => {
+      // 2. Mobile fallback (< 768px): optimize battery/performance on small screens
+      const isMobile = window.innerWidth < 768
+
+      // 3. Intelligent preload: Ensure fast connection before rendering complex visuals
+      const nav = navigator as any
+      const connection = nav.connection || nav.mozConnection || nav.webkitConnection
+      let isFast = true
+      if (connection && connection.effectiveType) {
+        isFast = connection.effectiveType === '4g' || connection.effectiveType === 'wifi'
+      }
+
+      // 4. Accessibility: WCAG 2.1 AA - prefers-reduced-motion
+      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+      if (!isMobile && isFast && !prefersReducedMotion) {
+        setShouldRenderAnimation(true)
+      }
+      setIsLoaded(true)
+    }
+
+    if (typeof window !== 'undefined') {
+      if ('requestIdleCallback' in window) {
+        ;(window as any).requestIdleCallback(() => checkEnvironment())
+      } else {
+        setTimeout(checkEnvironment, 200)
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!shouldRenderAnimation) return
+
     const canvas = canvasRef.current
     const container = containerRef.current
     if (!canvas || !container) return
@@ -200,14 +240,25 @@ export function ZionGlobalBackground() {
       resizeObserver.disconnect()
       cancelAnimationFrame(animationFrame)
     }
-  }, [])
+  }, [shouldRenderAnimation])
+
+  if (isLoaded && !shouldRenderAnimation) {
+    if (fallbackVariant === 'light') {
+      return (
+        <div className="absolute inset-0 w-full h-full bg-gradient-to-b from-white to-[#f9fafb] z-0" />
+      )
+    }
+    return <div className="absolute inset-0 w-full h-full bg-[#020617] z-0" />
+  }
 
   return (
     <div
       ref={containerRef}
-      className="absolute inset-0 w-full h-full overflow-hidden bg-[#020617] select-none"
+      className={`absolute inset-0 w-full h-full overflow-hidden bg-[#020617] select-none z-0 transition-opacity duration-1000 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
     >
-      <canvas ref={canvasRef} className="block w-full h-full object-cover" />
+      {shouldRenderAnimation && (
+        <canvas ref={canvasRef} className="block w-full h-full object-cover" />
+      )}
     </div>
   )
 }

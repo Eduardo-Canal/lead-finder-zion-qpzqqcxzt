@@ -137,7 +137,7 @@ export default function Index() {
   return (
     <div className={designTokens.layout.page}>
       <div className="relative overflow-hidden rounded-2xl p-6 sm:p-10 shadow-md border-0 bg-[#020617] mb-2">
-        <ZionGlobalBackground />
+        <ZionGlobalBackground fallbackVariant="dark" />
         <div className="absolute inset-0 bg-gradient-to-r from-[#020617]/95 via-[#020617]/70 to-transparent pointer-events-none z-0" />
         <div className="relative z-10 max-w-2xl">
           <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-white mb-3">
