@@ -111,7 +111,7 @@ export default function Login() {
 
       {/* z-20 applied here to ensure the card is always on the top plane */}
       <Card
-        className="w-full max-w-md bg-gradient-to-b from-white to-[#f9fafb] shadow-[0_4px_12px_rgba(0,0,0,0.15)] border-slate-100 rounded-2xl animate-fade-in-up z-20 relative !overflow-visible"
+        className="w-full max-w-md bg-gradient-to-b from-white to-[#f9fafb] shadow-[0_4px_12px_rgba(0,0,0,0.15)] border-slate-100 rounded-2xl animate-fade-in-up-slow motion-reduce:animate-none z-20 relative !overflow-visible"
         style={{ padding: '0px' }}
       >
         <div className="p-6 sm:p-10">
@@ -124,8 +124,10 @@ export default function Login() {
                   className="w-full h-full object-contain"
                 />
               </div>
-              <div className="absolute -top-4 -right-2 sm:-top-6 sm:-right-4 animate-float z-0">
-                <Rocket className="h-8 w-8 sm:h-12 sm:w-12 text-primary opacity-20" />
+              <div className="absolute -top-4 -right-2 sm:-top-6 sm:-right-4 z-0 animate-float-subtle motion-reduce:animate-none">
+                <div className="animate-spin-slow motion-reduce:animate-none">
+                  <Rocket className="h-8 w-8 sm:h-12 sm:w-12 text-primary opacity-20" />
+                </div>
               </div>
             </div>
             <div className="text-center space-y-1.5 mt-2">
@@ -141,7 +143,7 @@ export default function Login() {
           <form onSubmit={handleLogin}>
             <CardContent style={{ padding: 0 }} className="space-y-6">
               {successMessage && (
-                <div className="p-3 bg-green-50 border border-green-200 rounded-md text-[#10b981] flex items-center animate-fade-in">
+                <div className="p-3 bg-green-50 border border-green-200 rounded-md text-[#10b981] flex items-center animate-fade-in motion-reduce:animate-none">
                   <CheckCircle2 className="h-5 w-5 mr-2 flex-shrink-0" />
                   <span className="text-sm font-medium">{successMessage}</span>
                 </div>
@@ -154,10 +156,10 @@ export default function Login() {
                 <div className="relative group">
                   <Mail
                     className={cn(
-                      'absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 transition-colors duration-300',
+                      'absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 transition-colors duration-300 motion-reduce:transition-none',
                       emailError
-                        ? 'text-red-400'
-                        : 'text-slate-400 group-focus-within:text-blue-500',
+                        ? 'text-[#ef4444]'
+                        : 'text-slate-400 group-focus-within:text-[#3b82f6]',
                     )}
                   />
                   <Input
@@ -173,14 +175,16 @@ export default function Login() {
                       if (e.target.value) validateEmail(e.target.value)
                     }}
                     className={cn(
-                      'pl-10 h-[44px] transition-all duration-300 focus:scale-[1.02] focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 bg-white shadow-sm',
-                      emailError ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : '',
+                      'pl-10 h-[44px] transition-all duration-300 bg-white shadow-sm !outline-none focus:!ring-0 focus-visible:!ring-0 focus-visible:!ring-offset-0 motion-reduce:transition-none motion-reduce:transform-none',
+                      emailError
+                        ? 'border-[#ef4444] text-[#ef4444] focus:!border-[#ef4444] focus-visible:!border-[#ef4444] focus:!shadow-[0_0_8px_rgba(239,68,68,0.3)] focus-visible:!shadow-[0_0_8px_rgba(239,68,68,0.3)]'
+                        : 'border-slate-200 focus:!border-[#3b82f6] focus-visible:!border-[#3b82f6] focus:!shadow-[0_0_8px_rgba(59,130,246,0.3)] focus-visible:!shadow-[0_0_8px_rgba(59,130,246,0.3)]',
                     )}
                     disabled={loading || !!successMessage}
                   />
                 </div>
                 {emailError && (
-                  <p className="text-sm text-[#ef4444] flex items-center mt-1.5 animate-fade-in">
+                  <p className="text-sm text-[#ef4444] flex items-center mt-1.5 animate-fade-in motion-reduce:animate-none">
                     <AlertCircle className="h-4 w-4 mr-1.5" /> {emailError}
                   </p>
                 )}
@@ -191,21 +195,21 @@ export default function Login() {
                   Senha
                 </Label>
                 <div className="relative group">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-blue-500 transition-colors duration-300" />
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-[#3b82f6] transition-colors duration-300 motion-reduce:transition-none" />
                   <Input
                     id="password"
                     type="password"
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10 h-[44px] transition-all duration-300 focus:scale-[1.02] focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 bg-white shadow-sm"
+                    className="pl-10 h-[44px] transition-all duration-300 bg-white shadow-sm border-slate-200 !outline-none focus:!ring-0 focus-visible:!ring-0 focus-visible:!ring-offset-0 focus:!border-[#3b82f6] focus-visible:!border-[#3b82f6] focus:!shadow-[0_0_8px_rgba(59,130,246,0.3)] focus-visible:!shadow-[0_0_8px_rgba(59,130,246,0.3)] motion-reduce:transition-none motion-reduce:transform-none"
                     disabled={loading || !!successMessage}
                   />
                 </div>
                 <div className="flex justify-end mt-1.5">
                   <a
                     href="#"
-                    className="text-sm text-blue-600 hover:text-blue-800 transition-colors font-medium hover:underline"
+                    className="text-sm text-blue-600 hover:text-[#f97316] transition-colors duration-300 font-medium hover:underline motion-reduce:transition-none"
                   >
                     Esqueceu a senha?
                   </a>
@@ -223,12 +227,12 @@ export default function Login() {
             >
               <Button
                 type="submit"
-                className="w-full h-[48px] bg-primary hover:brightness-90 text-white shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 text-base font-semibold group"
+                className="w-full h-[48px] bg-primary hover:bg-[#f97316] text-white shadow-sm hover:shadow-[0_8px_16px_rgba(249,115,22,0.3)] hover:-translate-y-[2px] transition-all duration-300 cursor-pointer text-base font-semibold group motion-reduce:transition-none motion-reduce:transform-none"
                 disabled={loading || !!successMessage}
               >
                 {loading ? (
                   <>
-                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin motion-reduce:animate-none" />
                     Autenticando...
                   </>
                 ) : successMessage ? (
@@ -239,7 +243,7 @@ export default function Login() {
                 ) : (
                   <>
                     Entrar
-                    <ArrowRight className="ml-2 h-5 w-5 opacity-80 group-hover:translate-x-1 transition-transform duration-300" />
+                    <ArrowRight className="ml-2 h-5 w-5 opacity-80 group-hover:translate-x-1 transition-transform duration-300 motion-reduce:transition-none motion-reduce:transform-none" />
                   </>
                 )}
               </Button>

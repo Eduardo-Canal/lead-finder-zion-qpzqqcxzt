@@ -108,6 +108,20 @@
     }
   }
 
+  .animate-fade-in-up-slow {
+    animation: fade-in-up-slow 0.8s ease-out forwards;
+  }
+  @keyframes fade-in-up-slow {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
   .animate-float {
     animation: float 4s ease-in-out infinite;
   }
@@ -120,6 +134,31 @@
     }
     100% {
       transform: translateY(0px) rotate(0deg);
+    }
+  }
+
+  .animate-float-subtle {
+    animation: float-subtle 3s ease-in-out infinite;
+  }
+  @keyframes float-subtle {
+    0%,
+    100% {
+      transform: translateY(-5px);
+    }
+    50% {
+      transform: translateY(5px);
+    }
+  }
+
+  .animate-spin-slow {
+    animation: spin-slow 20s linear infinite;
+  }
+  @keyframes spin-slow {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
     }
   }
 }
