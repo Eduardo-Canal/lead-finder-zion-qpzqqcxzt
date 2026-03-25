@@ -38,17 +38,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setLoading(false)
         return
       }
-      const { data: profile } = await supabase
+
+      const { data: profile, error } = await supabase
         .from('profiles')
         .select('*, perfis_acesso(*)')
         .eq('user_id', session.user.id)
         .single()
 
-      if (profile && profile.ativo) {
+      if (error) {
+        console.warn('Erro ao carregar perfil:', error.message)
+        setUser(null)
+      } else if (profile && profile.ativo) {
         setUser(profile as any)
       } else {
         setUser(null)
       }
+
       setLoading(false)
     }
 
@@ -65,9 +70,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     })
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      fetchProfile(session)
-    })
+    supabase.auth
+      .getSession()
+      .then(({ data: { session }, error }) => {
+        if (error) {
+          console.warn('Sessão inválida ou expirada. Limpando dados locais:', error.message)
+          // Força a limpeza local da sessão se o token for inválido
+          supabase.auth.signOut().catch(() => {})
+          setUser(null)
+          setLoading(false)
+          return
+        }
+        fetchProfile(session)
+      })
+      .catch((err) => {
+        console.warn('Erro inesperado ao verificar sessão:', err)
+        setUser(null)
+        setLoading(false)
+      })
 
     return () => subscription.unsubscribe()
   }, [])
@@ -109,6 +129,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const {
       data: { session },
     } = await supabase.auth.getSession()
+
     if (!session?.user?.email) return { error: new Error('Sessão inválida') }
 
     // Validate current password by trying to sign in

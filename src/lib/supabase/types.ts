@@ -529,27 +529,42 @@ export type Database = {
           created_at: string | null
           deal_id: number | null
           error_log: string | null
+          error_message: string | null
           id: string
+          kanban_id: string | null
           lead_id: string | null
+          stage_id: string | null
           status: string
+          updated_at: string | null
+          user_id: string | null
         }
         Insert: {
           company_id?: number | null
           created_at?: string | null
           deal_id?: number | null
           error_log?: string | null
+          error_message?: string | null
           id?: string
+          kanban_id?: string | null
           lead_id?: string | null
+          stage_id?: string | null
           status: string
+          updated_at?: string | null
+          user_id?: string | null
         }
         Update: {
           company_id?: number | null
           created_at?: string | null
           deal_id?: number | null
           error_log?: string | null
+          error_message?: string | null
           id?: string
+          kanban_id?: string | null
           lead_id?: string | null
+          stage_id?: string | null
           status?: string
+          updated_at?: string | null
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -1234,6 +1249,11 @@ export const Constants = {
 //   status: text (not null)
 //   error_log: text (nullable)
 //   created_at: timestamp with time zone (nullable, default: now())
+//   kanban_id: text (nullable)
+//   stage_id: text (nullable)
+//   error_message: text (nullable)
+//   user_id: uuid (nullable)
+//   updated_at: timestamp with time zone (nullable, default: now())
 // Table: leads_salvos
 //   id: uuid (not null, default: gen_random_uuid())
 //   razao_social: text (nullable)
@@ -1360,6 +1380,7 @@ export const Constants = {
 // Table: leads_bitrix_sync
 //   FOREIGN KEY leads_bitrix_sync_lead_id_fkey: FOREIGN KEY (lead_id) REFERENCES leads_salvos(id) ON DELETE SET NULL
 //   PRIMARY KEY leads_bitrix_sync_pkey: PRIMARY KEY (id)
+//   FOREIGN KEY leads_bitrix_sync_user_id_fkey: FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
 // Table: leads_salvos
 //   PRIMARY KEY leads_salvos_pkey: PRIMARY KEY (id)
 //   FOREIGN KEY leads_salvos_salvo_por_fkey: FOREIGN KEY (salvo_por) REFERENCES profiles(id) ON DELETE SET NULL
@@ -1469,9 +1490,8 @@ export const Constants = {
 //     USING: true
 //     WITH CHECK: true
 // Table: leads_bitrix_sync
-//   Policy "Enable ALL for authenticated users on leads_bitrix_sync" (ALL, PERMISSIVE) roles={authenticated}
-//     USING: true
-//     WITH CHECK: true
+//   Policy "Users can manage their own sync records" (ALL, PERMISSIVE) roles={authenticated}
+//     USING: ((user_id = auth.uid()) OR (EXISTS ( SELECT 1    FROM leads_salvos ls   WHERE ((ls.id = leads_bitrix_sync.lead_id) AND (ls.user_id = auth.uid())))) OR (EXISTS ( SELECT 1    FROM (profiles p      JOIN perfis_acesso pa ON ((p.perfil_id = pa.id)))   WHERE ((p.user_id = auth.uid()) AND (pa.nome = 'Administrador'::text)))))
 // Table: leads_salvos
 //   Policy "Enable ALL for authenticated users" (ALL, PERMISSIVE) roles={authenticated}
 //     USING: true
@@ -1728,6 +1748,10 @@ export const Constants = {
 // Table: company_merge_history
 //   CREATE INDEX idx_company_merge_history_merged_to ON public.company_merge_history USING btree (merged_to_company_id)
 //   CREATE INDEX idx_company_merge_history_original ON public.company_merge_history USING btree (original_company_id)
+// Table: leads_bitrix_sync
+//   CREATE INDEX idx_leads_bitrix_sync_deal_id ON public.leads_bitrix_sync USING btree (deal_id)
+//   CREATE INDEX idx_leads_bitrix_sync_lead_id ON public.leads_bitrix_sync USING btree (lead_id)
+//   CREATE INDEX idx_leads_bitrix_sync_user_id ON public.leads_bitrix_sync USING btree (user_id)
 // Table: leads_salvos
 //   CREATE INDEX idx_leads_salvos_user_id ON public.leads_salvos USING btree (user_id)
 // Table: notifications
