@@ -27,6 +27,7 @@ const MonitoramentoBitrix = lazy(() => import('@/pages/MonitoramentoBitrix'))
 const TestesValidacao = lazy(() => import('@/pages/TestesValidacao'))
 const EmpresasDuplicadas = lazy(() => import('@/pages/EmpresasDuplicadas'))
 const InteligenciaZion = lazy(() => import('@/pages/InteligenciaZion'))
+const AnaliseCarteira = lazy(() => import('@/pages/AnaliseCarteira'))
 const NotFound = lazy(() => import('@/pages/NotFound'))
 const UpdatePassword = lazy(() => import('@/pages/UpdatePassword'))
 const ChangePassword = lazy(() => import('@/pages/ChangePassword'))
@@ -96,6 +97,7 @@ const App = () => (
                   >
                     <Route path="/" element={<Index />} />
                     <Route path="/inteligencia-zion" element={<InteligenciaZion />} />
+                    <Route path="/analise-carteira" element={<AnaliseCarteira />} />
                     <Route path="/prospeccao" element={<Prospeccao />} />
                     <Route path="/meus-leads" element={<MyLeads />} />
                     <Route path="/meu-historico" element={<SearchHistory />} />

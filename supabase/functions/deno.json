@@ -12,6 +12,7 @@
     "sync-lead-to-bitrix-dedup": 11,
     "enrich-lead-data-on-search": 4,
     "get-bitrix-kanbans": 3,
-    "create-deal-bitrix": 4
+    "create-deal-bitrix": 4,
+    "calculate-carteira-insights": 1
   }
 }
