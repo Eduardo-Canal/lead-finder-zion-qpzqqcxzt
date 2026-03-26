@@ -54,6 +54,7 @@ const UpdatePassword = lazyWithRetry(() => import('@/pages/UpdatePassword'))
 const ChangePassword = lazyWithRetry(() => import('@/pages/ChangePassword'))
 const ConfiguracoesBitrix = lazyWithRetry(() => import('@/pages/ConfiguracoesBitrix'))
 const SyncHistory = lazyWithRetry(() => import('@/pages/SyncHistory'))
+const Integracoes = lazyWithRetry(() => import('@/pages/Integracoes'))
 
 const GlobalLoading = () => (
   <div className="flex min-h-screen w-full items-center justify-center bg-background/50 backdrop-blur-sm">
@@ -134,6 +135,7 @@ const App = () => (
                     <Route path="/configuracoes/relatorios" element={<Reports />} />
                     <Route path="/configuracoes/avancado" element={<ConfiguracoesAvancadas />} />
                     <Route path="/configuracoes/bitrix24" element={<ConfiguracoesBitrix />} />
+                    <Route path="/configuracoes/integracoes" element={<Integracoes />} />
                     <Route
                       path="/configuracoes/empresas-duplicadas"
                       element={<EmpresasDuplicadas />}

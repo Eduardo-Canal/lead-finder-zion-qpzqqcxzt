@@ -8,8 +8,9 @@ import { toast } from 'sonner'
 import useAuthStore from '@/stores/useAuthStore'
 import { Loader2, Settings, Database, Trash2, AlertCircle } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { cn } from '@/lib/utils'
 
-export default function ConfiguracoesAvancadas() {
+export default function ConfiguracoesAvancadas({ embedded = false }: { embedded?: boolean }) {
   const { user } = useAuthStore()
   const [token, setToken] = useState('')
   const [loading, setLoading] = useState(true)
@@ -117,13 +118,21 @@ export default function ConfiguracoesAvancadas() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6 animate-fade-in pb-12">
-      <div>
-        <h2 className="text-2xl font-semibold tracking-tight">Configurações Avançadas</h2>
-        <p className="text-muted-foreground mt-1">
-          Gerencie integrações, caches e parâmetros do sistema.
-        </p>
-      </div>
+    <div
+      className={cn(
+        embedded
+          ? 'space-y-6 animate-fade-in'
+          : 'max-w-3xl mx-auto space-y-6 animate-fade-in pb-12',
+      )}
+    >
+      {!embedded && (
+        <div>
+          <h2 className="text-2xl font-semibold tracking-tight">Configurações Avançadas</h2>
+          <p className="text-muted-foreground mt-1">
+            Gerencie integrações, caches e parâmetros do sistema.
+          </p>
+        </div>
+      )}
 
       <Card>
         <CardHeader>

@@ -17,7 +17,7 @@ import { fetchBitrixKanbans, BitrixKanbanStage } from '@/services/bitrix'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 
-export default function ConfiguracoesBitrix() {
+export default function ConfiguracoesBitrix({ embedded = false }: { embedded?: boolean }) {
   const { user, hasPermission } = useAuthStore()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -151,13 +151,21 @@ export default function ConfiguracoesBitrix() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 animate-fade-in pb-12">
-      <div>
-        <h2 className="text-2xl font-semibold tracking-tight">Integração Bitrix24</h2>
-        <p className="text-muted-foreground mt-1">
-          Configure a conexão e as regras de mapeamento de funil (CRM).
-        </p>
-      </div>
+    <div
+      className={cn(
+        embedded
+          ? 'space-y-6 animate-fade-in'
+          : 'max-w-4xl mx-auto space-y-6 animate-fade-in pb-12',
+      )}
+    >
+      {!embedded && (
+        <div>
+          <h2 className="text-2xl font-semibold tracking-tight">Integração Bitrix24</h2>
+          <p className="text-muted-foreground mt-1">
+            Configure a conexão e as regras de mapeamento de funil (CRM).
+          </p>
+        </div>
+      )}
 
       <Card>
         <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">

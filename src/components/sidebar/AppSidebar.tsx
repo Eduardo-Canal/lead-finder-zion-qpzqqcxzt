@@ -241,10 +241,10 @@ export function AppSidebar() {
                           <SidebarMenuSubItem>
                             <SidebarMenuSubButton
                               asChild
-                              isActive={location.pathname === '/configuracoes/bitrix24'}
+                              isActive={location.pathname === '/configuracoes/integracoes'}
                             >
-                              <Link to="/configuracoes/bitrix24">
-                                <span>Integração Bitrix24</span>
+                              <Link to="/configuracoes/integracoes">
+                                <span>Integrações (APIs)</span>
                               </Link>
                             </SidebarMenuSubButton>
                           </SidebarMenuSubItem>
@@ -255,16 +255,6 @@ export function AppSidebar() {
                             >
                               <Link to="/configuracoes/auditoria">
                                 <span>Auditoria do Sistema</span>
-                              </Link>
-                            </SidebarMenuSubButton>
-                          </SidebarMenuSubItem>
-                          <SidebarMenuSubItem>
-                            <SidebarMenuSubButton
-                              asChild
-                              isActive={location.pathname === '/configuracoes/avancado'}
-                            >
-                              <Link to="/configuracoes/avancado">
-                                <span>Avançado</span>
                               </Link>
                             </SidebarMenuSubButton>
                           </SidebarMenuSubItem>
