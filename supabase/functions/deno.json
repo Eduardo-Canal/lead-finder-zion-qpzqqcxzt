@@ -14,6 +14,7 @@
     "get-bitrix-kanbans": 3,
     "create-deal-bitrix": 4,
     "calculate-carteira-insights": 4,
-    "log-user-activity": 1
+    "log-user-activity": 1,
+    "test-openai-connection": 1
   }
 }
