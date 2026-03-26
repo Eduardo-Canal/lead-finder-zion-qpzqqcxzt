@@ -9,14 +9,14 @@
     "fetch-bitrix-clients-zion": 12,
     "validate-cnpj": 2,
     "send-reminders": 1,
-    "sync-lead-to-bitrix-dedup": 11,
+    "sync-lead-to-bitrix-dedup": 12,
     "enrich-lead-data-on-search": 4,
     "get-bitrix-kanbans": 3,
-    "create-deal-bitrix": 4,
+    "create-deal-bitrix": 5,
     "calculate-carteira-insights": 4,
     "log-user-activity": 1,
     "test-openai-connection": 2,
     "test-openai-prompt": 5,
-    "generate-commercial-approach": 1
+    "generate-commercial-approach": 2
   }
 }

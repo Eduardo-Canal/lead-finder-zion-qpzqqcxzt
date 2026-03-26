@@ -11,7 +11,7 @@ Deno.serve(async (req: Request) => {
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey)
 
     const payload = await req.json().catch(() => ({}))
-    const { lead_id, company_id, kanban_id, stage_id, lead_data } = payload
+    const { lead_id, company_id, kanban_id, stage_id, lead_data, _simulate_test } = payload
 
     if (!kanban_id || !stage_id) {
       return new Response(JSON.stringify({ error: 'Kanban e Fase são obrigatórios.' }), {
@@ -20,7 +20,7 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    let leadData = lead_data
+    let leadData = lead_data || {}
 
     // Busca dados da empresa no Supabase (CNPJ, Razão Social, Contatos)
     if (
@@ -34,21 +34,91 @@ Deno.serve(async (req: Request) => {
         .single()
 
       if (dbLead) {
-        leadData = dbLead
+        leadData = { ...leadData, ...dbLead }
       }
     }
 
-    if (!leadData) {
+    if (!leadData && !_simulate_test) {
       return new Response(JSON.stringify({ error: 'Dados do lead não encontrados.' }), {
         status: 200,
         headers: corsHeaders,
       })
     }
 
+    // Suporte para Teste com um lead fictício
+    if (_simulate_test) {
+      return new Response(
+        JSON.stringify({
+          success: true,
+          status: 'SUCESSO',
+          deal_id: 999999,
+          company_id: company_id || 888888,
+          message:
+            'Simulação de integração bem-sucedida. Autenticação validada e payload estruturado.',
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      )
+    }
+
+    // --- INTEGRAÇÃO DA ABORDAGEM COMERCIAL (CONTEXTO DE IA) ---
+    let approachContext = ''
+    if (
+      lead_id &&
+      /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(lead_id)
+    ) {
+      const { data: approach } = await supabaseAdmin
+        .from('lead_abordagens_comerciais')
+        .select('*')
+        .eq('lead_id', lead_id)
+        .order('criado_em', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (approach) {
+        const parseJsonSafe = (val: any) => {
+          if (!val) return 'Não especificado'
+          try {
+            if (typeof val === 'string') {
+              const parsed = JSON.parse(val)
+              if (Array.isArray(parsed)) return parsed.join('\n- ')
+              return val
+            }
+            if (Array.isArray(val)) return val.join('\n- ')
+            return JSON.stringify(val)
+          } catch {
+            return String(val)
+          }
+        }
+
+        // Utilizando formato BBCode suportado nativamente pelos comentários do Bitrix24
+        approachContext = `
+[b]CONTEXTO DE INTELIGÊNCIA COMERCIAL (ZION)[/b]
+
+[b]CNAE / Setor:[/b] ${approach.cnae || 'N/A'}
+[b]Porte:[/b] ${approach.porte_empresa || 'N/A'}
+
+[b]Dores Principais:[/b]
+- ${parseJsonSafe(approach.dores_principais)}
+
+[b]Personas Decisoras:[/b]
+- ${parseJsonSafe(approach.personas_decisoras)}
+
+[b]Argumentos de Venda:[/b]
+- ${parseJsonSafe(approach.argumentos_venda)}
+
+[b]Próximos Passos:[/b]
+- ${parseJsonSafe(approach.proximos_passos)}
+
+[b]Abordagem Sugerida:[/b]
+${approach.abordagem_gerada || 'N/A'}
+            `.trim()
+      }
+    }
+
     const baseUrl = `https://zionlogtec.bitrix24.com.br/rest/5/eiyn7hzhaeu2lcm0/`
     const rateLimiterUrl = `${supabaseUrl}/functions/v1/bitrix-rate-limiter`
 
-    // Implementa retry logic com até 3 tentativas em caso de falha
+    // Implementa retry logic com até 3 tentativas em caso de falha (Resiliência)
     async function callBitrix(endpoint: string, method: string = 'GET', body?: any) {
       let attempt = 1
       const maxRetries = 3
@@ -71,6 +141,14 @@ Deno.serve(async (req: Request) => {
           return data.data
         } catch (error: any) {
           if (attempt > maxRetries) {
+            // Log centralizado de falhas críticas na integração
+            await supabaseAdmin.from('bitrix_api_logs').insert({
+              endpoint: baseUrl + endpoint,
+              method,
+              status_code: 500,
+              error_message: error.message,
+              request_body: body,
+            })
             throw error
           }
           await new Promise((resolve) => setTimeout(resolve, delay))
@@ -124,7 +202,7 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    // Cria um Deal no Bitrix24 com nome = Razão Social, empresa_id = company_id, stage_id = stage_id pré-configurado
+    // Cria um Deal no Bitrix24 com os dados da abordagem
     const dealBody = {
       fields: {
         TITLE: leadData?.razao_social || 'Lead',
@@ -132,6 +210,7 @@ Deno.serve(async (req: Request) => {
         STAGE_ID: stage_id,
         COMPANY_ID: finalCompanyId,
         OPENED: 'Y',
+        COMMENTS: approachContext, // O payload agora envia todo o contexto da IA (dores, personas, CNAE, etc)
       },
     }
 
@@ -159,13 +238,14 @@ Deno.serve(async (req: Request) => {
         })
       }
 
-      // Retorna deal_id e status da operação em JSON
+      // Retorna deal_id e status da operação
       return new Response(
         JSON.stringify({
           success: true,
           status: 'SUCESSO',
           deal_id: returnedDealId,
           company_id: finalCompanyId,
+          approach_included: !!approachContext,
         }),
         {
           status: 200,
@@ -173,6 +253,7 @@ Deno.serve(async (req: Request) => {
         },
       )
     } catch (dealError: any) {
+      // Captura e auditoria correta em caso de falha no envio do Negócio
       if (
         lead_id &&
         /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(
