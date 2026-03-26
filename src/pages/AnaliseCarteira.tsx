@@ -12,7 +12,18 @@ import {
   ChartLegendContent,
   type ChartConfig,
 } from '@/components/ui/chart'
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis, LabelList, PieChart, Pie } from 'recharts'
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  LabelList,
+  PieChart,
+  Pie,
+  LineChart,
+  Line,
+} from 'recharts'
 import {
   Table,
   TableBody,
@@ -28,6 +39,7 @@ interface AnaliseCnae {
   nome_cnae: string
   total_clientes: number
   distribuicao_geografica: Record<string, number> | null
+  taxa_sucesso: number | null
 }
 
 interface SegmentoTicket {
@@ -39,6 +51,13 @@ const barChartConfig = {
   total_clientes: {
     label: 'Clientes',
     color: 'hsl(var(--primary))',
+  },
+} satisfies ChartConfig
+
+const lineChartConfig = {
+  taxa_sucesso: {
+    label: 'Taxa de Sucesso (%)',
+    color: 'hsl(var(--secondary))',
   },
 } satisfies ChartConfig
 
@@ -55,7 +74,7 @@ export default function AnaliseCarteira() {
       const [analiseRes, carteiraRes] = await Promise.all([
         supabase
           .from('analise_cnae')
-          .select('id, cnae, nome_cnae, total_clientes, distribuicao_geografica')
+          .select('id, cnae, nome_cnae, total_clientes, distribuicao_geografica, taxa_sucesso')
           .order('total_clientes', { ascending: false }),
         supabase.from('carteira_clientes').select('segmento, ticket_medio'),
       ])
@@ -133,6 +152,14 @@ export default function AnaliseCarteira() {
       cnae: a.cnae,
       nome_cnae: a.nome_cnae || 'Sem Nome',
       total_clientes: a.total_clientes,
+    }))
+  }, [analises])
+
+  const lineChartData = useMemo(() => {
+    return analises.map((a) => ({
+      cnae: a.cnae,
+      nome_cnae: a.nome_cnae || 'Sem Nome',
+      taxa_sucesso: Number(a.taxa_sucesso) || 0,
     }))
   }, [analises])
 
@@ -313,7 +340,7 @@ export default function AnaliseCarteira() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="flex flex-col">
           <CardHeader>
             <CardTitle>Ticket Médio por Segmento</CardTitle>
@@ -352,6 +379,64 @@ export default function AnaliseCarteira() {
                   ))}
                 </TableBody>
               </Table>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="flex flex-col">
+          <CardHeader>
+            <CardTitle>Taxa de Sucesso por CNAE</CardTitle>
+            <CardDescription>
+              Percentual de conversão e sucesso dos clientes por setor (CNAE).
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex-1 min-h-[300px]">
+            {loading ? (
+              <div className="flex items-center justify-center h-full min-h-[200px] text-muted-foreground">
+                <Loader2 className="w-6 h-6 animate-spin mr-2" />
+              </div>
+            ) : lineChartData.length === 0 ? (
+              <div className="flex items-center justify-center h-full min-h-[200px] text-muted-foreground">
+                Nenhum dado encontrado.
+              </div>
+            ) : (
+              <ChartContainer config={lineChartConfig} className="w-full aspect-auto h-[350px]">
+                <LineChart
+                  data={lineChartData}
+                  margin={{ top: 20, right: 20, left: 0, bottom: 20 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis
+                    dataKey="cnae"
+                    axisLine={false}
+                    tickLine={false}
+                    tickMargin={10}
+                    tick={{ fontSize: 12 }}
+                  />
+                  <YAxis
+                    tickFormatter={(value) => `${value}%`}
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fontSize: 12 }}
+                  />
+                  <ChartTooltip
+                    cursor={{
+                      stroke: 'var(--color-muted)',
+                      strokeWidth: 1,
+                      strokeDasharray: '3 3',
+                    }}
+                    content={<ChartTooltipContent indicator="line" labelKey="nome_cnae" />}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="taxa_sucesso"
+                    stroke="var(--color-taxa_sucesso)"
+                    strokeWidth={2}
+                    dot={{ r: 4, fill: 'var(--color-taxa_sucesso)' }}
+                    activeDot={{ r: 6, fill: 'var(--color-taxa_sucesso)' }}
+                  />
+                </LineChart>
+              </ChartContainer>
             )}
           </CardContent>
         </Card>
