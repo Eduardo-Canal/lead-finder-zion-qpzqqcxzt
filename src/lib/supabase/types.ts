@@ -1025,6 +1025,30 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          criado_em: string | null
+          id: string
+          permissoes: Json | null
+          role: string
+          user_id: string
+        }
+        Insert: {
+          criado_em?: string | null
+          id?: string
+          permissoes?: Json | null
+          role: string
+          user_id: string
+        }
+        Update: {
+          criado_em?: string | null
+          id?: string
+          permissoes?: Json | null
+          role?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -1480,6 +1504,12 @@ export const Constants = {
 //   closing_days: integer (not null, default: 1)
 //   created_at: timestamp with time zone (not null, default: now())
 //   updated_at: timestamp with time zone (not null, default: now())
+// Table: user_roles
+//   id: uuid (not null, default: gen_random_uuid())
+//   user_id: uuid (not null)
+//   role: character varying (not null)
+//   permissoes: jsonb (nullable)
+//   criado_em: timestamp without time zone (nullable, default: now())
 
 // --- CONSTRAINTS ---
 // Table: analise_cnae
@@ -1560,9 +1590,13 @@ export const Constants = {
 // Table: user_reminder_settings
 //   PRIMARY KEY user_reminder_settings_pkey: PRIMARY KEY (user_id)
 //   FOREIGN KEY user_reminder_settings_user_id_fkey: FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
+// Table: user_roles
+//   PRIMARY KEY user_roles_pkey: PRIMARY KEY (id)
 
 // --- ROW LEVEL SECURITY POLICIES ---
 // Table: analise_cnae
+//   Policy "Todos autenticados podem ver analise_cnae" (SELECT, PERMISSIVE) roles={public}
+//     USING: (auth.role() = 'authenticated'::text)
 //   Policy "Usuários logados podem ver analise_cnae" (SELECT, PERMISSIVE) roles={public}
 //     USING: (auth.role() = 'authenticated'::text)
 // Table: api_debug_logs
@@ -1604,11 +1638,15 @@ export const Constants = {
 //     USING: true
 //     WITH CHECK: true
 // Table: carteira_clientes
+//   Policy "ADMIN e COMERCIAL podem ver carteira_clientes" (SELECT, PERMISSIVE) roles={public}
+//     USING: (EXISTS ( SELECT 1    FROM user_roles   WHERE ((user_roles.user_id = auth.uid()) AND ((user_roles.role)::text = ANY ((ARRAY['ADMIN'::character varying, 'Administrador'::character varying, 'COMERCIAL'::character varying])::text[])))))
 //   Policy "Usuários logados podem inserir em carteira_clientes" (INSERT, PERMISSIVE) roles={public}
 //     WITH CHECK: (auth.role() = 'authenticated'::text)
 //   Policy "Usuários logados podem ver carteira_clientes" (SELECT, PERMISSIVE) roles={public}
 //     USING: (auth.role() = 'authenticated'::text)
 // Table: clusters_estrategicos
+//   Policy "Todos autenticados podem ver clusters_estrategicos" (SELECT, PERMISSIVE) roles={public}
+//     USING: (auth.role() = 'authenticated'::text)
 //   Policy "Usuários logados podem ver clusters_estrategicos" (SELECT, PERMISSIVE) roles={public}
 //     USING: (auth.role() = 'authenticated'::text)
 // Table: company_duplicates
@@ -1694,6 +1732,9 @@ export const Constants = {
 //   Policy "Users can manage their own reminder settings" (ALL, PERMISSIVE) roles={authenticated}
 //     USING: (user_id = auth.uid())
 //     WITH CHECK: (user_id = auth.uid())
+// Table: user_roles
+//   Policy "Usuários logados podem ver user_roles" (SELECT, PERMISSIVE) roles={public}
+//     USING: (auth.role() = 'authenticated'::text)
 
 // --- DATABASE FUNCTIONS ---
 // FUNCTION find_potential_duplicates(numeric)
@@ -1938,3 +1979,5 @@ export const Constants = {
 //   CREATE INDEX idx_search_history_user_id ON public.search_history USING btree (user_id)
 // Table: settings
 //   CREATE UNIQUE INDEX settings_key_key ON public.settings USING btree (key)
+// Table: user_roles
+//   CREATE INDEX idx_user_roles_user_id ON public.user_roles USING btree (user_id)

@@ -74,18 +74,49 @@ export function AppSidebar() {
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  isActive={location.pathname === '/inteligencia-zion'}
-                  tooltip="Inteligência Zion"
-                >
-                  <Link to="/inteligencia-zion">
-                    <PieChart />
-                    <span>Inteligência Zion</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+
+              <Collapsible
+                defaultOpen={
+                  location.pathname.includes('/inteligencia') ||
+                  location.pathname === '/analise-carteira'
+                }
+                className="group/collapsible"
+              >
+                <SidebarMenuItem>
+                  <CollapsibleTrigger asChild>
+                    <SidebarMenuButton tooltip="Inteligência">
+                      <PieChart />
+                      <span>Inteligência</span>
+                      <ChevronRight className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-90" />
+                    </SidebarMenuButton>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <SidebarMenuSub>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton
+                          asChild
+                          isActive={location.pathname === '/inteligencia-zion'}
+                        >
+                          <Link to="/inteligencia-zion">
+                            <span>Visão Geral</span>
+                          </Link>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton
+                          asChild
+                          isActive={location.pathname === '/analise-carteira'}
+                        >
+                          <Link to="/analise-carteira">
+                            <span>Análise de Carteira</span>
+                          </Link>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                    </SidebarMenuSub>
+                  </CollapsibleContent>
+                </SidebarMenuItem>
+              </Collapsible>
+
               <SidebarMenuItem>
                 <SidebarMenuButton
                   asChild
