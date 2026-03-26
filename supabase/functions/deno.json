@@ -16,6 +16,7 @@
     "calculate-carteira-insights": 4,
     "log-user-activity": 1,
     "test-openai-connection": 2,
-    "test-openai-prompt": 4
+    "test-openai-prompt": 5,
+    "generate-commercial-approach": 1
   }
 }
