@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import useAuthStore from '@/stores/useAuthStore'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Select,
   SelectContent,
@@ -22,39 +22,16 @@ import { Badge } from '@/components/ui/badge'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationNext,
-  PaginationPrevious,
-} from '@/components/ui/pagination'
-import { Loader2, Download, ShieldAlert, CalendarIcon } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { toast } from 'sonner'
-
-const ACTIONS = ['create', 'update', 'delete', 'login', 'export']
-const ENTITIES = ['lead', 'user', 'search', 'config', 'profile']
-
-const getActionBadge = (action: string) => {
-  switch (action.toLowerCase()) {
-    case 'create':
-      return <Badge className="bg-emerald-500 hover:bg-emerald-600">Create</Badge>
-    case 'update':
-      return <Badge className="bg-blue-500 hover:bg-blue-600">Update</Badge>
-    case 'delete':
-      return <Badge variant="destructive">Delete</Badge>
-    case 'login':
-      return <Badge className="bg-purple-500 hover:bg-purple-600">Login</Badge>
-    case 'export':
-      return <Badge className="bg-amber-500 text-white hover:bg-amber-600">Export</Badge>
-    default:
-      return (
-        <Badge variant="outline" className="uppercase text-[10px]">
-          {action}
-        </Badge>
-      )
-  }
-}
+  Loader2,
+  Download,
+  ShieldAlert,
+  CalendarIcon,
+  Activity,
+  AlertOctagon,
+  Users,
+} from 'lucide-react'
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts'
 
 export default function AuditLogs() {
   const { user, hasPermission } = useAuthStore()
@@ -62,305 +39,255 @@ export default function AuditLogs() {
 
   const [logs, setLogs] = useState<any[]>([])
   const [users, setUsers] = useState<any[]>([])
-  const [totalCount, setTotalCount] = useState(0)
-  const [page, setPage] = useState(1)
+  const [stats, setStats] = useState({ activeSessions: 0, suspicious: 0, total: 0 })
+  const [chartData, setChartData] = useState<any[]>([])
+  const [filters, setFilters] = useState({
+    user: 'Todos',
+    action: 'Todas',
+    date: undefined as Date | undefined,
+  })
   const [loading, setLoading] = useState(true)
-  const [exporting, setExporting] = useState(false)
 
-  const [selectedUser, setSelectedUser] = useState('Todos')
-  const [selectedAction, setSelectedAction] = useState('Todas')
-  const [selectedEntity, setSelectedEntity] = useState('Todas')
-  const [date, setDate] = useState<Date | undefined>()
-
-  const pageSize = 50
-
-  useEffect(() => {
-    if (isAdmin) {
-      supabase
-        .from('profiles')
-        .select('user_id, nome')
-        .then(({ data }) => {
-          if (data) setUsers(data)
-        })
-    }
-  }, [isAdmin])
-
-  const fetchLogs = useCallback(async () => {
+  const fetchData = useCallback(async () => {
+    if (!isAdmin) return
     setLoading(true)
-    let query = supabase.from('audit_logs').select('*', { count: 'exact' })
 
-    if (selectedUser !== 'Todos') query = query.eq('user_id', selectedUser)
-    if (selectedAction !== 'Todas') query = query.eq('action', selectedAction)
-    if (selectedEntity !== 'Todas') query = query.eq('entity_type', selectedEntity)
-    if (date) {
-      const start = new Date(date)
+    const [sessRes, suspRes, usersRes] = await Promise.all([
+      supabase
+        .from('user_sessions')
+        .select('*', { count: 'exact', head: true })
+        .is('logout_time', null),
+      supabase
+        .from('suspicious_activity')
+        .select('*', { count: 'exact', head: true })
+        .eq('resolvido', false),
+      supabase.from('profiles').select('user_id, nome'),
+    ])
+    if (usersRes.data) setUsers(usersRes.data)
+
+    let query = supabase
+      .from('audit_logs')
+      .select('*', { count: 'exact' })
+      .order('created_at', { ascending: false })
+      .limit(50)
+    if (filters.user !== 'Todos') query = query.eq('user_id', filters.user)
+    if (filters.action !== 'Todas') query = query.eq('acao', filters.action)
+    if (filters.date) {
+      const start = new Date(filters.date)
       start.setHours(0, 0, 0, 0)
-      const end = new Date(date)
+      const end = new Date(filters.date)
       end.setHours(23, 59, 59, 999)
       query = query.gte('created_at', start.toISOString()).lte('created_at', end.toISOString())
     }
 
-    query = query.order('created_at', { ascending: false })
-    query = query.range((page - 1) * pageSize, page * pageSize - 1)
+    const { data: logData, count } = await query
+    setLogs(logData || [])
+    setStats({
+      activeSessions: sessRes.count || 0,
+      suspicious: suspRes.count || 0,
+      total: count || 0,
+    })
 
-    const { data, count, error } = await query
+    const d = new Date()
+    d.setDate(d.getDate() - 7)
+    const { data: chartLogs } = await supabase
+      .from('audit_logs')
+      .select('created_at')
+      .gte('created_at', d.toISOString())
 
-    if (error) {
-      toast.error('Erro ao buscar logs de auditoria.')
-      console.error(error)
-    } else {
-      setLogs(data || [])
-      setTotalCount(count || 0)
-    }
+    const days = Array.from({ length: 7 }, (_, i) => {
+      const x = new Date()
+      x.setDate(x.getDate() - i)
+      return x.toISOString().split('T')[0]
+    }).reverse()
+    const counts = days.reduce((a, day) => ({ ...a, [day]: 0 }), {} as any)
+    chartLogs?.forEach((l) => {
+      const date = l.created_at.split('T')[0]
+      if (counts[date] !== undefined) counts[date]++
+    })
+    setChartData(
+      days.map((day) => ({
+        date: day.split('-').reverse().slice(0, 2).join('/'),
+        acessos: counts[day],
+      })),
+    )
+
     setLoading(false)
-  }, [selectedUser, selectedAction, selectedEntity, date, page, pageSize])
+  }, [isAdmin, filters])
 
   useEffect(() => {
-    if (isAdmin) {
-      fetchLogs()
-    }
-  }, [fetchLogs, isAdmin])
+    fetchData()
+  }, [fetchData])
 
-  const handleExport = async () => {
-    setExporting(true)
-    try {
-      let query = supabase.from('audit_logs').select('*')
-
-      if (selectedUser !== 'Todos') query = query.eq('user_id', selectedUser)
-      if (selectedAction !== 'Todas') query = query.eq('action', selectedAction)
-      if (selectedEntity !== 'Todas') query = query.eq('entity_type', selectedEntity)
-      if (date) {
-        const start = new Date(date)
-        start.setHours(0, 0, 0, 0)
-        const end = new Date(date)
-        end.setHours(23, 59, 59, 999)
-        query = query.gte('created_at', start.toISOString()).lte('created_at', end.toISOString())
-      }
-
-      query = query.order('created_at', { ascending: false }).limit(5000)
-
-      const { data, error } = await query
-      if (error) throw error
-
-      const userMap = users.reduce(
-        (acc, u) => ({ ...acc, [u.user_id]: u.nome }),
-        {} as Record<string, string>,
-      )
-
-      const csvRows = [
-        ['Data/Hora', 'Usuário', 'Ação', 'Entidade', 'Detalhes'],
-        ...(data || []).map((log) => [
-          new Date(log.created_at).toLocaleString('pt-BR'),
-          userMap[log.user_id] || log.user_id || 'Sistema',
-          log.action,
-          log.entity_type,
-          JSON.stringify(log.changes || {}).replace(/"/g, '""'),
-        ]),
-      ]
-
-      const csvContent = '\uFEFF' + csvRows.map((row) => `"${row.join('","')}"`).join('\n')
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.setAttribute('download', `auditoria_${new Date().getTime()}.csv`)
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      toast.success('Log exportado com sucesso!')
-    } catch (err) {
-      toast.error('Erro ao exportar log.')
-      console.error(err)
-    } finally {
-      setExporting(false)
-    }
-  }
-
-  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize))
-
-  const userMap = useMemo(() => {
-    return users.reduce((acc, u) => ({ ...acc, [u.user_id]: u.nome }), {} as Record<string, string>)
-  }, [users])
+  const userMap = useMemo(
+    () => users.reduce((acc, u) => ({ ...acc, [u.user_id]: u.nome }), {}),
+    [users],
+  )
 
   if (!isAdmin) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-4 animate-fade-in">
-        <ShieldAlert className="h-12 w-12 text-destructive opacity-80" />
-        <h2 className="text-2xl font-bold text-destructive">Acesso Restrito</h2>
-        <p className="text-muted-foreground max-w-md">
-          Esta área é exclusiva para administradores. Você não tem permissão para acessar os Logs de
-          Auditoria.
-        </p>
+      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
+        <ShieldAlert className="h-12 w-12 text-red-500" />
+        <h2 className="text-2xl font-bold text-red-500">Acesso Restrito</h2>
       </div>
     )
   }
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6 animate-fade-in pb-12">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="max-w-7xl mx-auto space-y-6 pb-12 print:p-0">
+      <div className="flex justify-between items-center print:hidden">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight text-[#0066CC] flex items-center gap-2">
-            <ShieldAlert className="h-6 w-6" />
-            Auditoria do Sistema
+          <h2 className="text-2xl font-bold flex items-center gap-2 text-slate-800">
+            <ShieldAlert className="text-primary" /> Segurança e Auditoria
           </h2>
-          <p className="text-muted-foreground mt-1">
-            Acompanhe o histórico de ações e modificações realizadas pelos usuários.
+          <p className="text-muted-foreground">
+            Monitoramento em tempo real de acessos e atividades.
           </p>
         </div>
-        <Button
-          onClick={handleExport}
-          disabled={exporting}
-          variant="outline"
-          className="gap-2 bg-white shrink-0"
-        >
-          {exporting ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Download className="h-4 w-4" />
-          )}
-          Exportar Log (CSV)
+        <Button onClick={() => window.print()} variant="outline" className="gap-2 bg-white">
+          <Download className="h-4 w-4" /> Exportar Relatório (PDF)
         </Button>
       </div>
 
-      <Card className="shadow-sm">
-        <CardHeader className="pb-4 border-b">
-          <CardTitle className="text-base font-semibold">Filtros de Pesquisa</CardTitle>
-          <CardDescription>Refine a busca para encontrar registros específicos.</CardDescription>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 print:hidden">
+        <Card>
+          <CardContent className="p-6 flex items-center gap-4">
+            <Users className="h-10 w-10 text-blue-500 bg-blue-50 p-2 rounded-full" />
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-muted-foreground">Sessões Ativas</p>
+              <p className="text-2xl font-bold">{stats.activeSessions}</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-6 flex items-center gap-4">
+            <AlertOctagon className="h-10 w-10 text-red-500 bg-red-50 p-2 rounded-full" />
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-muted-foreground">Atividades Suspeitas</p>
+              <p className="text-2xl font-bold">{stats.suspicious}</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-6 flex items-center gap-4">
+            <Activity className="h-10 w-10 text-emerald-500 bg-emerald-50 p-2 rounded-full" />
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-muted-foreground">Logs Filtrados</p>
+              <p className="text-2xl font-bold">{stats.total}</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className="print:block">
+        <CardHeader className="pb-2 print:hidden">
+          <CardTitle className="text-lg">Volume de Acessos (Últimos 7 dias)</CardTitle>
         </CardHeader>
-        <CardContent className="p-4 sm:p-6 bg-slate-50/50">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Usuário
-              </label>
-              <Select
-                value={selectedUser}
-                onValueChange={(u) => {
-                  setSelectedUser(u)
-                  setPage(1)
-                }}
-              >
-                <SelectTrigger className="bg-white">
-                  <SelectValue placeholder="Todos" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Todos">Todos os Usuários</SelectItem>
-                  {users.map((u) => (
-                    <SelectItem key={u.user_id} value={u.user_id || 'unknown'}>
-                      {u.nome}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Ação
-              </label>
-              <Select
-                value={selectedAction}
-                onValueChange={(a) => {
-                  setSelectedAction(a)
-                  setPage(1)
-                }}
-              >
-                <SelectTrigger className="bg-white">
-                  <SelectValue placeholder="Todas" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Todas">Todas as Ações</SelectItem>
-                  {ACTIONS.map((a) => (
-                    <SelectItem key={a} value={a} className="uppercase">
-                      {a}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Entidade
-              </label>
-              <Select
-                value={selectedEntity}
-                onValueChange={(e) => {
-                  setSelectedEntity(e)
-                  setPage(1)
-                }}
-              >
-                <SelectTrigger className="bg-white">
-                  <SelectValue placeholder="Todas" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Todas">Todas as Entidades</SelectItem>
-                  {ENTITIES.map((e) => (
-                    <SelectItem key={e} value={e} className="capitalize">
-                      {e}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-1.5 flex flex-col">
-              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Data
-              </label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant={'outline'}
-                    className={cn(
-                      'w-full justify-start text-left font-normal bg-white',
-                      !date && 'text-muted-foreground',
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {date ? date.toLocaleDateString('pt-BR') : <span>Qualquer data</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={date}
-                    onSelect={(d) => {
-                      setDate(d)
-                      setPage(1)
-                    }}
-                    initialFocus
-                  />
-                  {date && (
-                    <div className="p-2 border-t">
-                      <Button
-                        variant="ghost"
-                        className="w-full text-xs"
-                        onClick={() => {
-                          setDate(undefined)
-                          setPage(1)
-                        }}
-                      >
-                        Limpar Filtro de Data
-                      </Button>
-                    </div>
-                  )}
-                </PopoverContent>
-              </Popover>
-            </div>
-          </div>
+        <CardContent className="pt-4">
+          <ChartContainer
+            config={{ acessos: { label: 'Acessos', color: 'hsl(var(--primary))' } }}
+            className="h-[250px] w-full"
+          >
+            <LineChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+              <XAxis
+                dataKey="date"
+                tickLine={false}
+                axisLine={false}
+                tickMargin={10}
+                fontSize={12}
+                fill="#6b7280"
+              />
+              <YAxis
+                tickLine={false}
+                axisLine={false}
+                tickMargin={10}
+                fontSize={12}
+                fill="#6b7280"
+              />
+              <ChartTooltip content={<ChartTooltipContent />} />
+              <Line
+                type="monotone"
+                dataKey="acessos"
+                stroke="var(--color-acessos)"
+                strokeWidth={3}
+                dot={{ r: 4, fill: 'var(--color-acessos)' }}
+                activeDot={{ r: 6 }}
+              />
+            </LineChart>
+          </ChartContainer>
         </CardContent>
       </Card>
 
-      <Card className="shadow-sm flex flex-col">
+      <Card>
+        <CardHeader className="print:hidden grid grid-cols-1 sm:grid-cols-3 gap-4 bg-slate-50 border-b">
+          <Select
+            value={filters.user}
+            onValueChange={(v) => setFilters((f) => ({ ...f, user: v }))}
+          >
+            <SelectTrigger className="bg-white">
+              <SelectValue placeholder="Usuário" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Todos">Todos os Usuários</SelectItem>
+              {users.map((u) => (
+                <SelectItem key={u.user_id} value={u.user_id}>
+                  {u.nome}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select
+            value={filters.action}
+            onValueChange={(v) => setFilters((f) => ({ ...f, action: v }))}
+          >
+            <SelectTrigger className="bg-white">
+              <SelectValue placeholder="Ação" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Todas">Todas as Ações</SelectItem>
+              <SelectItem value="LOGIN">LOGIN</SelectItem>
+              <SelectItem value="CREATE">CREATE</SelectItem>
+              <SelectItem value="UPDATE">UPDATE</SelectItem>
+              <SelectItem value="DELETE">DELETE</SelectItem>
+            </SelectContent>
+          </Select>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn('justify-start bg-white', !filters.date && 'text-muted-foreground')}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {filters.date ? filters.date.toLocaleDateString('pt-BR') : 'Filtrar por Data'}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="p-0">
+              <Calendar
+                mode="single"
+                selected={filters.date}
+                onSelect={(d) => setFilters((f) => ({ ...f, date: d }))}
+              />
+              <div className="p-2 border-t">
+                <Button
+                  variant="ghost"
+                  className="w-full text-xs"
+                  onClick={() => setFilters((f) => ({ ...f, date: undefined }))}
+                >
+                  Limpar Data
+                </Button>
+              </div>
+            </PopoverContent>
+          </Popover>
+        </CardHeader>
         <CardContent className="p-0">
           <Table>
             <TableHeader className="bg-slate-50">
               <TableRow>
-                <TableHead className="w-[180px]">Data/Hora</TableHead>
-                <TableHead className="w-[200px]">Usuário</TableHead>
-                <TableHead className="w-[120px]">Ação</TableHead>
-                <TableHead className="w-[120px]">Entidade</TableHead>
+                <TableHead>Data/Hora</TableHead>
+                <TableHead>Usuário</TableHead>
+                <TableHead>Ação</TableHead>
+                <TableHead>Tabela</TableHead>
                 <TableHead>Detalhes</TableHead>
               </TableRow>
             </TableHeader>
@@ -368,42 +295,45 @@ export default function AuditLogs() {
               {loading ? (
                 <TableRow>
                   <TableCell colSpan={5} className="h-32 text-center">
-                    <div className="flex flex-col items-center justify-center text-muted-foreground">
-                      <Loader2 className="h-6 w-6 animate-spin mb-2" />
-                      Carregando logs...
-                    </div>
+                    <Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" />
                   </TableCell>
                 </TableRow>
               ) : logs.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5} className="h-32 text-center text-muted-foreground">
-                    Nenhum registro encontrado para os filtros atuais.
+                    Nenhum registro encontrado.
                   </TableCell>
                 </TableRow>
               ) : (
                 logs.map((log) => (
-                  <TableRow key={log.id} className="hover:bg-slate-50/80">
-                    <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                  <TableRow key={log.id} className="hover:bg-slate-50/50">
+                    <TableCell className="text-xs text-slate-500 whitespace-nowrap">
                       {new Date(log.created_at).toLocaleString('pt-BR')}
                     </TableCell>
                     <TableCell className="font-medium text-slate-700">
-                      {userMap[log.user_id] || log.user_id || 'Sistema'}
+                      {userMap[log.user_id] || 'Sistema'}
                     </TableCell>
-                    <TableCell>{getActionBadge(log.action)}</TableCell>
                     <TableCell>
                       <Badge
                         variant="outline"
-                        className="bg-slate-100 uppercase text-[10px] tracking-wider text-slate-600"
+                        className={cn(
+                          'text-[10px] uppercase',
+                          log.acao === 'DELETE' && 'border-red-200 text-red-700',
+                          log.acao === 'CREATE' && 'border-emerald-200 text-emerald-700',
+                        )}
                       >
-                        {log.entity_type}
+                        {log.acao}
                       </Badge>
                     </TableCell>
-                    <TableCell className="max-w-[300px]">
+                    <TableCell className="text-xs text-slate-600">
+                      {log.tabela_acessada || '-'}
+                    </TableCell>
+                    <TableCell className="max-w-[250px]">
                       <div
-                        className="text-xs font-mono truncate text-muted-foreground bg-slate-50 p-1.5 rounded border border-slate-100"
-                        title={JSON.stringify(log.changes || {})}
+                        className="text-[10px] font-mono truncate bg-slate-100 p-1.5 rounded text-slate-600"
+                        title={JSON.stringify(log.dados_acessados || {})}
                       >
-                        {JSON.stringify(log.changes || {})}
+                        {JSON.stringify(log.dados_acessados || {})}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -411,45 +341,6 @@ export default function AuditLogs() {
               )}
             </TableBody>
           </Table>
-
-          {!loading && totalPages > 1 && (
-            <div className="p-4 border-t bg-slate-50 flex items-center justify-between">
-              <div className="text-sm text-muted-foreground hidden sm:block">
-                Mostrando <span className="font-medium">{(page - 1) * pageSize + 1}</span> a{' '}
-                <span className="font-medium">{Math.min(page * pageSize, totalCount)}</span> de{' '}
-                <span className="font-medium">{totalCount}</span> registros
-              </div>
-              <Pagination>
-                <PaginationContent>
-                  <PaginationItem>
-                    <PaginationPrevious
-                      onClick={(e) => {
-                        e.preventDefault()
-                        if (page > 1) setPage((p) => p - 1)
-                      }}
-                      className={page === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                    />
-                  </PaginationItem>
-                  <PaginationItem>
-                    <span className="text-sm px-4 font-medium">
-                      Página {page} de {totalPages}
-                    </span>
-                  </PaginationItem>
-                  <PaginationItem>
-                    <PaginationNext
-                      onClick={(e) => {
-                        e.preventDefault()
-                        if (page < totalPages) setPage((p) => p + 1)
-                      }}
-                      className={
-                        page >= totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'
-                      }
-                    />
-                  </PaginationItem>
-                </PaginationContent>
-              </Pagination>
-            </div>
-          )}
         </CardContent>
       </Card>
     </div>

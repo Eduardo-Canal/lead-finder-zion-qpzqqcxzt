@@ -92,35 +92,44 @@ export type Database = {
       }
       audit_logs: {
         Row: {
-          action: string
+          acao: string
           changes: Json | null
           created_at: string
+          dados_acessados: Json | null
           entity_id: string | null
-          entity_type: string
           id: string
           ip_address: unknown
+          status: string | null
+          tabela_acessada: string
+          timestamp: string | null
           user_agent: string | null
           user_id: string | null
         }
         Insert: {
-          action: string
+          acao: string
           changes?: Json | null
           created_at?: string
+          dados_acessados?: Json | null
           entity_id?: string | null
-          entity_type: string
           id?: string
           ip_address?: unknown
+          status?: string | null
+          tabela_acessada: string
+          timestamp?: string | null
           user_agent?: string | null
           user_id?: string | null
         }
         Update: {
-          action?: string
+          acao?: string
           changes?: Json | null
           created_at?: string
+          dados_acessados?: Json | null
           entity_id?: string | null
-          entity_type?: string
           id?: string
           ip_address?: unknown
+          status?: string | null
+          tabela_acessada?: string
+          timestamp?: string | null
           user_agent?: string | null
           user_id?: string | null
         }
@@ -998,6 +1007,39 @@ export type Database = {
         }
         Relationships: []
       }
+      suspicious_activity: {
+        Row: {
+          created_at: string | null
+          descricao: string | null
+          id: string
+          resolvido: boolean | null
+          severidade: string | null
+          timestamp: string | null
+          tipo_atividade: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          descricao?: string | null
+          id?: string
+          resolvido?: boolean | null
+          severidade?: string | null
+          timestamp?: string | null
+          tipo_atividade?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          descricao?: string | null
+          id?: string
+          resolvido?: boolean | null
+          severidade?: string | null
+          timestamp?: string | null
+          tipo_atividade?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_reminder_settings: {
         Row: {
           closing_days: number
@@ -1045,6 +1087,42 @@ export type Database = {
           id?: string
           permissoes?: Json | null
           role?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_sessions: {
+        Row: {
+          created_at: string | null
+          device_info: Json | null
+          duracao_sessao: number | null
+          id: string
+          ip_address: string | null
+          login_time: string | null
+          logout_time: string | null
+          session_token: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          device_info?: Json | null
+          duracao_sessao?: number | null
+          id?: string
+          ip_address?: string | null
+          login_time?: string | null
+          logout_time?: string | null
+          session_token?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          device_info?: Json | null
+          duracao_sessao?: number | null
+          id?: string
+          ip_address?: string | null
+          login_time?: string | null
+          logout_time?: string | null
+          session_token?: string | null
           user_id?: string
         }
         Relationships: []
@@ -1267,13 +1345,16 @@ export const Constants = {
 // Table: audit_logs
 //   id: uuid (not null, default: gen_random_uuid())
 //   user_id: uuid (nullable)
-//   action: text (not null)
-//   entity_type: text (not null)
+//   acao: text (not null)
+//   tabela_acessada: text (not null)
 //   entity_id: uuid (nullable)
 //   changes: jsonb (nullable)
 //   ip_address: inet (nullable)
 //   user_agent: text (nullable)
 //   created_at: timestamp with time zone (not null, default: now())
+//   dados_acessados: jsonb (nullable)
+//   status: character varying (nullable)
+//   timestamp: timestamp without time zone (nullable, default: now())
 // Table: bitrix_api_logs
 //   id: uuid (not null, default: gen_random_uuid())
 //   timestamp: timestamp with time zone (not null, default: now())
@@ -1497,6 +1578,15 @@ export const Constants = {
 //   key: text (not null)
 //   value: jsonb (not null, default: '{}'::jsonb)
 //   updated_at: timestamp with time zone (not null, default: now())
+// Table: suspicious_activity
+//   id: uuid (not null, default: gen_random_uuid())
+//   user_id: uuid (not null)
+//   tipo_atividade: character varying (nullable)
+//   descricao: text (nullable)
+//   severidade: character varying (nullable)
+//   timestamp: timestamp without time zone (nullable, default: now())
+//   resolvido: boolean (nullable, default: false)
+//   created_at: timestamp without time zone (nullable, default: now())
 // Table: user_reminder_settings
 //   user_id: uuid (not null)
 //   follow_up_days: integer (not null, default: 7)
@@ -1510,6 +1600,16 @@ export const Constants = {
 //   role: character varying (not null)
 //   permissoes: jsonb (nullable)
 //   criado_em: timestamp without time zone (nullable, default: now())
+// Table: user_sessions
+//   id: uuid (not null, default: gen_random_uuid())
+//   user_id: uuid (not null)
+//   session_token: character varying (nullable)
+//   ip_address: character varying (nullable)
+//   device_info: jsonb (nullable)
+//   login_time: timestamp without time zone (nullable, default: now())
+//   logout_time: timestamp without time zone (nullable)
+//   duracao_sessao: integer (nullable)
+//   created_at: timestamp without time zone (nullable, default: now())
 
 // --- CONSTRAINTS ---
 // Table: analise_cnae
@@ -1587,11 +1687,15 @@ export const Constants = {
 // Table: settings
 //   UNIQUE settings_key_key: UNIQUE (key)
 //   PRIMARY KEY settings_pkey: PRIMARY KEY (id)
+// Table: suspicious_activity
+//   PRIMARY KEY suspicious_activity_pkey: PRIMARY KEY (id)
 // Table: user_reminder_settings
 //   PRIMARY KEY user_reminder_settings_pkey: PRIMARY KEY (user_id)
 //   FOREIGN KEY user_reminder_settings_user_id_fkey: FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
 // Table: user_roles
 //   PRIMARY KEY user_roles_pkey: PRIMARY KEY (id)
+// Table: user_sessions
+//   PRIMARY KEY user_sessions_pkey: PRIMARY KEY (id)
 
 // --- ROW LEVEL SECURITY POLICIES ---
 // Table: analise_cnae
@@ -1728,12 +1832,18 @@ export const Constants = {
 //   Policy "settings_auth_all" (ALL, PERMISSIVE) roles={authenticated}
 //     USING: true
 //     WITH CHECK: true
+// Table: suspicious_activity
+//   Policy "Usuários logados podem ver suspicious_activity" (SELECT, PERMISSIVE) roles={public}
+//     USING: (auth.role() = 'authenticated'::text)
 // Table: user_reminder_settings
 //   Policy "Users can manage their own reminder settings" (ALL, PERMISSIVE) roles={authenticated}
 //     USING: (user_id = auth.uid())
 //     WITH CHECK: (user_id = auth.uid())
 // Table: user_roles
 //   Policy "Usuários logados podem ver user_roles" (SELECT, PERMISSIVE) roles={public}
+//     USING: (auth.role() = 'authenticated'::text)
+// Table: user_sessions
+//   Policy "Usuários logados podem ver user_sessions" (SELECT, PERMISSIVE) roles={public}
 //     USING: (auth.role() = 'authenticated'::text)
 
 // --- DATABASE FUNCTIONS ---
@@ -1979,5 +2089,11 @@ export const Constants = {
 //   CREATE INDEX idx_search_history_user_id ON public.search_history USING btree (user_id)
 // Table: settings
 //   CREATE UNIQUE INDEX settings_key_key ON public.settings USING btree (key)
+// Table: suspicious_activity
+//   CREATE INDEX idx_suspicious_activity_timestamp ON public.suspicious_activity USING btree ("timestamp")
+//   CREATE INDEX idx_suspicious_activity_user_id ON public.suspicious_activity USING btree (user_id)
 // Table: user_roles
 //   CREATE INDEX idx_user_roles_user_id ON public.user_roles USING btree (user_id)
+// Table: user_sessions
+//   CREATE INDEX idx_user_sessions_timestamp ON public.user_sessions USING btree (login_time)
+//   CREATE INDEX idx_user_sessions_user_id ON public.user_sessions USING btree (user_id)
