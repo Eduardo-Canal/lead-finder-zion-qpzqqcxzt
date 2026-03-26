@@ -13,6 +13,14 @@ import {
   type ChartConfig,
 } from '@/components/ui/chart'
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, LabelList, PieChart, Pie } from 'recharts'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 
 interface AnaliseCnae {
   id: string
@@ -20,6 +28,11 @@ interface AnaliseCnae {
   nome_cnae: string
   total_clientes: number
   distribuicao_geografica: Record<string, number> | null
+}
+
+interface SegmentoTicket {
+  segmento: string
+  ticket_medio: number
 }
 
 const barChartConfig = {
@@ -31,6 +44,7 @@ const barChartConfig = {
 
 export default function AnaliseCarteira() {
   const [analises, setAnalises] = useState<AnaliseCnae[]>([])
+  const [segmentos, setSegmentos] = useState<SegmentoTicket[]>([])
   const [loading, setLoading] = useState(true)
   const [recalculating, setRecalculating] = useState(false)
   const { toast } = useToast()
@@ -38,14 +52,42 @@ export default function AnaliseCarteira() {
   const fetchDados = async () => {
     setLoading(true)
     try {
-      const { data, error } = await supabase
-        .from('analise_cnae')
-        .select('id, cnae, nome_cnae, total_clientes, distribuicao_geografica')
-        .order('total_clientes', { ascending: false })
+      const [analiseRes, carteiraRes] = await Promise.all([
+        supabase
+          .from('analise_cnae')
+          .select('id, cnae, nome_cnae, total_clientes, distribuicao_geografica')
+          .order('total_clientes', { ascending: false }),
+        supabase.from('carteira_clientes').select('segmento, ticket_medio'),
+      ])
 
-      if (error) throw error
+      if (analiseRes.error) throw analiseRes.error
+      if (carteiraRes.error) throw carteiraRes.error
 
-      setAnalises(data || [])
+      setAnalises(analiseRes.data || [])
+
+      const segmentMap: Record<string, { total: number; count: number }> = {}
+
+      carteiraRes.data?.forEach((item) => {
+        const seg = item.segmento || 'Não classificado'
+        const val = Number(item.ticket_medio) || 0
+        if (!segmentMap[seg]) {
+          segmentMap[seg] = { total: 0, count: 0 }
+        }
+        if (val > 0) {
+          segmentMap[seg].total += val
+          segmentMap[seg].count += 1
+        }
+      })
+
+      const processedSegments = Object.keys(segmentMap)
+        .map((seg) => ({
+          segmento: seg,
+          ticket_medio:
+            segmentMap[seg].count > 0 ? segmentMap[seg].total / segmentMap[seg].count : 0,
+        }))
+        .sort((a, b) => b.ticket_medio - a.ticket_medio)
+
+      setSegmentos(processedSegments)
     } catch (error: any) {
       toast({
         title: 'Erro ao carregar dados',
@@ -266,6 +308,50 @@ export default function AnaliseCarteira() {
                   />
                 </PieChart>
               </ChartContainer>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 gap-6">
+        <Card className="flex flex-col">
+          <CardHeader>
+            <CardTitle>Ticket Médio por Segmento</CardTitle>
+            <CardDescription>
+              Média de valor do ticket dos clientes agrupada por segmento de atuação.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="flex items-center justify-center min-h-[200px] text-muted-foreground">
+                <Loader2 className="w-6 h-6 animate-spin mr-2" />
+              </div>
+            ) : segmentos.length === 0 ? (
+              <div className="flex items-center justify-center min-h-[200px] text-muted-foreground">
+                Nenhum dado de segmento encontrado.
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Segmento</TableHead>
+                    <TableHead className="text-right">Ticket Médio</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {segmentos.map((item) => (
+                    <TableRow key={item.segmento}>
+                      <TableCell className="font-medium">{item.segmento}</TableCell>
+                      <TableCell className="text-right">
+                        {new Intl.NumberFormat('pt-BR', {
+                          style: 'currency',
+                          currency: 'BRL',
+                        }).format(item.ticket_medio)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             )}
           </CardContent>
         </Card>
