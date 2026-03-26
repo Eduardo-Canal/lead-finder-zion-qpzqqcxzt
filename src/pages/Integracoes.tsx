@@ -5,6 +5,14 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
+import { Textarea } from '@/components/ui/textarea'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { supabase } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import {
@@ -16,13 +24,18 @@ import {
   Bot,
   Database,
   Workflow,
+  Wand2,
+  MessageSquare,
+  Sparkles,
 } from 'lucide-react'
 import useAuthStore from '@/stores/useAuthStore'
+import { useActivityLogger } from '@/hooks/use-activity-logger'
 import ConfiguracoesBitrix from './ConfiguracoesBitrix'
 import ConfiguracoesAvancadas from './ConfiguracoesAvancadas'
 
 export default function Integracoes() {
   const { user, hasPermission } = useAuthStore()
+  const { logAction } = useActivityLogger()
   const isAdmin = user?.perfis_acesso?.nome === 'Administrador' || hasPermission('Acessar Admin')
 
   const [openAiKey, setOpenAiKey] = useState('')
@@ -30,6 +43,13 @@ export default function Integracoes() {
   const [isSaving, setIsSaving] = useState(false)
   const [isConnected, setIsConnected] = useState<boolean | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+
+  // Estados para o teste de geração
+  const [testCnae, setTestCnae] = useState('')
+  const [testPorte, setTestPorte] = useState('')
+  const [testDores, setTestDores] = useState('')
+  const [generatedPitch, setGeneratedPitch] = useState('')
+  const [isGenerating, setIsGenerating] = useState(false)
 
   useEffect(() => {
     const fetchOpenAiConfig = async () => {
@@ -115,6 +135,43 @@ export default function Integracoes() {
       toast.error('Erro ao salvar chave.')
     } finally {
       setIsSaving(false)
+    }
+  }
+
+  const handleGeneratePitch = async () => {
+    if (!openAiKey.trim()) {
+      toast.error('Configure e salve a chave de API primeiro.')
+      return
+    }
+    if (!testCnae || !testPorte || !testDores) {
+      toast.error('Preencha todos os campos para um teste completo.')
+      return
+    }
+
+    setIsGenerating(true)
+    setGeneratedPitch('')
+    try {
+      const response = await supabase.functions.invoke('test-openai-prompt', {
+        body: {
+          apiKey: openAiKey.trim(),
+          cnae: testCnae,
+          porte: testPorte,
+          dores: testDores,
+        },
+      })
+
+      if (response.error) throw response.error
+      if (!response.data?.success) throw new Error(response.data?.error || 'Erro desconhecido')
+
+      setGeneratedPitch(response.data.result)
+      toast.success('Abordagem gerada com sucesso!')
+
+      logAction('test', 'openai_integration', { cnae: testCnae, porte: testPorte })
+    } catch (error: any) {
+      console.error(error)
+      toast.error(error.message || 'Falha ao gerar abordagem. Verifique se a API Key é válida.')
+    } finally {
+      setIsGenerating(false)
     }
   }
 
@@ -227,6 +284,85 @@ export default function Integracoes() {
                   </Button>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Seção de Teste do OpenAI */}
+          <Card className="mt-6 border-blue-200/50 dark:border-blue-900/50">
+            <CardHeader className="bg-slate-50/50 dark:bg-slate-900/20 border-b pb-4">
+              <CardTitle className="flex items-center gap-2">
+                <Wand2 className="w-5 h-5 text-blue-600 dark:text-blue-500" />
+                Testar Geração de Abordagem
+              </CardTitle>
+              <CardDescription>
+                Valide a qualidade das respostas da IA simulando o perfil de um lead real. Preencha
+                os dados abaixo e veja como a IA estrutura uma mensagem de vendas.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6 pt-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="test-cnae">Setor / CNAE</Label>
+                  <Input
+                    id="test-cnae"
+                    placeholder="Ex: 6201-5/01 - Desenvolvimento de software..."
+                    value={testCnae}
+                    onChange={(e) => setTestCnae(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Porte da Empresa</Label>
+                  <Select value={testPorte} onValueChange={setTestPorte}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o porte..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Micro Empresa">Micro Empresa</SelectItem>
+                      <SelectItem value="Pequena Empresa">Pequena Empresa</SelectItem>
+                      <SelectItem value="Média Empresa">Média Empresa</SelectItem>
+                      <SelectItem value="Grande Empresa">Grande Empresa</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="test-dores">Principais Dores / Desafios</Label>
+                <Textarea
+                  id="test-dores"
+                  placeholder="Ex: Processos manuais, perda de tempo na prospecção de novos clientes, baixa conversão..."
+                  value={testDores}
+                  onChange={(e) => setTestDores(e.target.value)}
+                  className="min-h-[80px]"
+                />
+              </div>
+
+              <div className="pt-2">
+                <Button
+                  onClick={handleGeneratePitch}
+                  disabled={
+                    isGenerating || !openAiKey.trim() || !testCnae || !testPorte || !testDores
+                  }
+                  className="w-full sm:w-auto"
+                >
+                  {isGenerating ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <MessageSquare className="w-4 h-4 mr-2" />
+                  )}
+                  Gerar Abordagem de Teste
+                </Button>
+              </div>
+
+              {generatedPitch && (
+                <div className="mt-4 p-4 bg-blue-50/50 dark:bg-blue-950/20 rounded-lg border border-blue-100 dark:border-blue-900/50 animate-in fade-in-50 duration-500">
+                  <h4 className="text-sm font-semibold mb-3 text-blue-800 dark:text-blue-300 flex items-center gap-2">
+                    <Sparkles className="w-4 h-4" /> Resultado Gerado pela IA:
+                  </h4>
+                  <div className="text-sm whitespace-pre-wrap text-slate-700 dark:text-slate-300 leading-relaxed">
+                    {generatedPitch}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
