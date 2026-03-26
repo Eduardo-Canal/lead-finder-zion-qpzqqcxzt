@@ -10,29 +10,49 @@ import { LeadStoreProvider } from '@/stores/useLeadStore'
 import { UserManagementStoreProvider } from '@/stores/useUserManagementStore'
 import { NotificationStoreProvider } from '@/stores/useNotificationStore'
 
-const Layout = lazy(() => import('@/components/Layout'))
-const Login = lazy(() => import('@/pages/Login'))
-const Index = lazy(() => import('@/pages/Index'))
-const Prospeccao = lazy(() => import('@/pages/Prospeccao'))
-const MyLeads = lazy(() => import('@/pages/MyLeads'))
-const SearchHistory = lazy(() => import('@/pages/SearchHistory'))
-const UserManagement = lazy(() => import('@/pages/UserManagement'))
-const ConfiguracoesAvancadas = lazy(() => import('@/pages/ConfiguracoesAvancadas'))
-const RemindersConfig = lazy(() => import('@/pages/RemindersConfig'))
-const AuditLogs = lazy(() => import('@/pages/AuditLogs'))
-const Reports = lazy(() => import('@/pages/Reports'))
-const DebugAPI = lazy(() => import('@/pages/DebugAPI'))
-const DebugBitrix = lazy(() => import('@/pages/DebugBitrix'))
-const MonitoramentoBitrix = lazy(() => import('@/pages/MonitoramentoBitrix'))
-const TestesValidacao = lazy(() => import('@/pages/TestesValidacao'))
-const EmpresasDuplicadas = lazy(() => import('@/pages/EmpresasDuplicadas'))
-const InteligenciaZion = lazy(() => import('@/pages/InteligenciaZion'))
-const AnaliseCarteira = lazy(() => import('@/pages/AnaliseCarteira'))
-const NotFound = lazy(() => import('@/pages/NotFound'))
-const UpdatePassword = lazy(() => import('@/pages/UpdatePassword'))
-const ChangePassword = lazy(() => import('@/pages/ChangePassword'))
-const ConfiguracoesBitrix = lazy(() => import('@/pages/ConfiguracoesBitrix'))
-const SyncHistory = lazy(() => import('@/pages/SyncHistory'))
+// Helper for auto-reloading when a chunk fails to load (e.g. after a new deploy)
+const lazyWithRetry = (componentImport: () => Promise<any>) =>
+  lazy(async () => {
+    const pageHasAlreadyBeenForceRefreshed = JSON.parse(
+      window.sessionStorage.getItem('page-has-been-force-refreshed') || 'false',
+    )
+
+    try {
+      const component = await componentImport()
+      window.sessionStorage.setItem('page-has-been-force-refreshed', 'false')
+      return component
+    } catch (error) {
+      if (!pageHasAlreadyBeenForceRefreshed) {
+        window.sessionStorage.setItem('page-has-been-force-refreshed', 'true')
+        window.location.reload()
+      }
+      throw error
+    }
+  })
+
+const Layout = lazyWithRetry(() => import('@/components/Layout'))
+const Login = lazyWithRetry(() => import('@/pages/Login'))
+const Index = lazyWithRetry(() => import('@/pages/Index'))
+const Prospeccao = lazyWithRetry(() => import('@/pages/Prospeccao'))
+const MyLeads = lazyWithRetry(() => import('@/pages/MyLeads'))
+const SearchHistory = lazyWithRetry(() => import('@/pages/SearchHistory'))
+const UserManagement = lazyWithRetry(() => import('@/pages/UserManagement'))
+const ConfiguracoesAvancadas = lazyWithRetry(() => import('@/pages/ConfiguracoesAvancadas'))
+const RemindersConfig = lazyWithRetry(() => import('@/pages/RemindersConfig'))
+const AuditLogs = lazyWithRetry(() => import('@/pages/AuditLogs'))
+const Reports = lazyWithRetry(() => import('@/pages/Reports'))
+const DebugAPI = lazyWithRetry(() => import('@/pages/DebugAPI'))
+const DebugBitrix = lazyWithRetry(() => import('@/pages/DebugBitrix'))
+const MonitoramentoBitrix = lazyWithRetry(() => import('@/pages/MonitoramentoBitrix'))
+const TestesValidacao = lazyWithRetry(() => import('@/pages/TestesValidacao'))
+const EmpresasDuplicadas = lazyWithRetry(() => import('@/pages/EmpresasDuplicadas'))
+const InteligenciaZion = lazyWithRetry(() => import('@/pages/InteligenciaZion'))
+const AnaliseCarteira = lazyWithRetry(() => import('@/pages/AnaliseCarteira'))
+const NotFound = lazyWithRetry(() => import('@/pages/NotFound'))
+const UpdatePassword = lazyWithRetry(() => import('@/pages/UpdatePassword'))
+const ChangePassword = lazyWithRetry(() => import('@/pages/ChangePassword'))
+const ConfiguracoesBitrix = lazyWithRetry(() => import('@/pages/ConfiguracoesBitrix'))
+const SyncHistory = lazyWithRetry(() => import('@/pages/SyncHistory'))
 
 const GlobalLoading = () => (
   <div className="flex min-h-screen w-full items-center justify-center bg-background/50 backdrop-blur-sm">
