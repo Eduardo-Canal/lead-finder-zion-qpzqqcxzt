@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { RefreshCw, Loader2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
 import { useToast } from '@/hooks/use-toast'
+import { cn } from '@/lib/utils'
 import {
   ChartContainer,
   ChartTooltip,
@@ -47,6 +48,13 @@ interface SegmentoTicket {
   ticket_medio: number
 }
 
+interface ClusterEstrategico {
+  id: string
+  cluster_name: string
+  oportunidade_score: number | null
+  prioridade: string | null
+}
+
 const barChartConfig = {
   total_clientes: {
     label: 'Clientes',
@@ -64,6 +72,7 @@ const lineChartConfig = {
 export default function AnaliseCarteira() {
   const [analises, setAnalises] = useState<AnaliseCnae[]>([])
   const [segmentos, setSegmentos] = useState<SegmentoTicket[]>([])
+  const [clusters, setClusters] = useState<ClusterEstrategico[]>([])
   const [loading, setLoading] = useState(true)
   const [recalculating, setRecalculating] = useState(false)
   const { toast } = useToast()
@@ -71,18 +80,24 @@ export default function AnaliseCarteira() {
   const fetchDados = async () => {
     setLoading(true)
     try {
-      const [analiseRes, carteiraRes] = await Promise.all([
+      const [analiseRes, carteiraRes, clustersRes] = await Promise.all([
         supabase
           .from('analise_cnae')
           .select('id, cnae, nome_cnae, total_clientes, distribuicao_geografica, taxa_sucesso')
           .order('total_clientes', { ascending: false }),
         supabase.from('carteira_clientes').select('segmento, ticket_medio'),
+        supabase
+          .from('clusters_estrategicos')
+          .select('id, cluster_name, oportunidade_score, prioridade')
+          .order('oportunidade_score', { ascending: false }),
       ])
 
       if (analiseRes.error) throw analiseRes.error
       if (carteiraRes.error) throw carteiraRes.error
+      if (clustersRes.error) throw clustersRes.error
 
       setAnalises(analiseRes.data || [])
+      setClusters(clustersRes.data || [])
 
       const segmentMap: Record<string, { total: number; count: number }> = {}
 
@@ -181,16 +196,16 @@ export default function AnaliseCarteira() {
 
     const config: ChartConfig = {}
     const PREDEFINED_COLORS = [
-      '#0066cc', // secondary
-      '#f39200', // primary
-      '#10b981', // success
-      '#8b5cf6', // violet
-      '#f59e0b', // warning
-      '#0ea5e9', // cyan
-      '#14b8a6', // teal
-      '#64748b', // slate
-      '#ec4899', // pink
-      '#f43f5e', // rose
+      '#0066cc',
+      '#f39200',
+      '#10b981',
+      '#8b5cf6',
+      '#f59e0b',
+      '#0ea5e9',
+      '#14b8a6',
+      '#64748b',
+      '#ec4899',
+      '#f43f5e',
     ]
 
     let data = sortedUfs.map((item, index) => {
@@ -437,6 +452,77 @@ export default function AnaliseCarteira() {
                   />
                 </LineChart>
               </ChartContainer>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 gap-6">
+        <Card className="flex flex-col">
+          <CardHeader>
+            <CardTitle>Clusters Estratégicos</CardTitle>
+            <CardDescription>
+              Oportunidades mapeadas e categorizadas por potencial de score.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="flex items-center justify-center min-h-[200px] text-muted-foreground">
+                <Loader2 className="w-6 h-6 animate-spin mr-2" />
+              </div>
+            ) : clusters.length === 0 ? (
+              <div className="flex items-center justify-center min-h-[200px] text-muted-foreground">
+                Nenhum cluster estratégico encontrado. Clique em "Recalcular Insights".
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {clusters.map((cluster) => {
+                  let colorClass = 'bg-rose-50 border-rose-200 text-rose-900' // Low priority
+
+                  const p = cluster.prioridade?.toLowerCase()
+                  if (p === 'alta' || (cluster.oportunidade_score || 0) > 5000) {
+                    colorClass = 'bg-emerald-50 border-emerald-200 text-emerald-900'
+                  } else if (
+                    p === 'média' ||
+                    p === 'media' ||
+                    (cluster.oportunidade_score || 0) > 2000
+                  ) {
+                    colorClass = 'bg-amber-50 border-amber-200 text-amber-900'
+                  }
+
+                  return (
+                    <div
+                      key={cluster.id}
+                      className={cn(
+                        'p-5 rounded-xl border flex flex-col gap-3 transition-all hover:-translate-y-1 hover:shadow-md cursor-default',
+                        colorClass,
+                      )}
+                    >
+                      <h4 className="font-semibold text-sm line-clamp-2 leading-tight">
+                        {cluster.cluster_name}
+                      </h4>
+                      <div className="flex items-end justify-between mt-auto pt-3 border-t border-black/10">
+                        <div className="flex flex-col">
+                          <span className="text-[10px] font-bold uppercase tracking-wider opacity-60">
+                            Prioridade
+                          </span>
+                          <span className="text-xs font-semibold capitalize">
+                            {cluster.prioridade || 'Baixa'}
+                          </span>
+                        </div>
+                        <div className="flex flex-col text-right">
+                          <span className="text-[10px] font-bold uppercase tracking-wider opacity-60">
+                            Score
+                          </span>
+                          <span className="font-bold text-lg leading-none">
+                            {cluster.oportunidade_score?.toLocaleString('pt-BR')}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
             )}
           </CardContent>
         </Card>
