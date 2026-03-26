@@ -103,7 +103,7 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
         }
 
         const { data: logsData } = await supabase
-          .from('bitrix_sync_logs')
+          .from('leads_bitrix_sync')
           .select('*')
           .eq('lead_id', savedLead.id)
           .order('created_at', { ascending: false })
@@ -283,7 +283,7 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
 
       if (savedLead?.id) {
         const { data: logsData } = await supabase
-          .from('bitrix_sync_logs')
+          .from('leads_bitrix_sync')
           .select('*')
           .eq('lead_id', savedLead.id)
           .order('created_at', { ascending: false })
@@ -296,7 +296,7 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
       toast.error(err.message || 'Erro ao enviar para Bitrix24.')
       if (savedLead?.id) {
         const { data: logsData } = await supabase
-          .from('bitrix_sync_logs')
+          .from('leads_bitrix_sync')
           .select('*')
           .eq('lead_id', savedLead.id)
           .order('created_at', { ascending: false })
@@ -710,21 +710,23 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
                             <div className="flex flex-col">
                               <span className="text-sm font-medium text-slate-700 flex items-center gap-2">
                                 <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                                {new Date(log.created_at || log.sent_at).toLocaleString('pt-BR')}
+                                {new Date(
+                                  log.created_at || log.sent_at || Date.now(),
+                                ).toLocaleString('pt-BR')}
                               </span>
                               <span className="text-xs text-slate-500 mt-1">
-                                Deal ID: {log.response_data?.deal_id || 'Não gerado'}
+                                Deal ID: {log.deal_id || 'Não gerado'}
                               </span>
                             </div>
                             <Badge
-                              variant={log.status === 'success' ? 'default' : 'destructive'}
+                              variant={log.status === 'SUCESSO' ? 'default' : 'destructive'}
                               className={
-                                log.status === 'success'
+                                log.status === 'SUCESSO'
                                   ? 'bg-emerald-500 hover:bg-emerald-600'
                                   : ''
                               }
                             >
-                              {log.status === 'success' ? 'Sucesso' : 'Erro'}
+                              {log.status === 'SUCESSO' ? 'Sucesso' : 'Erro'}
                             </Badge>
                           </div>
                         ))}
