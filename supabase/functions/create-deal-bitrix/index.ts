@@ -47,6 +47,25 @@ Deno.serve(async (req: Request) => {
 
     // Suporte para Teste com um lead fictício
     if (_simulate_test) {
+      // Simula o registro de logs com sucesso e retorna a resposta mockada
+      await supabaseAdmin.from('leads_bitrix_sync').insert({
+        lead_id:
+          lead_id &&
+          /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(
+            lead_id,
+          )
+            ? lead_id
+            : null,
+        company_id: company_id || 888888,
+        deal_id: 999999,
+        kanban_id: kanban_id,
+        stage_id: stage_id,
+        status: 'SUCESSO',
+        user_id: leadData?.user_id || null,
+        sent_at: new Date().toISOString(),
+        response_data: { simulated: true, message: 'Test lead processed' },
+      })
+
       return new Response(
         JSON.stringify({
           success: true,
@@ -136,7 +155,9 @@ ${approach.abordagem_gerada || 'N/A'}
           })
           const data = await res.json()
           if (!res.ok || !data.success) {
-            throw new Error(data.message || data.error || 'Bitrix API error')
+            const err = new Error(data.message || data.error || 'Bitrix API error') as any
+            err.response = data // Armazena a resposta bruta para auditoria de erros
+            throw err
           }
           return data.data
         } catch (error: any) {
@@ -220,7 +241,7 @@ ${approach.abordagem_gerada || 'N/A'}
 
       const returnedDealId = dealRes?.result ? parseInt(dealRes.result) : null
 
-      // Registra o deal_id retornado na tabela 'leads_bitrix_sync' para auditoria
+      // Registra o deal_id retornado na tabela 'leads_bitrix_sync' para auditoria com response e timestamp
       if (
         lead_id &&
         /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(
@@ -235,6 +256,8 @@ ${approach.abordagem_gerada || 'N/A'}
           stage_id: stage_id,
           status: 'SUCESSO',
           user_id: leadData?.user_id || null,
+          sent_at: new Date().toISOString(),
+          response_data: dealRes,
         })
       }
 
@@ -253,7 +276,9 @@ ${approach.abordagem_gerada || 'N/A'}
         },
       )
     } catch (dealError: any) {
-      // Captura e auditoria correta em caso de falha no envio do Negócio
+      // Captura e auditoria correta em caso de falha no envio do Negócio, incluindo raw response error
+      const errorLog = dealError.stack || dealError.message || String(dealError)
+
       if (
         lead_id &&
         /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(
@@ -267,7 +292,10 @@ ${approach.abordagem_gerada || 'N/A'}
           stage_id: stage_id,
           status: 'ERRO',
           error_message: dealError.message,
+          error_log: errorLog,
           user_id: leadData?.user_id || null,
+          sent_at: new Date().toISOString(),
+          response_data: dealError.response || null,
         })
       }
       throw dealError
