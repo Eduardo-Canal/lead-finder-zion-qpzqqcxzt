@@ -1,10 +1,23 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { RefreshCw, Loader2 } from 'lucide-react'
+import { Label } from '@/components/ui/label'
+import { RefreshCw, Loader2, Calendar as CalendarIcon, Filter, X } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
 import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
+import { format } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
+import type { DateRange } from 'react-day-picker'
+import { Calendar } from '@/components/ui/calendar'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import {
   ChartContainer,
   ChartTooltip,
@@ -53,6 +66,7 @@ interface ClusterEstrategico {
   cluster_name: string
   oportunidade_score: number | null
   prioridade: string | null
+  cnae_list?: string[] | null
 }
 
 const barChartConfig = {
@@ -70,11 +84,22 @@ const lineChartConfig = {
 } satisfies ChartConfig
 
 export default function AnaliseCarteira() {
+  const [rawAnalises, setRawAnalises] = useState<AnaliseCnae[]>([])
+  const [rawCarteira, setRawCarteira] = useState<any[]>([])
+  const [rawClusters, setRawClusters] = useState<ClusterEstrategico[]>([])
+
   const [analises, setAnalises] = useState<AnaliseCnae[]>([])
   const [segmentos, setSegmentos] = useState<SegmentoTicket[]>([])
   const [clusters, setClusters] = useState<ClusterEstrategico[]>([])
+
   const [loading, setLoading] = useState(true)
   const [recalculating, setRecalculating] = useState(false)
+
+  // Filters State
+  const [dateRange, setDateRange] = useState<DateRange | undefined>()
+  const [segmentoFiltro, setSegmentoFiltro] = useState<string>('Todos')
+  const [porteFiltro, setPorteFiltro] = useState<string>('Todos')
+
   const { toast } = useToast()
 
   const fetchDados = async () => {
@@ -85,10 +110,10 @@ export default function AnaliseCarteira() {
           .from('analise_cnae')
           .select('id, cnae, nome_cnae, total_clientes, distribuicao_geografica, taxa_sucesso')
           .order('total_clientes', { ascending: false }),
-        supabase.from('carteira_clientes').select('segmento, ticket_medio'),
+        supabase.from('carteira_clientes').select('*'), // Buscando tudo para os filtros funcionarem
         supabase
           .from('clusters_estrategicos')
-          .select('id, cluster_name, oportunidade_score, prioridade')
+          .select('id, cluster_name, oportunidade_score, prioridade, cnae_list')
           .order('oportunidade_score', { ascending: false }),
       ])
 
@@ -96,32 +121,9 @@ export default function AnaliseCarteira() {
       if (carteiraRes.error) throw carteiraRes.error
       if (clustersRes.error) throw clustersRes.error
 
-      setAnalises(analiseRes.data || [])
-      setClusters(clustersRes.data || [])
-
-      const segmentMap: Record<string, { total: number; count: number }> = {}
-
-      carteiraRes.data?.forEach((item) => {
-        const seg = item.segmento || 'Não classificado'
-        const val = Number(item.ticket_medio) || 0
-        if (!segmentMap[seg]) {
-          segmentMap[seg] = { total: 0, count: 0 }
-        }
-        if (val > 0) {
-          segmentMap[seg].total += val
-          segmentMap[seg].count += 1
-        }
-      })
-
-      const processedSegments = Object.keys(segmentMap)
-        .map((seg) => ({
-          segmento: seg,
-          ticket_medio:
-            segmentMap[seg].count > 0 ? segmentMap[seg].total / segmentMap[seg].count : 0,
-        }))
-        .sort((a, b) => b.ticket_medio - a.ticket_medio)
-
-      setSegmentos(processedSegments)
+      setRawAnalises(analiseRes.data || [])
+      setRawCarteira(carteiraRes.data || [])
+      setRawClusters(clustersRes.data || [])
     } catch (error: any) {
       toast({
         title: 'Erro ao carregar dados',
@@ -136,6 +138,91 @@ export default function AnaliseCarteira() {
   useEffect(() => {
     fetchDados()
   }, [])
+
+  // Filter effect
+  useEffect(() => {
+    if (!rawCarteira.length && !rawAnalises.length && !rawClusters.length) {
+      setAnalises([])
+      setSegmentos([])
+      setClusters([])
+      return
+    }
+
+    let filteredCart = [...rawCarteira]
+
+    if (segmentoFiltro !== 'Todos') {
+      filteredCart = filteredCart.filter((c) => c.segmento === segmentoFiltro)
+    }
+    if (porteFiltro !== 'Todos') {
+      filteredCart = filteredCart.filter((c) => c.porte === porteFiltro)
+    }
+    if (dateRange?.from) {
+      filteredCart = filteredCart.filter((c) => {
+        if (!c.data_contratacao) return false
+        return new Date(c.data_contratacao) >= dateRange.from!
+      })
+    }
+    if (dateRange?.to) {
+      filteredCart = filteredCart.filter((c) => {
+        if (!c.data_contratacao) return false
+        return new Date(c.data_contratacao) <= dateRange.to!
+      })
+    }
+
+    // 1. Process Segmentos Table
+    const segmentMap: Record<string, { total: number; count: number }> = {}
+    filteredCart.forEach((item) => {
+      const seg = item.segmento || 'Não classificado'
+      const val = Number(item.ticket_medio) || 0
+      if (!segmentMap[seg]) {
+        segmentMap[seg] = { total: 0, count: 0 }
+      }
+      if (val > 0) {
+        segmentMap[seg].total += val
+        segmentMap[seg].count += 1
+      }
+    })
+
+    const processedSegments = Object.keys(segmentMap)
+      .map((seg) => ({
+        segmento: seg,
+        ticket_medio: segmentMap[seg].count > 0 ? segmentMap[seg].total / segmentMap[seg].count : 0,
+      }))
+      .sort((a, b) => b.ticket_medio - a.ticket_medio)
+    setSegmentos(processedSegments)
+
+    // 2. Process Analises
+    const validCnaes = new Set(filteredCart.map((c) => c.cnae))
+
+    const cnaeCounts: Record<string, number> = {}
+    filteredCart.forEach((c) => {
+      if (c.cnae) cnaeCounts[c.cnae] = (cnaeCounts[c.cnae] || 0) + 1
+    })
+
+    const currentAnalises = rawAnalises
+      .filter((a) => validCnaes.has(a.cnae))
+      .map((a) => ({
+        ...a,
+        total_clientes: cnaeCounts[a.cnae] || 0,
+      }))
+      .filter((a) => a.total_clientes > 0)
+
+    // Sort again by new total_clientes
+    currentAnalises.sort((a, b) => b.total_clientes - a.total_clientes)
+    setAnalises(currentAnalises)
+
+    // 3. Process Clusters
+    const currentClusters = rawClusters.filter((cluster) => {
+      if (segmentoFiltro !== 'Todos') {
+        if (cluster.cluster_name !== `Cluster ${segmentoFiltro}`) return false
+      }
+      if (cluster.cnae_list && Array.isArray(cluster.cnae_list)) {
+        return cluster.cnae_list.some((c) => validCnaes.has(c))
+      }
+      return true
+    })
+    setClusters(currentClusters)
+  }, [rawCarteira, rawAnalises, rawClusters, segmentoFiltro, porteFiltro, dateRange])
 
   const handleRecalculate = async () => {
     setRecalculating(true)
@@ -161,6 +248,22 @@ export default function AnaliseCarteira() {
       setRecalculating(false)
     }
   }
+
+  const clearFilters = () => {
+    setDateRange(undefined)
+    setSegmentoFiltro('Todos')
+    setPorteFiltro('Todos')
+  }
+
+  const uniqueSegments = useMemo(() => {
+    const segments = new Set(rawCarteira.map((c) => c.segmento).filter(Boolean))
+    return Array.from(segments).sort()
+  }, [rawCarteira])
+
+  const uniquePortes = useMemo(() => {
+    const portes = new Set(rawCarteira.map((c) => c.porte).filter(Boolean))
+    return Array.from(portes).sort()
+  }, [rawCarteira])
 
   const chartData = useMemo(() => {
     return analises.map((a) => ({
@@ -250,6 +353,102 @@ export default function AnaliseCarteira() {
         </Button>
       </div>
 
+      <Card className="border-slate-200">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-semibold flex items-center gap-2 text-slate-700">
+            <Filter className="w-4 h-4 text-slate-500" /> Filtros de Análise Globais
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="space-y-2 flex flex-col">
+              <Label className="text-xs font-bold text-slate-600">Período (Contratação)</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    id="date"
+                    variant={'outline'}
+                    className={cn(
+                      'w-full justify-start text-left font-normal bg-white hover:bg-slate-50 border-slate-200',
+                      !dateRange && 'text-muted-foreground',
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4 opacity-50" />
+                    {dateRange?.from ? (
+                      dateRange.to ? (
+                        <>
+                          {format(dateRange.from, 'dd/MM/yyyy', { locale: ptBR })} -{' '}
+                          {format(dateRange.to, 'dd/MM/yyyy', { locale: ptBR })}
+                        </>
+                      ) : (
+                        format(dateRange.from, 'dd/MM/yyyy', { locale: ptBR })
+                      )
+                    ) : (
+                      <span>Selecionar período...</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0 rounded-xl shadow-lg" align="start">
+                  <Calendar
+                    initialFocus
+                    mode="range"
+                    defaultMonth={dateRange?.from}
+                    selected={dateRange}
+                    onSelect={setDateRange}
+                    numberOfMonths={2}
+                    locale={ptBR}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-xs font-bold text-slate-600">Segmento de Atuação</Label>
+              <Select value={segmentoFiltro} onValueChange={setSegmentoFiltro}>
+                <SelectTrigger className="bg-white hover:bg-slate-50 border-slate-200">
+                  <SelectValue placeholder="Selecione..." />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl shadow-lg">
+                  <SelectItem value="Todos">Todos os Segmentos</SelectItem>
+                  {uniqueSegments.map((seg) => (
+                    <SelectItem key={seg} value={seg}>
+                      {seg}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-xs font-bold text-slate-600">Porte da Empresa</Label>
+              <Select value={porteFiltro} onValueChange={setPorteFiltro}>
+                <SelectTrigger className="bg-white hover:bg-slate-50 border-slate-200">
+                  <SelectValue placeholder="Selecione..." />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl shadow-lg">
+                  <SelectItem value="Todos">Todos os Portes</SelectItem>
+                  {uniquePortes.map((p) => (
+                    <SelectItem key={p} value={p}>
+                      {p}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-end pb-0.5">
+              <Button
+                variant="ghost"
+                onClick={clearFilters}
+                className="w-full text-slate-500 hover:text-red-600 hover:bg-red-50"
+              >
+                <X className="w-4 h-4 mr-2" /> Limpar Filtros
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="flex flex-col col-span-1 lg:col-span-2">
           <CardHeader>
@@ -265,7 +464,7 @@ export default function AnaliseCarteira() {
               </div>
             ) : chartData.length === 0 ? (
               <div className="flex items-center justify-center h-full min-h-[300px] text-muted-foreground">
-                Nenhum dado encontrado. Clique em "Recalcular Insights".
+                Nenhum dado encontrado para os filtros selecionados.
               </div>
             ) : (
               <ChartContainer config={barChartConfig} className="w-full aspect-auto h-[450px]">
@@ -370,7 +569,7 @@ export default function AnaliseCarteira() {
               </div>
             ) : segmentos.length === 0 ? (
               <div className="flex items-center justify-center min-h-[200px] text-muted-foreground">
-                Nenhum dado de segmento encontrado.
+                Nenhum dado de segmento encontrado para os filtros.
               </div>
             ) : (
               <Table>
@@ -412,7 +611,7 @@ export default function AnaliseCarteira() {
               </div>
             ) : lineChartData.length === 0 ? (
               <div className="flex items-center justify-center h-full min-h-[200px] text-muted-foreground">
-                Nenhum dado encontrado.
+                Nenhum dado encontrado para os filtros.
               </div>
             ) : (
               <ChartContainer config={lineChartConfig} className="w-full aspect-auto h-[350px]">
@@ -472,7 +671,7 @@ export default function AnaliseCarteira() {
               </div>
             ) : clusters.length === 0 ? (
               <div className="flex items-center justify-center min-h-[200px] text-muted-foreground">
-                Nenhum cluster estratégico encontrado. Clique em "Recalcular Insights".
+                Nenhum cluster estratégico encontrado para os filtros.
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
