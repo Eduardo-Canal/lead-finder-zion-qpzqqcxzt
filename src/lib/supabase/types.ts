@@ -9,6 +9,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      analise_cnae: {
+        Row: {
+          cnae: string
+          created_at: string | null
+          distribuicao_geografica: Json | null
+          fit_operacional_score: number | null
+          id: string
+          nome_cnae: string | null
+          taxa_sucesso: number | null
+          ticket_medio_cnae: number | null
+          total_clientes: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          cnae: string
+          created_at?: string | null
+          distribuicao_geografica?: Json | null
+          fit_operacional_score?: number | null
+          id?: string
+          nome_cnae?: string | null
+          taxa_sucesso?: number | null
+          ticket_medio_cnae?: number | null
+          total_clientes?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          cnae?: string
+          created_at?: string | null
+          distribuicao_geografica?: Json | null
+          fit_operacional_score?: number | null
+          id?: string
+          nome_cnae?: string | null
+          taxa_sucesso?: number | null
+          ticket_medio_cnae?: number | null
+          total_clientes?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       api_debug_logs: {
         Row: {
           cnae: string | null
@@ -249,6 +288,78 @@ export type Database = {
           parametros?: Json | null
           resultados?: Json
           total_registros?: number
+        }
+        Relationships: []
+      }
+      carteira_clientes: {
+        Row: {
+          cnae: string
+          created_at: string | null
+          data_contratacao: string | null
+          empresa_id: string
+          id: string
+          porte: string | null
+          segmento: string | null
+          status_cliente: string | null
+          ticket_medio: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          cnae: string
+          created_at?: string | null
+          data_contratacao?: string | null
+          empresa_id: string
+          id?: string
+          porte?: string | null
+          segmento?: string | null
+          status_cliente?: string | null
+          ticket_medio?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          cnae?: string
+          created_at?: string | null
+          data_contratacao?: string | null
+          empresa_id?: string
+          id?: string
+          porte?: string | null
+          segmento?: string | null
+          status_cliente?: string | null
+          ticket_medio?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      clusters_estrategicos: {
+        Row: {
+          cluster_name: string
+          cnae_list: Json | null
+          created_at: string | null
+          id: string
+          oportunidade_score: number | null
+          prioridade: string | null
+          total_empresas: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          cluster_name: string
+          cnae_list?: Json | null
+          created_at?: string | null
+          id?: string
+          oportunidade_score?: number | null
+          prioridade?: string | null
+          total_empresas?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          cluster_name?: string
+          cnae_list?: Json | null
+          created_at?: string | null
+          id?: string
+          oportunidade_score?: number | null
+          prioridade?: string | null
+          total_empresas?: number | null
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -1106,6 +1217,17 @@ export const Constants = {
 // --- COLUMN TYPES (actual PostgreSQL types) ---
 // Use this to know the real database type when writing migrations.
 // "string" in TypeScript types above may be uuid, text, varchar, timestamptz, etc.
+// Table: analise_cnae
+//   id: uuid (not null, default: gen_random_uuid())
+//   cnae: character varying (not null)
+//   nome_cnae: character varying (nullable)
+//   total_clientes: integer (nullable, default: 0)
+//   ticket_medio_cnae: numeric (nullable)
+//   taxa_sucesso: numeric (nullable)
+//   distribuicao_geografica: jsonb (nullable)
+//   fit_operacional_score: numeric (nullable)
+//   created_at: timestamp without time zone (nullable, default: now())
+//   updated_at: timestamp without time zone (nullable, default: now())
 // Table: api_debug_logs
 //   id: uuid (not null, default: gen_random_uuid())
 //   timestamp: timestamp with time zone (not null, default: now())
@@ -1173,6 +1295,26 @@ export const Constants = {
 //   criado_em: timestamp with time zone (not null, default: now())
 //   expira_em: timestamp with time zone (not null, default: (now() + '30 days'::interval))
 //   parametros: jsonb (nullable, default: '{}'::jsonb)
+// Table: carteira_clientes
+//   id: uuid (not null, default: gen_random_uuid())
+//   empresa_id: uuid (not null)
+//   cnae: character varying (not null)
+//   segmento: character varying (nullable)
+//   porte: character varying (nullable)
+//   ticket_medio: numeric (nullable)
+//   data_contratacao: date (nullable)
+//   status_cliente: character varying (nullable, default: 'Ativo'::character varying)
+//   created_at: timestamp without time zone (nullable, default: now())
+//   updated_at: timestamp without time zone (nullable, default: now())
+// Table: clusters_estrategicos
+//   id: uuid (not null, default: gen_random_uuid())
+//   cluster_name: character varying (not null)
+//   cnae_list: jsonb (nullable)
+//   total_empresas: integer (nullable, default: 0)
+//   oportunidade_score: numeric (nullable)
+//   prioridade: character varying (nullable)
+//   created_at: timestamp without time zone (nullable, default: now())
+//   updated_at: timestamp without time zone (nullable, default: now())
 // Table: company_duplicates
 //   id: uuid (not null, default: gen_random_uuid())
 //   original_company_id: integer (not null)
@@ -1340,6 +1482,9 @@ export const Constants = {
 //   updated_at: timestamp with time zone (not null, default: now())
 
 // --- CONSTRAINTS ---
+// Table: analise_cnae
+//   UNIQUE analise_cnae_cnae_key: UNIQUE (cnae)
+//   PRIMARY KEY analise_cnae_pkey: PRIMARY KEY (id)
 // Table: api_debug_logs
 //   PRIMARY KEY api_debug_logs_pkey: PRIMARY KEY (id)
 // Table: audit_logs
@@ -1357,6 +1502,10 @@ export const Constants = {
 // Table: cache_pesquisas
 //   UNIQUE cache_pesquisas_chave_cache_key: UNIQUE (chave_cache)
 //   PRIMARY KEY cache_pesquisas_pkey: PRIMARY KEY (id)
+// Table: carteira_clientes
+//   PRIMARY KEY carteira_clientes_pkey: PRIMARY KEY (id)
+// Table: clusters_estrategicos
+//   PRIMARY KEY clusters_estrategicos_pkey: PRIMARY KEY (id)
 // Table: company_duplicates
 //   FOREIGN KEY company_duplicates_duplicate_company_id_fkey: FOREIGN KEY (duplicate_company_id) REFERENCES bitrix_clients_zion(bitrix_id) ON DELETE CASCADE
 //   FOREIGN KEY company_duplicates_merged_by_fkey: FOREIGN KEY (merged_by) REFERENCES auth.users(id) ON DELETE SET NULL
@@ -1413,6 +1562,9 @@ export const Constants = {
 //   FOREIGN KEY user_reminder_settings_user_id_fkey: FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
 
 // --- ROW LEVEL SECURITY POLICIES ---
+// Table: analise_cnae
+//   Policy "Usuários logados podem ver analise_cnae" (SELECT, PERMISSIVE) roles={public}
+//     USING: (auth.role() = 'authenticated'::text)
 // Table: api_debug_logs
 //   Policy "Enable INSERT for authenticated admins" (INSERT, PERMISSIVE) roles={authenticated}
 //     WITH CHECK: (EXISTS ( SELECT 1    FROM (profiles p      JOIN perfis_acesso pa ON ((p.perfil_id = pa.id)))   WHERE ((p.user_id = auth.uid()) AND (pa.nome = 'Administrador'::text))))
@@ -1451,6 +1603,14 @@ export const Constants = {
 //   Policy "Allow authenticated users to update cache" (UPDATE, PERMISSIVE) roles={authenticated}
 //     USING: true
 //     WITH CHECK: true
+// Table: carteira_clientes
+//   Policy "Usuários logados podem inserir em carteira_clientes" (INSERT, PERMISSIVE) roles={public}
+//     WITH CHECK: (auth.role() = 'authenticated'::text)
+//   Policy "Usuários logados podem ver carteira_clientes" (SELECT, PERMISSIVE) roles={public}
+//     USING: (auth.role() = 'authenticated'::text)
+// Table: clusters_estrategicos
+//   Policy "Usuários logados podem ver clusters_estrategicos" (SELECT, PERMISSIVE) roles={public}
+//     USING: (auth.role() = 'authenticated'::text)
 // Table: company_duplicates
 //   Policy "Enable ALL for authenticated users on company_duplicates" (ALL, PERMISSIVE) roles={authenticated}
 //     USING: true
@@ -1726,6 +1886,9 @@ export const Constants = {
 //   update_reminders_updated_at_trigger: CREATE TRIGGER update_reminders_updated_at_trigger BEFORE UPDATE ON public.reminders FOR EACH ROW EXECUTE FUNCTION update_reminders_updated_at()
 
 // --- INDEXES ---
+// Table: analise_cnae
+//   CREATE UNIQUE INDEX analise_cnae_cnae_key ON public.analise_cnae USING btree (cnae)
+//   CREATE INDEX idx_analise_cnae ON public.analise_cnae USING btree (cnae)
 // Table: audit_logs
 //   CREATE INDEX idx_audit_logs_created_at ON public.audit_logs USING btree (created_at DESC)
 //   CREATE INDEX idx_audit_logs_user_id ON public.audit_logs USING btree (user_id)
@@ -1741,6 +1904,12 @@ export const Constants = {
 //   CREATE INDEX idx_bitrix_webhook_events_event_type ON public.bitrix_webhook_events USING btree (event_type)
 // Table: cache_pesquisas
 //   CREATE UNIQUE INDEX cache_pesquisas_chave_cache_key ON public.cache_pesquisas USING btree (chave_cache)
+// Table: carteira_clientes
+//   CREATE INDEX idx_carteira_cnae ON public.carteira_clientes USING btree (cnae)
+//   CREATE INDEX idx_carteira_empresa ON public.carteira_clientes USING btree (empresa_id)
+//   CREATE INDEX idx_carteira_segmento ON public.carteira_clientes USING btree (segmento)
+// Table: clusters_estrategicos
+//   CREATE INDEX idx_clusters_name ON public.clusters_estrategicos USING btree (cluster_name)
 // Table: company_duplicates
 //   CREATE INDEX idx_company_duplicates_duplicate ON public.company_duplicates USING btree (duplicate_company_id)
 //   CREATE INDEX idx_company_duplicates_original ON public.company_duplicates USING btree (original_company_id)
