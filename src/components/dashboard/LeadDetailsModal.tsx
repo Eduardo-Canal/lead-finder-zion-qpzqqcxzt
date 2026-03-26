@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import {
   AlertDialog,
@@ -27,6 +27,7 @@ import {
   Users,
   Loader2,
   Send,
+  MessageSquare,
 } from 'lucide-react'
 import useLeadStore, { FilteredLead } from '@/stores/useLeadStore'
 import useMyLeadsStore from '@/stores/useMyLeadsStore'
@@ -52,14 +53,59 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
   const [enriching, setEnriching] = useState(false)
   const [enrichedData, setEnrichedData] = useState<any>(null)
 
-  // Bitrix states
+  // Bitrix and Approach states
   const [showBitrixConfirm, setShowBitrixConfirm] = useState(false)
   const [sendingBitrix, setSendingBitrix] = useState(false)
   const [bitrixSent, setBitrixSent] = useState(false)
+  const [isBitrixIntegrated, setIsBitrixIntegrated] = useState(false)
+  const [approachData, setApproachData] = useState<any>(null)
+  const [loadingApproach, setLoadingApproach] = useState(false)
+  const [isGeneratingApproach, setIsGeneratingApproach] = useState(false)
 
   const isSaved = useMemo(() => {
     return myLeads.some((l) => l.cnpj === lead.cnpj)
   }, [myLeads, lead.cnpj])
+
+  const displayData = enrichedData || lead
+  const isEnriched = !!enrichedData || displayData.faturamento_anual !== undefined
+
+  useEffect(() => {
+    let isMounted = true
+    const loadData = async () => {
+      // Check Bitrix Integration
+      const { data: settingsData } = await supabase
+        .from('settings')
+        .select('value')
+        .eq('key', 'bitrix24_defaults')
+        .maybeSingle()
+
+      if (isMounted && settingsData?.value?.kanban_id && settingsData?.value?.stage_id) {
+        setIsBitrixIntegrated(true)
+      }
+
+      // Check Approach Data
+      const savedLead = myLeads.find((l) => l.cnpj === lead.cnpj)
+      if (savedLead?.id) {
+        setLoadingApproach(true)
+        const { data: appData } = await supabase
+          .from('lead_abordagens_comerciais')
+          .select('*')
+          .eq('lead_id', savedLead.id)
+          .order('criado_em', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+
+        if (isMounted) {
+          setApproachData(appData)
+          setLoadingApproach(false)
+        }
+      }
+    }
+    loadData()
+    return () => {
+      isMounted = false
+    }
+  }, [lead.cnpj, myLeads])
 
   const handleSaveLead = async () => {
     if (isSaved) {
@@ -109,8 +155,6 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
 
       const event = new CustomEvent('refetch-my-leads')
       window.dispatchEvent(event)
-
-      onClose()
     } catch (error: any) {
       toast.error('Erro ao salvar lead: ' + error.message)
     } finally {
@@ -138,8 +182,45 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
     }
   }
 
-  const displayData = enrichedData || lead
-  const isEnriched = !!enrichedData || displayData.faturamento_anual !== undefined
+  const handleGenerateApproach = async () => {
+    const savedLead = myLeads.find((l) => l.cnpj === lead.cnpj)
+    if (!savedLead?.id) {
+      toast.error('Salve o lead primeiro para gerar uma abordagem.')
+      return
+    }
+
+    setIsGeneratingApproach(true)
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-commercial-approach', {
+        body: {
+          lead_id: savedLead.id,
+          cnae: displayData.cnae_principal || displayData.cnae_fiscal_principal,
+          porte_empresa: displayData.porte,
+          dores_principais: null, // Pode ser evoluído no futuro para capturar inputs do usuário
+        },
+      })
+
+      if (error) throw error
+      if (!data.success) throw new Error(data.error)
+
+      toast.success('Abordagem gerada com sucesso!')
+
+      const { data: newData } = await supabase
+        .from('lead_abordagens_comerciais')
+        .select('*')
+        .eq('lead_id', savedLead.id)
+        .order('criado_em', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      setApproachData(newData)
+    } catch (err: any) {
+      console.error(err)
+      toast.error(err.message || 'Erro ao gerar abordagem.')
+    } finally {
+      setIsGeneratingApproach(false)
+    }
+  }
 
   const handleSendBitrix = async () => {
     setSendingBitrix(true)
@@ -257,24 +338,30 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
           className="w-full h-full flex flex-col min-h-0"
         >
           <div className="px-5 md:px-6 pt-5 shrink-0 bg-slate-50 z-10">
-            <TabsList className="grid w-full grid-cols-3 bg-slate-200/60 p-1 rounded-xl">
+            <TabsList className="flex w-full overflow-x-auto custom-scrollbar bg-slate-200/60 p-1 rounded-xl">
               <TabsTrigger
                 value="resumo"
-                className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
+                className="flex-1 min-w-fit px-3 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
               >
                 Resumo
               </TabsTrigger>
               <TabsTrigger
                 value="contato"
-                className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
+                className="flex-1 min-w-fit px-3 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
               >
                 Contatos
               </TabsTrigger>
               <TabsTrigger
                 value="socios"
-                className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
+                className="flex-1 min-w-fit px-3 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
               >
                 Sócios
+              </TabsTrigger>
+              <TabsTrigger
+                value="abordagem"
+                className="flex-1 min-w-fit px-3 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
+              >
+                Abordagem
               </TabsTrigger>
             </TabsList>
           </div>
@@ -523,6 +610,89 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
                 </div>
               )}
             </TabsContent>
+
+            <TabsContent value="abordagem" className="mt-5 animate-fade-in outline-none">
+              {loadingApproach ? (
+                <div className="flex flex-col items-center justify-center py-16 gap-3">
+                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                  <p className="text-sm text-slate-500">Buscando inteligência comercial...</p>
+                </div>
+              ) : approachData ? (
+                <div className="space-y-6">
+                  <div className="p-6 bg-gradient-to-br from-indigo-50 to-white rounded-xl border border-indigo-100 shadow-sm">
+                    <h4 className="font-bold flex items-center gap-2 text-indigo-900 border-b border-indigo-100/50 pb-3 mb-4">
+                      <Sparkles className="w-5 h-5 text-indigo-500" /> Abordagem Sugerida
+                    </h4>
+                    <div className="whitespace-pre-wrap text-sm text-slate-700 leading-relaxed">
+                      {approachData.abordagem_gerada}
+                    </div>
+                  </div>
+
+                  {(approachData.argumentos_venda?.length > 0 ||
+                    approachData.personas_decisoras?.length > 0) && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {approachData.personas_decisoras?.length > 0 && (
+                        <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-sm">
+                          <h5 className="font-bold text-slate-800 mb-3 text-sm flex items-center gap-2">
+                            <Users className="w-4 h-4 text-primary" /> Personas Decisoras
+                          </h5>
+                          <ul className="space-y-2">
+                            {approachData.personas_decisoras.map((p: string, i: number) => (
+                              <li key={i} className="text-sm text-slate-600 flex items-start gap-2">
+                                <span className="text-primary">•</span> {p}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      {approachData.argumentos_venda?.length > 0 && (
+                        <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-sm">
+                          <h5 className="font-bold text-slate-800 mb-3 text-sm flex items-center gap-2">
+                            <CheckCircle2 className="w-4 h-4 text-emerald-500" /> Argumentos de
+                            Venda
+                          </h5>
+                          <ul className="space-y-2">
+                            {approachData.argumentos_venda.map((a: string, i: number) => (
+                              <li key={i} className="text-sm text-slate-600 flex items-start gap-2">
+                                <span className="text-emerald-500">•</span> {a}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-16 bg-white rounded-xl border-2 border-dashed border-slate-200">
+                  <div className="bg-slate-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <MessageSquare className="w-8 h-8 text-slate-400" />
+                  </div>
+                  <h3 className="text-lg font-bold text-slate-800">Nenhuma abordagem gerada</h3>
+                  <p className="text-slate-500 mt-2 max-w-md mx-auto font-medium">
+                    Gere uma abordagem comercial personalizada com Inteligência Artificial para este
+                    lead.
+                  </p>
+                  <Button
+                    onClick={handleGenerateApproach}
+                    disabled={isGeneratingApproach || !isSaved}
+                    className="mt-6 gap-2"
+                  >
+                    {isGeneratingApproach ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Sparkles className="w-4 h-4" />
+                    )}
+                    {isGeneratingApproach ? 'Gerando...' : 'Gerar com IA'}
+                  </Button>
+                  {!isSaved && (
+                    <p className="text-xs text-amber-600 mt-3">
+                      Salve o lead na sua carteira primeiro para usar a IA.
+                    </p>
+                  )}
+                </div>
+              )}
+            </TabsContent>
           </div>
         </Tabs>
       </div>
@@ -545,23 +715,25 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
             </Button>
           )}
 
-          <Button
-            variant="default"
-            onClick={() => setShowBitrixConfirm(true)}
-            disabled={sendingBitrix || bitrixSent}
-            className="gap-2 bg-[#3b82f6] hover:bg-[#2563eb] text-white font-semibold shadow-sm w-full sm:w-auto transition-colors"
-          >
-            {sendingBitrix ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Send className="w-4 h-4" />
-            )}
-            {sendingBitrix
-              ? 'Enviando...'
-              : bitrixSent
-                ? 'Enviado para Bitrix24'
-                : 'Enviar para Bitrix24'}
-          </Button>
+          {isBitrixIntegrated && approachData && (
+            <Button
+              variant="default"
+              onClick={() => setShowBitrixConfirm(true)}
+              disabled={sendingBitrix || bitrixSent}
+              className="gap-2 bg-[#3b82f6] hover:bg-[#2563eb] text-white font-semibold shadow-sm w-full sm:w-auto transition-colors"
+            >
+              {sendingBitrix ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Send className="w-4 h-4" />
+              )}
+              {sendingBitrix
+                ? 'Enviando...'
+                : bitrixSent
+                  ? 'Enviado para Bitrix24'
+                  : 'Enviar para Bitrix24'}
+            </Button>
+          )}
         </div>
         <Button variant="ghost" onClick={onClose} className="font-medium w-full sm:w-auto">
           Cancelar
@@ -592,7 +764,7 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmação de Envio</AlertDialogTitle>
             <AlertDialogDescription>
-              Deseja enviar este lead para o Bitrix24?
+              Deseja enviar este lead com a abordagem gerada para o Bitrix24?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
