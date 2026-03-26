@@ -236,6 +236,13 @@ ${approach.abordagem_gerada || 'N/A'}
           status: 'SUCESSO',
           user_id: leadData?.user_id || null,
         })
+
+        // Novo log detalhado na tabela específica
+        await supabaseAdmin.from('bitrix_sync_logs').insert({
+          lead_id: lead_id,
+          status: 'success',
+          response_data: { deal_id: returnedDealId, company_id: finalCompanyId },
+        })
       }
 
       // Retorna deal_id e status da operação
@@ -268,6 +275,12 @@ ${approach.abordagem_gerada || 'N/A'}
           status: 'ERRO',
           error_message: dealError.message,
           user_id: leadData?.user_id || null,
+        })
+
+        await supabaseAdmin.from('bitrix_sync_logs').insert({
+          lead_id: lead_id,
+          status: 'error',
+          response_data: { error_message: dealError.message },
         })
       }
       throw dealError

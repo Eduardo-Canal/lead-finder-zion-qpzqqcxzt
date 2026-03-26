@@ -28,6 +28,7 @@ import {
   Loader2,
   Send,
   MessageSquare,
+  RefreshCw,
 } from 'lucide-react'
 import useLeadStore, { FilteredLead } from '@/stores/useLeadStore'
 import useMyLeadsStore from '@/stores/useMyLeadsStore'
@@ -61,6 +62,7 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
   const [approachData, setApproachData] = useState<any>(null)
   const [loadingApproach, setLoadingApproach] = useState(false)
   const [isGeneratingApproach, setIsGeneratingApproach] = useState(false)
+  const [syncLogs, setSyncLogs] = useState<any[]>([])
 
   const isSaved = useMemo(() => {
     return myLeads.some((l) => l.cnpj === lead.cnpj)
@@ -98,6 +100,16 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
         if (isMounted) {
           setApproachData(appData)
           setLoadingApproach(false)
+        }
+
+        const { data: logsData } = await supabase
+          .from('bitrix_sync_logs')
+          .select('*')
+          .eq('lead_id', savedLead.id)
+          .order('created_at', { ascending: false })
+
+        if (isMounted && logsData) {
+          setSyncLogs(logsData)
         }
       }
     }
@@ -224,6 +236,7 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
 
   const handleSendBitrix = async () => {
     setSendingBitrix(true)
+    const savedLead = myLeads.find((l) => l.cnpj === lead.cnpj)
     try {
       const { data: settingsData, error: settingsError } = await supabase
         .from('settings')
@@ -243,7 +256,6 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
         throw new Error('Kanban ou Fase padrão não configurados.')
       }
 
-      const savedLead = myLeads.find((l) => l.cnpj === lead.cnpj)
       const lead_id = savedLead?.id || lead.id
       const company_id = savedLead?.bitrix_id || null
 
@@ -268,9 +280,30 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
         const event = new CustomEvent('refetch-my-leads')
         window.dispatchEvent(event)
       }
+
+      if (savedLead?.id) {
+        const { data: logsData } = await supabase
+          .from('bitrix_sync_logs')
+          .select('*')
+          .eq('lead_id', savedLead.id)
+          .order('created_at', { ascending: false })
+        if (logsData) {
+          setSyncLogs(logsData)
+        }
+      }
     } catch (err: any) {
       console.error(err)
       toast.error(err.message || 'Erro ao enviar para Bitrix24.')
+      if (savedLead?.id) {
+        const { data: logsData } = await supabase
+          .from('bitrix_sync_logs')
+          .select('*')
+          .eq('lead_id', savedLead.id)
+          .order('created_at', { ascending: false })
+        if (logsData) {
+          setSyncLogs(logsData)
+        }
+      }
     } finally {
       setSendingBitrix(false)
     }
@@ -660,6 +693,42 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
                           </ul>
                         </div>
                       )}
+                    </div>
+                  )}
+
+                  {syncLogs.length > 0 && (
+                    <div className="p-6 bg-white rounded-xl border border-slate-200 shadow-sm">
+                      <h4 className="font-bold flex items-center gap-2 text-slate-800 border-b border-slate-100 pb-3 mb-4">
+                        <RefreshCw className="w-5 h-5 text-primary" /> Histórico de Sincronizações
+                      </h4>
+                      <div className="space-y-3">
+                        {syncLogs.map((log) => (
+                          <div
+                            key={log.id}
+                            className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-100"
+                          >
+                            <div className="flex flex-col">
+                              <span className="text-sm font-medium text-slate-700 flex items-center gap-2">
+                                <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                                {new Date(log.created_at || log.sent_at).toLocaleString('pt-BR')}
+                              </span>
+                              <span className="text-xs text-slate-500 mt-1">
+                                Deal ID: {log.response_data?.deal_id || 'Não gerado'}
+                              </span>
+                            </div>
+                            <Badge
+                              variant={log.status === 'success' ? 'default' : 'destructive'}
+                              className={
+                                log.status === 'success'
+                                  ? 'bg-emerald-500 hover:bg-emerald-600'
+                                  : ''
+                              }
+                            >
+                              {log.status === 'success' ? 'Sucesso' : 'Erro'}
+                            </Badge>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
