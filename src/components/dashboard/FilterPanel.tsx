@@ -39,6 +39,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
 import { designTokens } from '@/constants/designTokens'
+import { useActivityLogger } from '@/hooks/use-activity-logger'
 
 const BRAZIL_STATES = [
   'AC',
@@ -97,6 +98,7 @@ export function FilterPanel() {
     filteredLeads,
   } = useLeadStore()
   const { hasPermission } = useAuthStore()
+  const { logAction } = useActivityLogger()
   const [cnaeInput, setCnaeInput] = useState('')
   const [isExpanded, setIsExpanded] = useState(true)
 
@@ -113,6 +115,8 @@ export function FilterPanel() {
       toast.error('Nenhum lead para exportar.')
       return
     }
+
+    logAction('export', 'empresas_rfb', { count: filteredLeads.length, filters })
 
     const headers = [
       'CNPJ',

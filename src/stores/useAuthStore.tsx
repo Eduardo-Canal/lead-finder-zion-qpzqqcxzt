@@ -93,11 +93,50 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const login = async (email: string, pass: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password: pass })
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass })
+
+    if (!error && data?.session) {
+      const deviceInfo = {
+        userAgent: navigator.userAgent,
+        language: navigator.language,
+        platform: navigator.platform,
+        screenResolution: `${window.screen.width}x${window.screen.height}`,
+      }
+      fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/log-user-activity`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${data.session.access_token}`,
+        },
+        body: JSON.stringify({
+          event_type: 'login',
+          user_id: data.user.id,
+          session_token: data.session.access_token,
+          device_info: deviceInfo,
+        }),
+      }).catch(console.error)
+    }
+
     return { error }
   }
 
   const logout = async () => {
+    const { data: sessionData } = await supabase.auth.getSession()
+    if (sessionData?.session) {
+      fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/log-user-activity`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${sessionData.session.access_token}`,
+        },
+        body: JSON.stringify({
+          event_type: 'logout',
+          user_id: sessionData.session.user.id,
+          session_token: sessionData.session.access_token,
+        }),
+      }).catch(console.error)
+    }
+
     await supabase.auth.signOut()
     setUser(null)
   }

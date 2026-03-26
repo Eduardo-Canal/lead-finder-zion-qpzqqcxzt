@@ -10,6 +10,7 @@ import React, {
 import useAuthStore from '@/stores/useAuthStore'
 import { supabase } from '@/lib/supabase/client'
 import { toast } from 'sonner'
+import { useActivityLogger } from '@/hooks/use-activity-logger'
 
 export type FilteredLead = {
   id: string
@@ -195,6 +196,7 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
   })
   const [isSearching, setIsSearching] = useState(false)
   const { user } = useAuthStore()
+  const { logAction } = useActivityLogger()
 
   const fetchInitialData = useCallback(async () => {
     if (!user) return
@@ -338,6 +340,8 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
           })
       }
 
+      logAction('search', 'empresas_rfb', { filters: payload, results_count: finalResults.length })
+
       if (finalResults.length > 0) {
         toast.success(`${finalResults.length} leads encontrados.`)
       } else {
@@ -406,6 +410,8 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
       })
     }
 
+    logAction('edit', 'contatos_realizados', { cnpj, status })
+
     const { data: cData } = await supabase
       .from('contatos_realizados')
       .select('*')
@@ -418,6 +424,9 @@ export function LeadStoreProvider({ children }: { children: ReactNode }) {
     const existing = contatos.find((c) => c.cnpj === cnpj)
     if (existing) {
       await supabase.from('contatos_realizados').delete().eq('id', existing.id)
+
+      logAction('edit', 'contatos_realizados', { cnpj, action: 'removed' })
+
       const { data: cData } = await supabase
         .from('contatos_realizados')
         .select('*')

@@ -9,6 +9,7 @@ import useAuthStore, { AuthProvider } from '@/stores/useAuthStore'
 import { LeadStoreProvider } from '@/stores/useLeadStore'
 import { UserManagementStoreProvider } from '@/stores/useUserManagementStore'
 import { NotificationStoreProvider } from '@/stores/useNotificationStore'
+import { ActivityMonitor } from '@/hooks/use-activity-logger'
 
 // Helper for auto-reloading when a chunk fails to load (e.g. after a new deploy)
 const lazyWithRetry = (componentImport: () => Promise<any>) =>
@@ -94,6 +95,7 @@ const App = () => (
       <LeadStoreProvider>
         <UserManagementStoreProvider>
           <BrowserRouter future={{ v7_startTransition: false, v7_relativeSplatPath: false }}>
+            <ActivityMonitor />
             <TooltipProvider>
               <Toaster />
               <Sonner />
