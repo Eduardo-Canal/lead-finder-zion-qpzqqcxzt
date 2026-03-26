@@ -22,61 +22,42 @@ import {
   Brain,
   Target,
   ClipboardList,
-  ShieldCheck,
-  Lightbulb,
-  RefreshCw,
-  Waves,
-  MapPin,
-  Copy,
-  Star,
-  Download,
-  Database,
-  Zap,
-  Sparkles,
-  CheckCircle,
-  History,
-  List,
-  UserPlus,
-  UserCheck,
-  Clock,
-  BarChart,
-  Bell,
   Filter,
-  Key,
-  Activity,
-  Eye,
-  PieChart,
-  Users,
-  Lock,
-  TrendingUp,
-  Edit3,
-  LineChart,
+  Sparkles,
   FileDown,
-  Beaker,
-  MousePointerClick,
+  Star,
+  Waves,
+  PieChart,
+  LineChart,
+  Save,
+  Eye,
+  Cloud,
+  History,
   Settings2,
   Network,
-  Gauge,
-  Shield,
+  LayoutDashboard,
   ListChecks,
-  PlayCircle,
-  Terminal,
-  Save,
+  Activity,
   Palette,
-  CopySlash,
-  Waypoints,
-  FileCheck2,
-  FileClock,
-  Wand2,
-  ThumbsUp,
+  SunMoon,
+  Bell,
+  Shield,
+  Clock,
+  Smartphone,
+  EyeOff,
+  Keyboard,
+  WifiOff,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 type Subtopic = {
   id: string
   title: string
-  desc: string
+  desc: string[]
+  steps: string[]
   icon: React.ElementType
+  imageQuery: string
+  related: string[]
 }
 
 type Topic = {
@@ -89,326 +70,451 @@ type Topic = {
 const helpData: Topic[] = [
   {
     id: 't1',
-    title: 'Inteligência Zion 🧠',
-    mainIcon: Brain,
+    title: '🔍 Prospecção Inteligente',
+    mainIcon: Target,
     subtopics: [
       {
         id: 't1-1',
-        title: 'Sincronização com Bitrix24',
-        desc: 'Mantenha sua base atualizada sincronizando clientes do CRM. Isso evita duplicidades e foca o time em novos leads reais.',
-        icon: RefreshCw,
+        title: 'Como Buscar Leads por CNAE',
+        desc: [
+          'A busca por CNAE é o núcleo do Lead Finder Zion. Através dela, você localiza empresas do seu nicho de forma rápida e precisa.',
+          'Utilize o autocompletar para inserir múltiplos códigos e segmentar perfeitamente sua campanha.',
+        ],
+        steps: [
+          'Vá em "Painel de Prospecção" no menu principal.',
+          'Digite o código ou nome da atividade no campo "CNAE".',
+          'Selecione as sugestões listadas.',
+          'Clique em "Buscar Leads" para carregar a lista.',
+        ],
+        icon: Search,
+        imageQuery: 'business%20search',
+        related: ['t1-2', 't1-3'],
       },
       {
         id: 't1-2',
-        title: 'Análise Oceanos Azuis',
-        desc: 'Descubra nichos inexplorados cruzando dados de CNAEs e regiões. Ideal para direcionar sua prospecção ativa de forma inteligente.',
-        icon: Waves,
+        title: 'Filtros Avançados (Faturamento, Funcionários, Score)',
+        desc: [
+          'Filtros avançados ajudam a encontrar o lead ideal, analisando faturamento, tamanho e saúde financeira da empresa.',
+          'Combine estes indicadores para focar a energia da sua equipe comercial nas melhores oportunidades do mercado.',
+        ],
+        steps: [
+          'No Painel de Prospecção, expanda a área de "Filtros Avançados".',
+          'Ajuste o slider de "Faturamento" para o valor desejado.',
+          'Defina o número ideal de funcionários e o Score Mínimo.',
+          'Execute a busca para aplicar as restrições.',
+        ],
+        icon: Filter,
+        imageQuery: 'business%20analytics',
+        related: ['t1-1', 't2-2'],
       },
       {
         id: 't1-3',
-        title: 'Descoberta por Região',
-        desc: 'Filtre e identifique oportunidades de negócios quentes em estados e municípios específicos rapidamente através do painel.',
-        icon: MapPin,
+        title: 'Dados Enriquecidos da Casa dos Dados',
+        desc: [
+          'Ao buscar leads, nosso sistema cruza as informações com a base oficial da Casa dos Dados automaticamente.',
+          'Isso garante acesso a e-mails reais, quadros societários atualizados e contatos decisivos para o seu fechamento.',
+        ],
+        steps: [
+          'Realize uma pesquisa padrão por CNAE ou região.',
+          'Aguarde a barra de "Enriquecimento" carregar no card da empresa.',
+          'Visualize o "Score de Crédito" e os e-mails dos sócios.',
+          'Utilize esses dados na sua abordagem de vendas.',
+        ],
+        icon: Sparkles,
+        imageQuery: 'data%20server',
+        related: ['t3-2'],
       },
       {
         id: 't1-4',
-        title: 'Busca por Semelhança',
-        desc: 'Encontre empresas com perfis idênticos aos seus melhores clientes atuais, aumentando substancialmente a taxa de conversão.',
-        icon: Copy,
-      },
-      {
-        id: 't1-5',
-        title: 'Classificação ABC de Clientes',
-        desc: 'Priorize contatos com base na curva ABC importada do seu CRM, focando energia e recursos onde há maior potencial de retorno.',
-        icon: Star,
-      },
-      {
-        id: 't1-6',
-        title: 'Exportação de Dados',
-        desc: 'Baixe planilhas consolidadas em formato CSV para análises externas, cruzamento de dados ou apresentações estratégicas.',
-        icon: Download,
+        title: 'Exportar Leads em Excel',
+        desc: [
+          'Se você precisa manipular os dados em outras ferramentas ou compartilhar com a equipe externa, a exportação é essencial.',
+          'Os arquivos são gerados no formato CSV/Excel, contendo colunas ricas e dados consolidados para campanhas de marketing.',
+        ],
+        steps: [
+          'Faça uma pesquisa com seus critérios.',
+          'Clique no botão "Exportar" localizado no topo da lista de resultados.',
+          'Escolha o formato e confirme o download.',
+          'Abra o arquivo gerado na sua ferramenta de planilhas.',
+        ],
+        icon: FileDown,
+        imageQuery: 'spreadsheet',
+        related: ['t3-1'],
       },
     ],
   },
   {
     id: 't2',
-    title: 'Prospecção 🎯',
-    mainIcon: Target,
+    title: '📊 Inteligência Zion',
+    mainIcon: Brain,
     subtopics: [
       {
         id: 't2-1',
-        title: 'Busca Avançada',
-        desc: 'Utilize filtros precisos de CNAE, localização, porte e situação cadastral para encontrar o lead perfeito para sua campanha.',
-        icon: Search,
+        title: 'Análise ABC de Clientes',
+        desc: [
+          'O algoritmo Zion classifica automaticamente sua base de clientes importada em curva A, B e C com base no faturamento e histórico.',
+          'Isso direciona sua prospecção para buscar "clones" dos seus melhores clientes (Curva A).',
+        ],
+        steps: [
+          'Acesse o módulo "Inteligência Zion".',
+          'Sincronize a base com seu CRM (Bitrix24).',
+          'Visualize o gráfico de distribuição ABC.',
+          'Clique sobre os perfis A para gerar novas buscas similares.',
+        ],
+        icon: Star,
+        imageQuery: 'chart%20analysis',
+        related: ['t2-3', 't1-1'],
       },
       {
         id: 't2-2',
-        title: 'Cache Inteligente',
-        desc: 'O sistema salva buscas recentes por 30 dias para otimizar a velocidade e economizar seus créditos de API externa automaticamente.',
-        icon: Database,
+        title: 'Oceanos Azuis - Oportunidades de Mercado',
+        desc: [
+          'Esta ferramenta analisa regiões e nichos onde seus concorrentes (ou você) ainda não atuam expressivamente.',
+          'Encontre mercados não saturados para focar a estratégia comercial e obter melhores taxas de conversão.',
+        ],
+        steps: [
+          'Abra a aba "Oceanos Azuis" dentro de Inteligência Zion.',
+          'Selecione seu segmento principal no mapa de calor.',
+          'Identifique os estados ou cidades com menor densidade de atendimento.',
+          'Crie uma campanha focada na região sugerida.',
+        ],
+        icon: Waves,
+        imageQuery: 'ocean%20blue',
+        related: ['t1-1', 't2-4'],
       },
       {
         id: 't2-3',
-        title: 'Enriquecimento de Leads',
-        desc: 'Obtenha dados completos de contato, quadro societário e endereço detalhado com apenas um clique no botão de enriquecer lead.',
-        icon: Sparkles,
+        title: 'Relatórios de Performance',
+        desc: [
+          'Monitore a produtividade de cada executivo, a taxa de conversão e o retorno de suas listas de prospecção.',
+          'Os relatórios cruzam dados de leads capturados com negócios gerados, oferecendo previsibilidade financeira.',
+        ],
+        steps: [
+          'Acesse "Configurações > Relatórios".',
+          'Selecione o período (ex: Últimos 30 dias).',
+          'Analise os gráficos de "Taxa de Contato" e "Conversão".',
+          'Exporte o PDF para apresentação gerencial, se necessário.',
+        ],
+        icon: PieChart,
+        imageQuery: 'dashboard%20report',
+        related: ['t2-4'],
       },
       {
         id: 't2-4',
-        title: 'Validação de Dados',
-        desc: 'CNPJs são validados e formatados automaticamente para garantir que você invista tempo apenas em empresas reais e ativas.',
-        icon: CheckCircle,
-      },
-      {
-        id: 't2-5',
-        title: 'Histórico de Buscas',
-        desc: 'Acesse rapidamente suas pesquisas anteriores na aba Meu Histórico sem precisar reconfigurar todos os parâmetros e filtros.',
-        icon: History,
-      },
-      {
-        id: 't2-6',
-        title: 'Paginação de Resultados',
-        desc: 'Navegue de forma ágil por listas extensas de resultados (até milhares de registros) sem perda de performance ou lentidão.',
-        icon: List,
+        title: 'Interpretando Gráficos',
+        desc: [
+          'Nosso dashboard possui diversos gráficos interativos que reagem aos seus cliques. Cada cor representa um estágio do funil.',
+          'Saber interpretar essas métricas é vital para identificar gargalos no processo de vendas da equipe.',
+        ],
+        steps: [
+          'Navegue até a página inicial (Dashboard).',
+          'Passe o mouse sobre os gráficos de barras ou pizza.',
+          'Observe o Tooltip com o valor exato daquele segmento.',
+          'Clique nos segmentos para isolar os dados na tabela abaixo.',
+        ],
+        icon: LineChart,
+        imageQuery: 'data%20visualization',
+        related: ['t2-3'],
       },
     ],
   },
   {
     id: 't3',
-    title: 'Meus Leads 📋',
+    title: '💼 Gestão de Meus Leads',
     mainIcon: ClipboardList,
     subtopics: [
       {
         id: 't3-1',
-        title: 'Captura de Leads',
-        desc: 'Salve empresas promissoras da aba de prospecção diretamente na sua carteira pessoal para acompanhamento e contato contínuo.',
-        icon: UserPlus,
+        title: 'Salvar Leads em Meus Leads',
+        desc: [
+          'Após encontrar a empresa ideal, salve-a na sua carteira para acompanhamento individualizado e ações futuras.',
+          'Leads salvos ficam na sua base permanente e não expiram, permitindo o registro de todo o histórico de contatos.',
+        ],
+        steps: [
+          'No painel de prospecção, localize um lead interessante.',
+          'Clique no botão "Salvar Lead" ao lado do nome.',
+          'Acesse o menu "Meus Leads" para ver sua carteira atualizada.',
+          'Organize-os utilizando as tags de status.',
+        ],
+        icon: Save,
+        imageQuery: 'save%20document',
+        related: ['t3-2', 't1-1'],
       },
       {
         id: 't3-2',
-        title: 'Gestão de Contato',
-        desc: 'Registre cada interação, atualize o status da conversa e mantenha o relacionamento com o lead sempre aquecido e documentado.',
-        icon: UserCheck,
+        title: 'Visualizar Detalhes do Lead',
+        desc: [
+          'A ficha completa do lead concentra todas as informações cadastrais, o histórico de interações e os dados dos sócios.',
+          'É o seu painel de controle antes de fazer a ligação, garantindo que a abordagem seja personalizada.',
+        ],
+        steps: [
+          'Vá em "Meus Leads".',
+          'Clique sobre a Razão Social da empresa na tabela.',
+          'Um modal lateral se abrirá com os detalhes.',
+          'Navegue entre as abas de "Visão Geral", "Sócios" e "Histórico".',
+        ],
+        icon: Eye,
+        imageQuery: 'magnifying%20glass%20document',
+        related: ['t3-1', 't3-3'],
       },
       {
         id: 't3-3',
-        title: 'Histórico e Decisores',
-        desc: 'Mantenha os dados das pessoas-chave (decisores) e todo o histórico cronológico de conversas sempre à mão na ficha do lead.',
-        icon: Clock,
+        title: 'Enviar Lead para Bitrix24',
+        desc: [
+          'Integre sua prospecção com o fechamento criando automaticamente um Deal (Negócio) no Bitrix24 com apenas um clique.',
+          'A Edge Function cria a empresa, vincula o Lead e adiciona-o na fase inicial do seu funil comercial.',
+        ],
+        steps: [
+          'Abra os detalhes de um lead em "Meus Leads".',
+          'Clique no botão verde "Enviar para Bitrix24".',
+          'Aguarde o loader (o sistema está checando duplicidades).',
+          'Uma notificação confirmará o ID do Deal criado com sucesso.',
+        ],
+        icon: Cloud,
+        imageQuery: 'cloud%20sync',
+        related: ['t4-1', 't3-4'],
       },
       {
         id: 't3-4',
-        title: 'Status de Oportunidade',
-        desc: 'Avance os leads pelo funil de vendas corporativo (Prospecção, Qualificação, Proposta, Fechamento) de forma visual e clara.',
-        icon: BarChart,
-      },
-      {
-        id: 't3-5',
-        title: 'Lembretes Automáticos',
-        desc: 'Receba notificações de follow-up baseadas no tempo sem contato, garantindo que nenhuma oportunidade de negócio esfrie.',
-        icon: Bell,
-      },
-      {
-        id: 't3-6',
-        title: 'Filtro de Status de Contato',
-        desc: 'Organize sua visão diária filtrando e focando rapidamente apenas nos leads que precisam de atenção ou contato imediato.',
-        icon: Filter,
+        title: 'Histórico de Sincronizações',
+        desc: [
+          'Manter a rastreabilidade do que foi enviado ao CRM é importante para auditoria e controle de falhas de conexão.',
+          'O histórico exibe um log completo de todos os envios, com o respectivo status e eventuais mensagens de erro.',
+        ],
+        steps: [
+          'Acesse "Configurações > Histórico Bitrix24".',
+          'Use os filtros no topo para buscar por data ou status.',
+          'Verifique a coluna "Deal ID" para envios com sucesso.',
+          'Em envios com erro, leia o motivo para poder corrigir os dados e tentar novamente.',
+        ],
+        icon: History,
+        imageQuery: 'audit%20log',
+        related: ['t3-3', 't4-4'],
       },
     ],
   },
   {
     id: 't4',
-    title: 'Governança 🔐',
-    mainIcon: ShieldCheck,
+    title: '⚙️ Configurações de Integração',
+    mainIcon: Settings2,
     subtopics: [
       {
         id: 't4-1',
-        title: 'Gestão de Acessos',
-        desc: 'Controle com precisão quem pode visualizar, editar ou exportar dados através de perfis de permissão modulares e rigorosos.',
-        icon: Key,
+        title: 'Conectar com Bitrix24',
+        desc: [
+          'Vincule o Lead Finder Zion ao seu ambiente do Bitrix24 via webhook inbound para automatizar o envio de Deals.',
+          'Esse passo requer permissões administrativas e precisa ser feito apenas uma vez.',
+        ],
+        steps: [
+          'Vá em "Configurações > Integração Bitrix24".',
+          'Insira a URL do Webhook gerada no painel do seu Bitrix.',
+          'Salve a credencial com segurança.',
+          'O sistema testará a comunicação automaticamente.',
+        ],
+        icon: Network,
+        imageQuery: 'server%20connection',
+        related: ['t4-4', 't3-3'],
       },
       {
         id: 't4-2',
-        title: 'Monitoramento de Integrações',
-        desc: 'Verifique a saúde, estabilidade e o consumo diário das APIs externas (Bitrix e Casa dos Dados) no painel de administração.',
-        icon: Activity,
+        title: 'Selecionar Kanban Padrão',
+        desc: [
+          'O Bitrix24 permite gerenciar múltiplos funis (Kanbans). O sistema Zion precisa saber para qual deles enviar os novos leads.',
+          'Escolha o funil mais apropriado para a equipe de "Inbound/Outbound" ou "Prospecção".',
+        ],
+        steps: [
+          'No painel de Configurações do Bitrix24, localize a seção "Funil Padrão".',
+          'O sistema listará seus funis atuais.',
+          'Selecione o funil desejado.',
+          'Salve a configuração.',
+        ],
+        icon: LayoutDashboard,
+        imageQuery: 'kanban%20board',
+        related: ['t4-3'],
       },
       {
         id: 't4-3',
-        title: 'Auditoria de Ações',
-        desc: 'Rastreie cada criação, edição ou exclusão feita no sistema para manter total segurança, compliance e conformidade dos dados.',
-        icon: Eye,
+        title: 'Configurar Fase Padrão',
+        desc: [
+          'Além do Kanban, você define a fase exata onde o novo negócio (Deal) será inserido.',
+          'Geralmente recomenda-se a primeira fase (ex: "Novo Lead" ou "Prospecção").',
+        ],
+        steps: [
+          'Abaixo da seleção de Kanban, acesse a seleção de "Fase Inicial".',
+          'O dropdown mostrará os estágios do Kanban escolhido.',
+          'Selecione o estágio correspondente.',
+          'Salve a configuração.',
+        ],
+        icon: ListChecks,
+        imageQuery: 'workflow%20process',
+        related: ['t4-2'],
       },
       {
         id: 't4-4',
-        title: 'Relatórios de Performance',
-        desc: 'Acompanhe as taxas de conversão, volume de contatos realizados e a eficiência geral de cada membro da sua equipe comercial.',
-        icon: PieChart,
-      },
-      {
-        id: 't4-5',
-        title: 'Gestão de Usuários',
-        desc: 'Adicione novos executivos, inative contas antigas ou altere os perfis dos membros diretamente pelo painel administrativo.',
-        icon: Users,
-      },
-      {
-        id: 't4-6',
-        title: 'Alteração de Senha',
-        desc: 'Troque credenciais de acesso com segurança. Administradores podem forçar atualizações de senha em lote se necessário.',
-        icon: Lock,
+        title: 'Testar Conexão',
+        desc: [
+          'Antes de escalar as operações da equipe, teste a conexão para garantir que não há bloqueios de firewall ou erro na chave de acesso.',
+          'A rotina de validação realiza chamadas mockadas e atesta o funcionamento.',
+        ],
+        steps: [
+          'Na tela de Integração, clique no botão "Testar Conexão".',
+          'Aguarde a verificação de conectividade e leitura das permissões.',
+          'Um alerta de sucesso verde aparecerá confirmando a integração.',
+          'Em caso de falha, verifique o log detalhado exibido.',
+        ],
+        icon: Activity,
+        imageQuery: 'system%20testing',
+        related: ['t4-1'],
       },
     ],
   },
   {
     id: 't5',
-    title: 'Testes e Validação 🧪',
-    mainIcon: Beaker,
+    title: '🎨 Personalização da Plataforma',
+    mainIcon: Palette,
     subtopics: [
       {
         id: 't5-1',
-        title: 'Como Acessar a Página de Testes',
-        desc: 'Exclusivo para admins. Acesse via menu lateral "Testes e Validação (QA)". Este painel é uma central automatizada para validar toda a saúde, integridade e regras de negócio da aplicação com um único clique.',
-        icon: MousePointerClick,
+        title: 'Alterar Tema (Claro/Escuro)',
+        desc: [
+          'Para garantir conforto visual, especialmente em jornadas noturnas, adapte a interface para tons escuros.',
+          'A plataforma se recorda da sua preferência entre os diferentes dispositivos.',
+        ],
+        steps: [
+          'Abra o menu do seu "Perfil" no canto inferior ou superior da tela.',
+          'Clique no botão de Alternância de Tema.',
+          'Escolha entre "Claro", "Escuro" ou "Sistema".',
+          'A interface se adaptará imediatamente.',
+        ],
+        icon: SunMoon,
+        imageQuery: 'dark%20mode%20ui',
+        related: ['t6-1'],
       },
       {
         id: 't5-2',
-        title: 'Testes de Funcionalidade',
-        desc: 'Valida 11 recursos vitais: Paginação, Filtro de Status, Histórico, CNPJ, Curva ABC, Exportação, Funil Kanban, Lembretes, Auditoria, Relatórios e Senhas, garantindo a operação perfeita da plataforma de ponta a ponta.',
-        icon: Settings2,
+        title: 'Configurar Preferências de Notificação',
+        desc: [
+          'Selecione quais alertas deseja receber (novos leads, sucesso no Bitrix, alertas de follow-up).',
+          'Isso evita a poluição do seu painel e mantém o foco no que realmente importa.',
+        ],
+        steps: [
+          'Acesse "Meu Perfil".',
+          'Vá na aba "Notificações".',
+          'Ligue ou desligue os switches referentes a cada tipo de alerta.',
+          'As configurações são salvas automaticamente.',
+        ],
+        icon: Bell,
+        imageQuery: 'notification%20bell',
+        related: ['t5-4'],
       },
       {
         id: 't5-3',
-        title: 'Testes de Integração',
-        desc: 'Verifica a comunicação crítica do sistema. Testa se as conexões com o banco Supabase, a integridade das Edge Functions e a geração segura de tokens pelo serviço de Autenticação estão totalmente operantes.',
-        icon: Network,
+        title: 'Gerenciar Permissões de Usuários',
+        desc: [
+          'Como administrador, você pode restringir ações destrutivas ou o acesso ao módulo de auditoria para os demais usuários.',
+          'Os perfis modulares garantem aderência às normas de governança da empresa.',
+        ],
+        steps: [
+          'Acesse "Gestão de Usuários" no menu lateral.',
+          'Selecione o usuário desejado e clique em "Editar".',
+          'Altere o Perfil de Acesso do usuário na lista.',
+          'Salve para aplicar instantaneamente as restrições.',
+        ],
+        icon: Shield,
+        imageQuery: 'security%20shield',
+        related: ['t4-1'],
       },
       {
         id: 't5-4',
-        title: 'Testes de Performance',
-        desc: 'Mede a velocidade da aplicação. O teste de Carregamento avalia se queries respondem rapidamente. O teste de Cache comprova a economia de tempo e créditos reutilizando pesquisas idênticas recentes.',
-        icon: Gauge,
-      },
-      {
-        id: 't5-5',
-        title: 'Testes de Segurança',
-        desc: 'Garante a blindagem dos dados da empresa. Valida as permissões de interface e testa as políticas RLS no banco, impedindo rigorosamente acessos indevidos a registros de outros usuários.',
-        icon: Shield,
-      },
-      {
-        id: 't5-6',
-        title: 'Interpretando Resultados',
-        desc: 'Status: PASSOU (verde) é sucesso, FALHOU (vermelho) alerta erro e AVISO (amarelo) indica lentidão. Utilize os botões para "Exportar Relatório CSV" completo e "Limpar Dados" para remover os registros fictícios gerados.',
-        icon: ListChecks,
-      },
-      {
-        id: 't5-7',
-        title: 'Executar Todos os Testes',
-        desc: 'O botão "Executar Todos os Testes" permite rodar todos os testes de QA simultaneamente em lote. O processamento ocorre sequencialmente de forma rápida, concluindo a bateria inteira em poucos segundos e de forma paralela sempre que possível.',
-        icon: PlayCircle,
-      },
-      {
-        id: 't5-8',
-        title: 'Painel de Logs em Tempo Real',
-        desc: 'Ao executar ou expandir os cards de teste, um terminal técnico é exibido no rodapé do card, oferecendo um diagnóstico detalhado. Ele mostra o que está acontecendo em tempo real, documentando comandos e retornos durante a execução.',
-        icon: Terminal,
-      },
-      {
-        id: 't5-9',
-        title: 'Persistência de Resultados',
-        desc: 'O sistema salva automaticamente o progresso no navegador (localStorage), garantindo que os resultados dos testes e logs permaneçam disponíveis após um refresh da página. Para limpar, utilize o botão "Limpar Dados de Teste".',
-        icon: Save,
-      },
-      {
-        id: 't5-10',
-        title: 'Resumo de Métricas e Taxa de Sucesso',
-        desc: 'A taxa de sucesso global é calculada em tempo real no topo do painel (total de testes que PASSARAM / total de testes executados × 100%). Interprete essa métrica para validar rapidamente a saúde geral e identificar se a aplicação está apta.',
-        icon: Activity,
-      },
-      {
-        id: 't5-11',
-        title: 'Testes de UX/UI',
-        desc: 'Esta categoria inclui 3 testes: Responsividade (adaptação de breakpoints), Help System (modais e busca de ajuda) e Ícones e Cores (aderência ao design system), garantindo uma experiência de usuário (UX) fluida e visualmente consistente.',
-        icon: Palette,
+        title: 'Configurar Lembretes',
+        desc: [
+          'Defina o tempo de cadência (em dias) em que deseja ser cobrado para retomar contato com leads.',
+          'Esses lembretes mantêm o relacionamento aquecido e evitam a perda de prospecções em andamento.',
+        ],
+        steps: [
+          'Vá em "Configurações > Lembretes Automáticos".',
+          'Estabeleça os prazos de dias sem contato (Follow-up, Proposta, Fechamento).',
+          'Ative os alertas no painel.',
+          'O sistema enviará os avisos via central de notificações diariamente.',
+        ],
+        icon: Clock,
+        imageQuery: 'calendar%20reminder',
+        related: ['t5-2'],
       },
     ],
   },
   {
     id: 't6',
-    title: '🔄 Deduplicação de Empresas',
-    mainIcon: CopySlash,
+    title: '📱 Acessibilidade e Mobile',
+    mainIcon: Smartphone,
     subtopics: [
       {
         id: 't6-1',
-        title: 'Como Funciona a Deduplicação Automática',
-        desc: 'O sistema utiliza 3 níveis de busca para evitar dados repetidos: 1. CNPJ exato (busca sequencial segura); 2. Razão Social (com validação de similaridade para detectar variações de nome); 3. Criar novo registro apenas quando nenhuma correspondência segura é encontrada.',
-        icon: Waypoints,
+        title: 'Usar em Dispositivos Móveis',
+        desc: [
+          'O Lead Finder Zion é responsivo e pode ser acessado de tablets e smartphones sem perder funcionalidades cruciais.',
+          'Ideal para prospecções rápidas ou conferência de dados em trânsito.',
+        ],
+        steps: [
+          'Acesse a URL da plataforma pelo navegador do seu celular.',
+          'Utilize o menu "Hambúrguer" (três barras) para abrir a navegação lateral.',
+          'Para tabelas longas, deslize lateralmente o dedo para exibir colunas ocultas.',
+          'Aproveite a experiência adaptada.',
+        ],
+        icon: Smartphone,
+        imageQuery: 'mobile%20app',
+        related: ['t5-1'],
       },
       {
         id: 't6-2',
-        title: 'Seção Pendentes de Revisão',
-        desc: 'Área dedicada para visualizar, revisar e fazer merge de empresas duplicadas identificadas pelo sistema. Permite fazer a mesclagem manual escolhendo qual cadastro deve ser mantido como o principal.',
-        icon: FileCheck2,
+        title: 'Reduzir Movimento (Acessibilidade)',
+        desc: [
+          'Se você tem sensibilidade a animações ou deseja economizar bateria e performance, ative o recurso de reduzir movimento.',
+          'O sistema detectará as preferências nativas do seu sistema operacional também.',
+        ],
+        steps: [
+          'Verifique as configurações de acessibilidade do seu Sistema Operacional (Windows/Mac/iOS/Android).',
+          'Ative "Reduzir Movimento".',
+          'Ao acessar a plataforma, a renderização pesada (como a Inteligência Zion Global) será pausada.',
+          'O layout ficará mais estático e rápido.',
+        ],
+        icon: EyeOff,
+        imageQuery: 'accessibility',
+        related: ['t6-1'],
       },
       {
         id: 't6-3',
-        title: 'Histórico de Merges',
-        desc: 'Painel com auditoria completa de todas as mesclagens realizadas. Oferece rastreabilidade total (quem fez, quando e por que) e a possibilidade de reversão de operações (desfazer merge).',
-        icon: FileClock,
+        title: 'Atalhos de Teclado',
+        desc: [
+          'Acelere sua operação utilizando teclas de atalho para ações diárias. Profissionais ganham minutos valiosos por semana.',
+          'Descubra como fechar painéis ou confirmar modais rapidamente.',
+        ],
+        steps: [
+          'Utilize "Ctrl+B" (ou Cmd+B) para expandir ou retrair o menu lateral.',
+          'Pressione "Esc" para fechar modais de detalhes de leads e a aba de ajuda.',
+          'Use as "Setas Direita/Esquerda" para rolar tabelas horizontais em foco.',
+          'Pressione "Enter" para confirmar buscas.',
+        ],
+        icon: Keyboard,
+        imageQuery: 'computer%20keyboard',
+        related: ['t6-1'],
       },
       {
         id: 't6-4',
-        title: 'Análise Potencial com Fuzzy Matching',
-        desc: 'Ferramenta proativa que detalha a detecção automática de empresas com Razão Social similar varrendo a base com Fuzzy Matching. Oferece sugestões de merge pré-preenchidas e estatísticas de resolução.',
-        icon: Wand2,
-      },
-      {
-        id: 't6-5',
-        title: 'Boas Práticas de Deduplicação',
-        desc: 'Recomendações para manter sua base de dados limpa e confiável: Revise regularmente a aba de pendentes, compare os dados com atenção e valide as sugestões de merge proativas.',
-        icon: ThumbsUp,
-      },
-    ],
-  },
-  {
-    id: 't7',
-    title: 'Dicas Rápidas 💡',
-    mainIcon: Lightbulb,
-    subtopics: [
-      {
-        id: 't7-1',
-        title: 'Maximize Resultados com Filtros',
-        desc: 'Combine filtros específicos de CNAE com a Curva ABC para focar os esforços do time nos leads com maior probabilidade de fechamento.',
-        icon: TrendingUp,
-      },
-      {
-        id: 't7-2',
-        title: 'Use o Cache para Economizar',
-        desc: 'Refazer buscas idênticas em menos de 30 dias não consome créditos adicionais da sua API externa. Aproveite esse recurso.',
-        icon: Zap,
-      },
-      {
-        id: 't7-3',
-        title: 'Registre Sempre o Contato',
-        desc: 'Atualize o status após cada ligação para garantir que o motor de lembretes automáticos envie as notificações na hora certa.',
-        icon: Edit3,
-      },
-      {
-        id: 't7-4',
-        title: 'Acompanhe Métricas Regularmente',
-        desc: 'Visite o dashboard de relatórios pelo menos semanalmente para calibrar sua estratégia de prospecção com base em dados reais.',
-        icon: LineChart,
-      },
-      {
-        id: 't7-5',
-        title: 'Sincronize Bitrix Regularmente',
-        desc: 'Mantenha os dados do Bitrix atualizados frequentemente para evitar o desgaste de ligar oferecendo serviços para quem já é cliente.',
-        icon: RefreshCw,
-      },
-      {
-        id: 't7-6',
-        title: 'Exporte Dados para Apresentações',
-        desc: 'Use a ferramenta de exportação em CSV para cruzar os leads capturados na Zion com outras ferramentas analíticas da empresa.',
-        icon: FileDown,
+        title: 'Modo Offline',
+        desc: [
+          'Algumas páginas, como Meus Leads, possuem cache local progressivo e podem mostrar o histórico carregado mesmo se a conexão cair momentaneamente.',
+          'Isso permite que você não perca os dados de contato do cliente enquanto ele estiver na linha.',
+        ],
+        steps: [
+          'Ao carregar "Meus Leads", o sistema já faz um snapshot.',
+          'Se a internet oscilar, você notará que a interface permanece utilizável.',
+          'As ações de atualização aguardarão o retorno do sinal.',
+          'As buscas complexas de CNPJ exigem rede e alertarão sobre a conexão.',
+        ],
+        icon: WifiOff,
+        imageQuery: 'offline',
+        related: ['t6-1'],
       },
     ],
   },
@@ -420,6 +526,10 @@ export function HelpModal() {
   const [selectedSubtopic, setSelectedSubtopic] = useState<Subtopic | null>(null)
   const [expandedTopics, setExpandedTopics] = useState<string[]>(['t1'])
 
+  const allSubtopics = useMemo(() => {
+    return helpData.flatMap((t) => t.subtopics)
+  }, [])
+
   const filteredData = useMemo(() => {
     if (!searchQuery.trim()) return helpData
     const lowerQuery = searchQuery.toLowerCase()
@@ -430,7 +540,8 @@ export function HelpModal() {
         const matchingSubtopics = topic.subtopics.filter(
           (sub) =>
             sub.title.toLowerCase().includes(lowerQuery) ||
-            sub.desc.toLowerCase().includes(lowerQuery),
+            sub.desc.join(' ').toLowerCase().includes(lowerQuery) ||
+            sub.steps.join(' ').toLowerCase().includes(lowerQuery),
         )
 
         if (isTopicMatch || matchingSubtopics.length > 0) {
@@ -452,7 +563,6 @@ export function HelpModal() {
     }
   }, [searchQuery, filteredData])
 
-  // Reset state when modal closes
   useEffect(() => {
     if (!open) {
       setTimeout(() => {
@@ -462,6 +572,18 @@ export function HelpModal() {
       }, 300)
     }
   }, [open])
+
+  const handleRelatedClick = (relatedId: string) => {
+    const target = allSubtopics.find((s) => s.id === relatedId)
+    if (target) {
+      setSelectedSubtopic(target)
+      // Scroll right panel to top
+      const scrollArea = document.getElementById('help-details-scroll')
+      if (scrollArea) {
+        scrollArea.scrollTop = 0
+      }
+    }
+  }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -475,7 +597,7 @@ export function HelpModal() {
           <HelpCircle className="h-5 w-5" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh] flex flex-col overflow-hidden p-0 gap-0">
+      <DialogContent className="max-w-5xl w-[95vw] max-h-[90vh] flex flex-col overflow-hidden p-0 gap-0">
         <DialogHeader className="shrink-0 p-6 pb-4 border-b bg-slate-50/50">
           <DialogTitle className="text-xl flex items-center gap-2 text-[#0066CC]">
             <HelpCircle className="h-6 w-6 text-[#0066CC]" />
@@ -487,7 +609,7 @@ export function HelpModal() {
           {/* Left Panel - Topics List */}
           <div
             className={cn(
-              'flex-col w-full md:w-1/2 lg:w-2/5 p-4 md:p-6 md:pr-4 bg-white',
+              'flex-col w-full md:w-1/2 lg:w-[35%] p-4 md:p-6 md:pr-4 bg-white',
               selectedSubtopic ? 'hidden md:flex' : 'flex',
             )}
           >
@@ -528,7 +650,7 @@ export function HelpModal() {
                               key={sub.id}
                               variant={selectedSubtopic?.id === sub.id ? 'secondary' : 'ghost'}
                               className={cn(
-                                'w-full justify-start text-left font-medium h-auto py-2 px-3 text-sm transition-colors',
+                                'w-full justify-start text-left font-medium h-auto py-2 px-3 text-sm transition-colors whitespace-normal break-words',
                                 selectedSubtopic?.id === sub.id
                                   ? 'bg-[#0066CC]/10 text-[#0066CC] hover:bg-[#0066CC]/20'
                                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100',
@@ -543,7 +665,7 @@ export function HelpModal() {
                                     : 'text-slate-400',
                                 )}
                               />
-                              <span className="truncate">{sub.title}</span>
+                              <span className="leading-snug">{sub.title}</span>
                             </Button>
                           ))}
                         </div>
@@ -558,7 +680,7 @@ export function HelpModal() {
           {/* Right Panel - Details View */}
           <div
             className={cn(
-              'flex-col w-full md:w-1/2 lg:w-3/5 p-6 bg-slate-50/30 md:border-l border-slate-100',
+              'flex-col w-full md:w-1/2 lg:w-[65%] p-6 bg-slate-50/30 md:border-l border-slate-100 overflow-hidden',
               !selectedSubtopic ? 'hidden md:flex' : 'flex',
             )}
           >
@@ -586,14 +708,77 @@ export function HelpModal() {
                   </div>
                 </div>
 
-                <ScrollArea className="flex-1 pr-4 -mr-4">
-                  <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm">
-                    <h4 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">
-                      Descrição Detalhada
-                    </h4>
-                    <p className="text-slate-600 leading-relaxed text-[15px]">
-                      {selectedSubtopic.desc}
-                    </p>
+                <ScrollArea id="help-details-scroll" className="flex-1 pr-4 -mr-4">
+                  <div className="pb-8">
+                    {selectedSubtopic.imageQuery && (
+                      <div className="mb-6 rounded-xl overflow-hidden shadow-sm border border-slate-200 bg-white">
+                        <img
+                          src={`https://img.usecurling.com/p/800/300?q=${selectedSubtopic.imageQuery}&color=blue`}
+                          alt="Ilustração do Tópico"
+                          className="w-full h-auto object-cover max-h-[220px]"
+                        />
+                      </div>
+                    )}
+
+                    <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm mb-6">
+                      <h4 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">
+                        Descrição
+                      </h4>
+                      <div className="space-y-4">
+                        {selectedSubtopic.desc.map((p, i) => (
+                          <p key={i} className="text-slate-600 leading-relaxed text-[15px]">
+                            {p}
+                          </p>
+                        ))}
+                      </div>
+                    </div>
+
+                    {selectedSubtopic.steps && selectedSubtopic.steps.length > 0 && (
+                      <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm mb-6">
+                        <h4 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">
+                          Passo a Passo
+                        </h4>
+                        <ol className="space-y-4 relative">
+                          {selectedSubtopic.steps.map((step, i) => (
+                            <li
+                              key={i}
+                              className="flex gap-4 text-slate-600 text-[15px] items-start"
+                            >
+                              <span className="flex items-center justify-center bg-primary/10 text-primary min-w-6 h-6 rounded-full shrink-0 font-bold text-xs mt-0.5">
+                                {i + 1}
+                              </span>
+                              <span className="pt-0.5 leading-relaxed">{step}</span>
+                            </li>
+                          ))}
+                        </ol>
+                      </div>
+                    )}
+
+                    {selectedSubtopic.related && selectedSubtopic.related.length > 0 && (
+                      <div className="mt-8 border-t pt-6 border-slate-100">
+                        <h4 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">
+                          Tópicos Relacionados
+                        </h4>
+                        <div className="flex flex-wrap gap-2.5">
+                          {selectedSubtopic.related.map((rid) => {
+                            const relatedItem = allSubtopics.find((s) => s.id === rid)
+                            if (!relatedItem) return null
+                            return (
+                              <Button
+                                key={rid}
+                                variant="outline"
+                                size="sm"
+                                className="text-sm bg-white hover:bg-slate-50 border-slate-200"
+                                onClick={() => handleRelatedClick(rid)}
+                              >
+                                <relatedItem.icon className="h-3.5 w-3.5 mr-2 text-slate-400" />
+                                {relatedItem.title}
+                              </Button>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </ScrollArea>
               </div>
@@ -605,7 +790,7 @@ export function HelpModal() {
                 <h3 className="text-xl font-semibold text-slate-700 mb-2">Central de Ajuda</h3>
                 <p className="text-[15px] text-slate-500 max-w-sm">
                   Selecione um tópico no menu lateral para visualizar a documentação detalhada e
-                  aprender como extrair o máximo da Inteligência Zion.
+                  aprender como extrair o máximo do sistema.
                 </p>
               </div>
             )}
