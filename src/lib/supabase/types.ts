@@ -562,6 +562,65 @@ export type Database = {
           },
         ]
       }
+      documentation: {
+        Row: {
+          description: string
+          feature_name: string
+          id: string
+          module: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          description: string
+          feature_name: string
+          id?: string
+          module: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          description?: string
+          feature_name?: string
+          id?: string
+          module?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: []
+      }
+      documentation_history: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          documentation_id: string
+          id: string
+          old_description: string
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          documentation_id: string
+          id?: string
+          old_description: string
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          documentation_id?: string
+          id?: string
+          old_description?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'documentation_history_documentation_id_fkey'
+            columns: ['documentation_id']
+            isOneToOne: false
+            referencedRelation: 'documentation'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       empresas_rfb: {
         Row: {
           bairro: string | null
@@ -1505,6 +1564,19 @@ export const Constants = {
 //   data_contato: timestamp without time zone (nullable, default: now())
 //   created_at: timestamp without time zone (nullable, default: now())
 //   status: text (nullable, default: 'Contatado'::text)
+// Table: documentation
+//   id: uuid (not null, default: gen_random_uuid())
+//   module: text (not null)
+//   feature_name: text (not null)
+//   description: text (not null)
+//   updated_at: timestamp with time zone (not null, default: now())
+//   version: integer (not null, default: 1)
+// Table: documentation_history
+//   id: uuid (not null, default: gen_random_uuid())
+//   documentation_id: uuid (not null)
+//   old_description: text (not null)
+//   changed_by: uuid (nullable)
+//   changed_at: timestamp with time zone (not null, default: now())
 // Table: empresas_rfb
 //   cnpj: text (not null)
 //   razao_social: text (nullable)
@@ -1708,6 +1780,12 @@ export const Constants = {
 // Table: contatos_realizados
 //   FOREIGN KEY contatos_realizados_executivo_id_fkey: FOREIGN KEY (executivo_id) REFERENCES profiles(id) ON DELETE CASCADE
 //   PRIMARY KEY contatos_realizados_pkey: PRIMARY KEY (id)
+// Table: documentation
+//   PRIMARY KEY documentation_pkey: PRIMARY KEY (id)
+// Table: documentation_history
+//   FOREIGN KEY documentation_history_changed_by_fkey: FOREIGN KEY (changed_by) REFERENCES auth.users(id) ON DELETE SET NULL
+//   FOREIGN KEY documentation_history_documentation_id_fkey: FOREIGN KEY (documentation_id) REFERENCES documentation(id) ON DELETE CASCADE
+//   PRIMARY KEY documentation_history_pkey: PRIMARY KEY (id)
 // Table: empresas_rfb
 //   PRIMARY KEY empresas_rfb_pkey: PRIMARY KEY (cnpj)
 // Table: lead_abordagens_comerciais
@@ -1839,6 +1917,26 @@ export const Constants = {
 //   Policy "Enable ALL for authenticated users" (ALL, PERMISSIVE) roles={authenticated}
 //     USING: true
 //     WITH CHECK: true
+// Table: documentation
+//   Policy "Enable DELETE for admins" (DELETE, PERMISSIVE) roles={authenticated}
+//     USING: (EXISTS ( SELECT 1    FROM (profiles p      JOIN perfis_acesso pa ON ((p.perfil_id = pa.id)))   WHERE ((p.user_id = auth.uid()) AND (pa.nome = 'Administrador'::text))))
+//   Policy "Enable INSERT for admins" (INSERT, PERMISSIVE) roles={authenticated}
+//     WITH CHECK: (EXISTS ( SELECT 1    FROM (profiles p      JOIN perfis_acesso pa ON ((p.perfil_id = pa.id)))   WHERE ((p.user_id = auth.uid()) AND (pa.nome = 'Administrador'::text))))
+//   Policy "Enable SELECT for authenticated users" (SELECT, PERMISSIVE) roles={authenticated}
+//     USING: true
+//   Policy "Enable UPDATE for admins" (UPDATE, PERMISSIVE) roles={authenticated}
+//     USING: (EXISTS ( SELECT 1    FROM (profiles p      JOIN perfis_acesso pa ON ((p.perfil_id = pa.id)))   WHERE ((p.user_id = auth.uid()) AND (pa.nome = 'Administrador'::text))))
+//     WITH CHECK: (EXISTS ( SELECT 1    FROM (profiles p      JOIN perfis_acesso pa ON ((p.perfil_id = pa.id)))   WHERE ((p.user_id = auth.uid()) AND (pa.nome = 'Administrador'::text))))
+// Table: documentation_history
+//   Policy "Enable DELETE for admins" (DELETE, PERMISSIVE) roles={authenticated}
+//     USING: (EXISTS ( SELECT 1    FROM (profiles p      JOIN perfis_acesso pa ON ((p.perfil_id = pa.id)))   WHERE ((p.user_id = auth.uid()) AND (pa.nome = 'Administrador'::text))))
+//   Policy "Enable INSERT for admins" (INSERT, PERMISSIVE) roles={authenticated}
+//     WITH CHECK: (EXISTS ( SELECT 1    FROM (profiles p      JOIN perfis_acesso pa ON ((p.perfil_id = pa.id)))   WHERE ((p.user_id = auth.uid()) AND (pa.nome = 'Administrador'::text))))
+//   Policy "Enable SELECT for authenticated users" (SELECT, PERMISSIVE) roles={authenticated}
+//     USING: true
+//   Policy "Enable UPDATE for admins" (UPDATE, PERMISSIVE) roles={authenticated}
+//     USING: (EXISTS ( SELECT 1    FROM (profiles p      JOIN perfis_acesso pa ON ((p.perfil_id = pa.id)))   WHERE ((p.user_id = auth.uid()) AND (pa.nome = 'Administrador'::text))))
+//     WITH CHECK: (EXISTS ( SELECT 1    FROM (profiles p      JOIN perfis_acesso pa ON ((p.perfil_id = pa.id)))   WHERE ((p.user_id = auth.uid()) AND (pa.nome = 'Administrador'::text))))
 // Table: empresas_rfb
 //   Policy "Enable INSERT for authenticated users" (INSERT, PERMISSIVE) roles={authenticated}
 //     WITH CHECK: true
