@@ -265,6 +265,18 @@ export function AppSidebar() {
                           <SidebarMenuSubItem>
                             <SidebarMenuSubButton
                               asChild
+                              isActive={
+                                location.pathname === '/configuracoes/especificacoes-tecnicas'
+                              }
+                            >
+                              <Link to="/configuracoes/especificacoes-tecnicas">
+                                <span>Especificações Técnicas</span>
+                              </Link>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                          <SidebarMenuSubItem>
+                            <SidebarMenuSubButton
+                              asChild
                               isActive={location.pathname === '/configuracoes/auditoria'}
                             >
                               <Link to="/configuracoes/auditoria">

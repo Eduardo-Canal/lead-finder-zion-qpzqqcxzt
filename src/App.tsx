@@ -56,6 +56,7 @@ const ConfiguracoesBitrix = lazyWithRetry(() => import('@/pages/ConfiguracoesBit
 const SyncHistory = lazyWithRetry(() => import('@/pages/SyncHistory'))
 const Integracoes = lazyWithRetry(() => import('@/pages/Integracoes'))
 const Documentation = lazyWithRetry(() => import('@/pages/Documentation'))
+const TechnicalSpecs = lazyWithRetry(() => import('@/pages/TechnicalSpecs'))
 
 const GlobalLoading = () => (
   <div className="flex min-h-screen w-full items-center justify-center bg-background/50 backdrop-blur-sm">
@@ -138,6 +139,10 @@ const App = () => (
                     <Route path="/configuracoes/avancado" element={<ConfiguracoesAvancadas />} />
                     <Route path="/configuracoes/bitrix24" element={<ConfiguracoesBitrix />} />
                     <Route path="/configuracoes/integracoes" element={<Integracoes />} />
+                    <Route
+                      path="/configuracoes/especificacoes-tecnicas"
+                      element={<TechnicalSpecs />}
+                    />
                     <Route
                       path="/configuracoes/empresas-duplicadas"
                       element={<EmpresasDuplicadas />}
