@@ -56,12 +56,14 @@ export default function AuditLogs() {
     const [sessRes, suspRes, usersRes] = await Promise.all([
       supabase
         .from('user_sessions')
-        .select('*', { count: 'exact', head: true })
-        .is('logout_time', null),
+        .select('id', { count: 'exact' })
+        .is('logout_time', null)
+        .limit(1),
       supabase
         .from('suspicious_activity')
-        .select('*', { count: 'exact', head: true })
-        .eq('resolvido', false),
+        .select('id', { count: 'exact' })
+        .eq('resolvido', false)
+        .limit(1),
       supabase.from('profiles').select('user_id, nome'),
     ])
     if (usersRes.data) setUsers(usersRes.data)
