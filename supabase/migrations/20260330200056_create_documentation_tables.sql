@@ -95,7 +95,7 @@ CREATE POLICY "Enable DELETE for admins" ON public.documentation_history
         WHERE p.user_id = auth.uid() AND pa.nome = 'Administrador'
     ));
 
-DO $
+DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM public.documentation) THEN
     INSERT INTO public.documentation (id, module, feature_name, description, updated_at) VALUES
@@ -116,4 +116,4 @@ BEGIN
       (gen_random_uuid(), 'performance-dashboard', 'Análise de Carteira', 'Gráficos interativos (Recharts) que demonstram a distribuição da carteira ativa por segmento, ticket médio e localização geográfica.', '2026-03-25T18:20:00Z'),
       (gen_random_uuid(), 'performance-dashboard', 'Monitoramento de APIs', 'Painel técnico voltado para administradores que exibe o tempo de resposta, volume de chamadas e erros detalhados das integrações Casa dos Dados e Bitrix24.', '2026-03-23T12:15:00Z');
   END IF;
-END $;
+END $$;
