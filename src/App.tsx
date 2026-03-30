@@ -55,6 +55,7 @@ const ChangePassword = lazyWithRetry(() => import('@/pages/ChangePassword'))
 const ConfiguracoesBitrix = lazyWithRetry(() => import('@/pages/ConfiguracoesBitrix'))
 const SyncHistory = lazyWithRetry(() => import('@/pages/SyncHistory'))
 const Integracoes = lazyWithRetry(() => import('@/pages/Integracoes'))
+const Documentation = lazyWithRetry(() => import('@/pages/Documentation'))
 
 const GlobalLoading = () => (
   <div className="flex min-h-screen w-full items-center justify-center bg-background/50 backdrop-blur-sm">
@@ -124,6 +125,7 @@ const App = () => (
                     <Route path="/prospeccao" element={<Prospeccao />} />
                     <Route path="/meus-leads" element={<MyLeads />} />
                     <Route path="/meu-historico" element={<SearchHistory />} />
+                    <Route path="/documentacao" element={<Documentation />} />
                     <Route path="/gestao-usuarios" element={<UserManagement />} />
                     <Route path="/perfil/alterar-senha" element={<ChangePassword />} />
                     <Route path="/configuracoes/lembretes" element={<RemindersConfig />} />

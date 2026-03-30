@@ -11,6 +11,7 @@ import {
   PieChart,
   History,
   UserCircle,
+  BookOpen,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -150,6 +151,19 @@ export function AppSidebar() {
                   <Link to="/meu-historico">
                     <History />
                     <span>Meu Histórico</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={location.pathname === '/documentacao'}
+                  tooltip="Documentação"
+                >
+                  <Link to="/documentacao">
+                    <BookOpen />
+                    <span>Documentação</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
