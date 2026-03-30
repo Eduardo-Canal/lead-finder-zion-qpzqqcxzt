@@ -30,6 +30,7 @@ import {
   AlertOctagon,
   Users,
 } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts'
 
