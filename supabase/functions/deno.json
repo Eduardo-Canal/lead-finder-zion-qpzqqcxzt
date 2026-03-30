@@ -17,6 +17,7 @@
     "log-user-activity": 1,
     "test-openai-connection": 2,
     "test-openai-prompt": 5,
-    "generate-commercial-approach": 2
+    "generate-commercial-approach": 2,
+    "register-aspec-feature": 1
   }
 }
