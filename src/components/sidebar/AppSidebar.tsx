@@ -99,7 +99,7 @@ export function AppSidebar() {
                           isActive={location.pathname === '/inteligencia-zion'}
                         >
                           <Link to="/inteligencia-zion">
-                            <span>Visão Geral</span>
+                            <span>Inteligência Zion</span>
                           </Link>
                         </SidebarMenuSubButton>
                       </SidebarMenuSubItem>
