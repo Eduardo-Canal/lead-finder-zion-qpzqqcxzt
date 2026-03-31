@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase/client'
+import useLeadStore from '@/stores/useLeadStore'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -19,12 +21,12 @@ import {
   SheetDescription,
 } from '@/components/ui/sheet'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Loader2,
   Search,
   TrendingUp,
   Anchor,
-  BarChart3,
   Users,
   Target,
   Building2,
@@ -48,6 +50,9 @@ const chartConfig = {
 }
 
 export default function InteligenciaZion() {
+  const navigate = useNavigate()
+  const { clearFilters, setAllFilters, addCnae } = useLeadStore()
+
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
   const [filters, setFilters] = useState({
@@ -59,6 +64,7 @@ export default function InteligenciaZion() {
   const [clients, setClients] = useState<any[]>([])
   const [analiseCnae, setAnaliseCnae] = useState<any[]>([])
   const [selectedCnae, setSelectedCnae] = useState<any | null>(null)
+  const [selectedCompanyIds, setSelectedCompanyIds] = useState<Set<string>>(new Set())
 
   const loadData = async () => {
     setLoading(true)
@@ -66,7 +72,7 @@ export default function InteligenciaZion() {
       const [resClients, resAnalise] = await Promise.all([
         supabase
           .from('bitrix_clients_zion')
-          .select('id, bitrix_id, cnae_principal, curva_abc, state, segmento'),
+          .select('id, bitrix_id, company_name, cnpj, cnae_principal, curva_abc, state, segmento'),
         supabase.from('analise_cnae').select('*'),
       ])
 
@@ -82,6 +88,12 @@ export default function InteligenciaZion() {
   useEffect(() => {
     loadData()
   }, [])
+
+  useEffect(() => {
+    if (selectedCnae) {
+      setSelectedCompanyIds(new Set())
+    }
+  }, [selectedCnae])
 
   const handleSyncData = async () => {
     try {
@@ -182,6 +194,46 @@ export default function InteligenciaZion() {
   const handleCnaeClick = (cnaeCode: string) => {
     const data = analiseCnae.find((a) => a.cnae === cnaeCode)
     setSelectedCnae(data || { cnae: cnaeCode })
+  }
+
+  const cnaeClients = useMemo(() => {
+    if (!selectedCnae) return []
+    return clients.filter(
+      (c) =>
+        c.cnae_principal === selectedCnae.cnae || c.cnae_principal?.includes(selectedCnae.cnae),
+    )
+  }, [clients, selectedCnae])
+
+  const toggleCompany = (id: string) => {
+    const newSet = new Set(selectedCompanyIds)
+    if (newSet.has(id)) newSet.delete(id)
+    else newSet.add(id)
+    setSelectedCompanyIds(newSet)
+  }
+
+  const toggleAll = () => {
+    if (selectedCompanyIds.size === cnaeClients.length) {
+      setSelectedCompanyIds(new Set())
+    } else {
+      setSelectedCompanyIds(new Set(cnaeClients.map((c) => c.id)))
+    }
+  }
+
+  const handleProspectar = () => {
+    if (!selectedCnae) return
+
+    const selected = cnaeClients.filter((c) => selectedCompanyIds.has(c.id))
+    const ufs = Array.from(new Set(selected.map((c) => c.state).filter(Boolean)))
+
+    clearFilters()
+    addCnae(selectedCnae.cnae)
+
+    if (ufs.length > 0) {
+      setAllFilters({ ufs })
+    }
+
+    toast.success(`${selected.length} empresas usadas como referência. Filtros aplicados!`)
+    navigate('/prospeccao')
   }
 
   if (loading) {
@@ -442,115 +494,148 @@ export default function InteligenciaZion() {
       )}
 
       <Sheet open={!!selectedCnae} onOpenChange={(open) => !open && setSelectedCnae(null)}>
-        <SheetContent className="sm:max-w-md w-full overflow-y-auto border-l">
-          <SheetHeader className="mb-6">
-            <SheetTitle className="text-2xl flex items-center gap-2">
-              <Briefcase className="w-6 h-6 text-primary" />
-              Detalhes do Setor
-            </SheetTitle>
-            <SheetDescription className="text-base">
-              Análise profunda do segmento selecionado
-            </SheetDescription>
-          </SheetHeader>
+        <SheetContent className="sm:max-w-md w-full flex flex-col p-0 border-l overflow-hidden">
+          <ScrollArea className="flex-1">
+            <div className="p-6 space-y-6">
+              <SheetHeader>
+                <SheetTitle className="text-2xl flex items-center gap-2">
+                  <Briefcase className="w-6 h-6 text-primary" />
+                  Detalhes do Setor
+                </SheetTitle>
+                <SheetDescription className="text-base">
+                  Análise profunda do segmento selecionado
+                </SheetDescription>
+              </SheetHeader>
 
-          {selectedCnae && (
-            <div className="space-y-6">
-              <div className="bg-muted/30 p-4 rounded-xl border">
-                <h3 className="text-lg font-bold text-foreground leading-tight">
-                  {selectedCnae.nome_cnae || 'Consultoria e Serviços'}
-                </h3>
-                <div className="flex items-center gap-2 mt-2">
-                  <Badge variant="outline" className="font-mono bg-background">
-                    {selectedCnae.cnae}
-                  </Badge>
-                  {selectedCnae.fit_operacional_score > 70 && (
-                    <Badge className="bg-emerald-500 hover:bg-emerald-600 text-white">
-                      Oceano Azul
-                    </Badge>
-                  )}
-                </div>
-              </div>
+              {selectedCnae && (
+                <div className="space-y-6">
+                  <div className="bg-muted/30 p-4 rounded-xl border">
+                    <h3 className="text-lg font-bold text-foreground leading-tight">
+                      {selectedCnae.nome_cnae || 'Consultoria e Serviços'}
+                    </h3>
+                    <div className="flex items-center gap-2 mt-2">
+                      <Badge variant="outline" className="font-mono bg-background">
+                        {selectedCnae.cnae}
+                      </Badge>
+                      {selectedCnae.fit_operacional_score > 70 && (
+                        <Badge className="bg-emerald-500 hover:bg-emerald-600 text-white">
+                          Oceano Azul
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="p-4 rounded-xl bg-card border shadow-sm flex flex-col justify-center">
-                  <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1.5">
-                    <Building2 className="w-3.5 h-3.5" /> Clientes Ativos
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-4 rounded-xl bg-card border shadow-sm flex flex-col justify-center">
+                      <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1.5">
+                        <Building2 className="w-3.5 h-3.5" /> Clientes Ativos
+                      </div>
+                      <div className="text-2xl font-black">
+                        {selectedCnae.total_clientes || Math.floor(Math.random() * 50 + 10)}
+                      </div>
+                    </div>
+                    <div className="p-4 rounded-xl bg-card border shadow-sm flex flex-col justify-center">
+                      <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1.5">
+                        <DollarSign className="w-3.5 h-3.5" /> Ticket Médio
+                      </div>
+                      <div className="text-xl font-black">
+                        R${' '}
+                        {(
+                          selectedCnae.ticket_medio_cnae || Math.random() * 8000 + 2000
+                        ).toLocaleString('pt-BR', { maximumFractionDigits: 0 })}
+                      </div>
+                    </div>
+                    <div className="p-4 rounded-xl bg-card border shadow-sm flex flex-col justify-center">
+                      <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1.5">
+                        <TrendingUp className="w-3.5 h-3.5" /> Taxa de Sucesso
+                      </div>
+                      <div className="text-2xl font-black text-emerald-600">
+                        {(selectedCnae.taxa_sucesso || Math.random() * 40 + 30).toFixed(1)}%
+                      </div>
+                    </div>
+                    <div className="p-4 rounded-xl bg-primary/5 border border-primary/20 shadow-sm flex flex-col justify-center">
+                      <div className="text-xs text-primary/80 font-medium mb-1 flex items-center gap-1.5">
+                        <Target className="w-3.5 h-3.5" /> Fit Operacional
+                      </div>
+                      <div className="text-2xl font-black text-primary">
+                        {selectedCnae.fit_operacional_score || Math.floor(Math.random() * 40 + 50)}{' '}
+                        pts
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-2xl font-black">
-                    {selectedCnae.total_clientes || Math.floor(Math.random() * 50 + 10)}
-                  </div>
-                </div>
-                <div className="p-4 rounded-xl bg-card border shadow-sm flex flex-col justify-center">
-                  <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1.5">
-                    <DollarSign className="w-3.5 h-3.5" /> Ticket Médio
-                  </div>
-                  <div className="text-xl font-black">
-                    R${' '}
-                    {(selectedCnae.ticket_medio_cnae || Math.random() * 8000 + 2000).toLocaleString(
-                      'pt-BR',
-                      { maximumFractionDigits: 0 },
-                    )}
-                  </div>
-                </div>
-                <div className="p-4 rounded-xl bg-card border shadow-sm flex flex-col justify-center">
-                  <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1.5">
-                    <TrendingUp className="w-3.5 h-3.5" /> Taxa de Sucesso
-                  </div>
-                  <div className="text-2xl font-black text-emerald-600">
-                    {(selectedCnae.taxa_sucesso || Math.random() * 40 + 30).toFixed(1)}%
-                  </div>
-                </div>
-                <div className="p-4 rounded-xl bg-primary/5 border border-primary/20 shadow-sm flex flex-col justify-center">
-                  <div className="text-xs text-primary/80 font-medium mb-1 flex items-center gap-1.5">
-                    <Target className="w-3.5 h-3.5" /> Fit Operacional
-                  </div>
-                  <div className="text-2xl font-black text-primary">
-                    {selectedCnae.fit_operacional_score || Math.floor(Math.random() * 40 + 50)} pts
-                  </div>
-                </div>
-              </div>
 
-              <div className="space-y-4 pt-4 border-t">
-                <h4 className="font-semibold flex items-center gap-2 text-foreground">
-                  <BarChart3 className="w-4 h-4 text-blue-500" />
-                  Dados Enriquecidos (Casa dos Dados)
-                </h4>
-                <div className="text-sm p-5 border rounded-xl bg-card shadow-sm space-y-4">
-                  <div className="flex justify-between items-center pb-3 border-b border-border/50">
-                    <span className="text-muted-foreground">Faturamento Médio Est.</span>
-                    <span className="font-semibold">
-                      R${' '}
-                      {(Math.random() * 10000000 + 2000000).toLocaleString('pt-BR', {
-                        maximumFractionDigits: 0,
-                      })}
-                      /ano
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center pb-3 border-b border-border/50">
-                    <span className="text-muted-foreground">Faixa de Funcionários</span>
-                    <span className="font-semibold">10 a 50 funcionários</span>
-                  </div>
-                  <div className="flex justify-between items-start">
-                    <span className="text-muted-foreground">Principais Regiões</span>
-                    <div className="flex flex-wrap justify-end gap-1.5">
-                      <Badge variant="secondary" className="text-xs">
-                        SP
-                      </Badge>
-                      <Badge variant="secondary" className="text-xs">
-                        MG
-                      </Badge>
-                      <Badge variant="secondary" className="text-xs">
-                        PR
-                      </Badge>
+                  <div className="space-y-4 pt-4 border-t">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-semibold flex items-center gap-2 text-foreground">
+                        <Building2 className="w-4 h-4 text-blue-500" />
+                        Empresas no Bitrix24
+                      </h4>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground">
+                          {selectedCompanyIds.size} selecionadas
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 text-xs px-2"
+                          onClick={toggleAll}
+                        >
+                          {selectedCompanyIds.size === cnaeClients.length && cnaeClients.length > 0
+                            ? 'Desmarcar'
+                            : 'Todas'}
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      {cnaeClients.map((client) => (
+                        <div
+                          key={client.id}
+                          className="flex items-start space-x-3 p-3 border rounded-lg bg-card hover:border-primary/50 transition-colors"
+                        >
+                          <Checkbox
+                            id={`client-${client.id}`}
+                            checked={selectedCompanyIds.has(client.id)}
+                            onCheckedChange={() => toggleCompany(client.id)}
+                            className="mt-0.5"
+                          />
+                          <div className="grid gap-1.5 leading-none flex-1 min-w-0">
+                            <label
+                              htmlFor={`client-${client.id}`}
+                              className="text-sm font-medium leading-snug cursor-pointer truncate block"
+                              title={client.company_name}
+                            >
+                              {client.company_name || 'Empresa sem nome'}
+                            </label>
+                            <p className="text-xs text-muted-foreground flex items-center gap-2">
+                              <span className="font-mono">{client.cnpj || 'S/ CNPJ'}</span>
+                              <span>•</span>
+                              <span>{client.state || 'S/ UF'}</span>
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                      {cnaeClients.length === 0 && (
+                        <div className="text-center py-6 text-sm text-muted-foreground border border-dashed rounded-lg">
+                          Nenhuma empresa encontrada para este setor.
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
-
-                <Button className="w-full mt-4" variant="default">
-                  <Search className="w-4 h-4 mr-2" />
-                  Prospectar neste CNAE
-                </Button>
-              </div>
+              )}
+            </div>
+          </ScrollArea>
+          {selectedCnae && (
+            <div className="p-6 border-t bg-background shrink-0 shadow-[0_-4px_10px_-4px_rgba(0,0,0,0.1)]">
+              <Button
+                className="w-full"
+                disabled={selectedCompanyIds.size === 0}
+                onClick={handleProspectar}
+              >
+                <Search className="w-4 h-4 mr-2" />
+                Usar como Referência ({selectedCompanyIds.size})
+              </Button>
             </div>
           )}
         </SheetContent>
