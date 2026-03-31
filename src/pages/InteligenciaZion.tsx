@@ -30,9 +30,11 @@ import {
   Building2,
   Briefcase,
   DollarSign,
+  RefreshCw,
 } from 'lucide-react'
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
+import { toast } from 'sonner'
 
 const chartConfig = {
   clientes: {
@@ -47,6 +49,7 @@ const chartConfig = {
 
 export default function InteligenciaZion() {
   const [loading, setLoading] = useState(true)
+  const [syncing, setSyncing] = useState(false)
   const [filters, setFilters] = useState({
     cnae: '',
     uf: 'Todos',
@@ -57,87 +60,57 @@ export default function InteligenciaZion() {
   const [analiseCnae, setAnaliseCnae] = useState<any[]>([])
   const [selectedCnae, setSelectedCnae] = useState<any | null>(null)
 
-  useEffect(() => {
-    async function loadData() {
-      setLoading(true)
-      try {
-        const [resClients, resAnalise] = await Promise.all([
-          supabase
-            .from('bitrix_clients_zion')
-            .select('id, bitrix_id, cnae_principal, curva_abc, state, segmento'),
-          supabase.from('analise_cnae').select('*'),
-        ])
+  const loadData = async () => {
+    setLoading(true)
+    try {
+      const [resClients, resAnalise] = await Promise.all([
+        supabase
+          .from('bitrix_clients_zion')
+          .select('id, bitrix_id, cnae_principal, curva_abc, state, segmento'),
+        supabase.from('analise_cnae').select('*'),
+      ])
 
-        let loadedClients = resClients.data || []
-        let loadedAnalise = resAnalise.data || []
-
-        if (!loadedClients.length) {
-          loadedClients = Array.from({ length: 150 }).map((_, i) => ({
-            id: i,
-            cnae_principal: ['6204-0/00', '6201-5/01', '6202-3/00', '6203-1/00', '6311-9/00'][
-              i % 5
-            ],
-            curva_abc: ['A', 'A', 'B', 'B', 'B', 'C', 'C', 'C', 'C', 'C'][i % 10],
-            state: ['SP', 'MG', 'RJ', 'SC', 'PR'][i % 5],
-            segmento: ['Tecnologia', 'Varejo', 'Indústria', 'Serviços'][i % 4],
-          }))
-        }
-
-        if (!loadedAnalise.length) {
-          loadedAnalise = [
-            {
-              cnae: '6204-0/00',
-              nome_cnae: 'Consultoria em TI',
-              total_clientes: 45,
-              ticket_medio_cnae: 5400,
-              taxa_sucesso: 68,
-              fit_operacional_score: 85,
-            },
-            {
-              cnae: '6201-5/01',
-              nome_cnae: 'Desenvolvimento Sob Encomenda',
-              total_clientes: 32,
-              ticket_medio_cnae: 8200,
-              taxa_sucesso: 45,
-              fit_operacional_score: 72,
-            },
-            {
-              cnae: '6202-3/00',
-              nome_cnae: 'Suporte Técnico',
-              total_clientes: 25,
-              ticket_medio_cnae: 1500,
-              taxa_sucesso: 80,
-              fit_operacional_score: 55,
-            },
-            {
-              cnae: '6311-9/00',
-              nome_cnae: 'Tratamento de Dados',
-              total_clientes: 18,
-              ticket_medio_cnae: 6000,
-              taxa_sucesso: 55,
-              fit_operacional_score: 92,
-            },
-            {
-              cnae: '6203-1/00',
-              nome_cnae: 'Treinamento em TI',
-              total_clientes: 30,
-              ticket_medio_cnae: 2500,
-              taxa_sucesso: 30,
-              fit_operacional_score: 40,
-            },
-          ]
-        }
-
-        setClients(loadedClients)
-        setAnaliseCnae(loadedAnalise)
-      } catch (e) {
-        console.error('Error loading intelligence data:', e)
-      } finally {
-        setLoading(false)
-      }
+      setClients(resClients.data || [])
+      setAnaliseCnae(resAnalise.data || [])
+    } catch (e) {
+      console.error('Error loading intelligence data:', e)
+    } finally {
+      setLoading(false)
     }
+  }
+
+  useEffect(() => {
     loadData()
   }, [])
+
+  const handleSyncData = async () => {
+    try {
+      setSyncing(true)
+      toast.loading('Sincronizando clientes do Bitrix24...', { id: 'sync-bitrix' })
+
+      const { data, error } = await supabase.functions.invoke('fetch-bitrix-clients-zion', {
+        method: 'POST',
+      })
+
+      if (error) throw error
+      if (!data?.success) throw new Error(data?.error || 'Erro desconhecido ao sincronizar')
+
+      toast.loading('Calculando insights estratégicos...', { id: 'sync-bitrix' })
+      await supabase.functions.invoke('calculate-carteira-insights', {
+        method: 'POST',
+      })
+
+      toast.success(`Sincronização concluída! ${data.total_clients || 0} clientes atualizados.`, {
+        id: 'sync-bitrix',
+      })
+      await loadData()
+    } catch (err: any) {
+      console.error('Sync error:', err)
+      toast.error(`Erro ao sincronizar: ${err.message}`, { id: 'sync-bitrix' })
+    } finally {
+      setSyncing(false)
+    }
+  }
 
   const filteredClients = useMemo(() => {
     return clients.filter((c) => {
@@ -233,202 +206,240 @@ export default function InteligenciaZion() {
             Análise preditiva, distribuição da carteira e identificação de oceanos azuis.
           </p>
         </div>
+        <Button onClick={handleSyncData} disabled={syncing || loading} className="gap-2 shrink-0">
+          {syncing ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <RefreshCw className="w-4 h-4" />
+          )}
+          Sincronizar Dados
+        </Button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 shrink-0 bg-muted/20 p-4 rounded-xl border">
-        <div className="relative">
-          <Search className="w-4 h-4 absolute left-3 top-3 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por CNAE..."
-            className="pl-9 bg-background"
-            value={filters.cnae}
-            onChange={(e) => setFilters((f) => ({ ...f, cnae: e.target.value }))}
-          />
+      {!loading && clients.length === 0 && (
+        <div className="flex-1 flex flex-col items-center justify-center border rounded-xl bg-muted/20 border-dashed py-12 px-4 text-center">
+          <Building2 className="w-12 h-12 text-muted-foreground mb-4 opacity-20" />
+          <h3 className="text-lg font-semibold text-foreground">Nenhum dado encontrado</h3>
+          <p className="text-muted-foreground max-w-md mt-2 mb-6">
+            A sua base de inteligência está vazia. Clique no botão de sincronização para buscar os
+            clientes ativos no Bitrix24 e gerar a análise da carteira.
+          </p>
+          <Button onClick={handleSyncData} disabled={syncing}>
+            {syncing ? (
+              <Loader2 className="w-4 h-4 animate-spin mr-2" />
+            ) : (
+              <RefreshCw className="w-4 h-4 mr-2" />
+            )}
+            Iniciar Primeira Sincronização
+          </Button>
         </div>
-        <Select value={filters.uf} onValueChange={(val) => setFilters((f) => ({ ...f, uf: val }))}>
-          <SelectTrigger className="bg-background">
-            <SelectValue placeholder="Estado (UF)" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="Todos">Todas as UFs</SelectItem>
-            <SelectItem value="SP">São Paulo</SelectItem>
-            <SelectItem value="MG">Minas Gerais</SelectItem>
-            <SelectItem value="RJ">Rio de Janeiro</SelectItem>
-            <SelectItem value="PR">Paraná</SelectItem>
-            <SelectItem value="SC">Santa Catarina</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select
-          value={filters.segmento}
-          onValueChange={(val) => setFilters((f) => ({ ...f, segmento: val }))}
-        >
-          <SelectTrigger className="bg-background">
-            <SelectValue placeholder="Segmento" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="Todos">Todos os Segmentos</SelectItem>
-            <SelectItem value="Tecnologia">Tecnologia</SelectItem>
-            <SelectItem value="Varejo">Varejo</SelectItem>
-            <SelectItem value="Indústria">Indústria</SelectItem>
-            <SelectItem value="Serviços">Serviços</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select
-          value={filters.porte}
-          onValueChange={(val) => setFilters((f) => ({ ...f, porte: val }))}
-        >
-          <SelectTrigger className="bg-background">
-            <SelectValue placeholder="Porte da Empresa" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="Todos">Qualquer Porte</SelectItem>
-            <SelectItem value="MEI">MEI</SelectItem>
-            <SelectItem value="ME">Microempresa (ME)</SelectItem>
-            <SelectItem value="EPP">Pequena Empresa (EPP)</SelectItem>
-            <SelectItem value="MEDIO">Média Empresa</SelectItem>
-            <SelectItem value="GRANDE">Grande Empresa</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 min-h-0">
-        <Card className="lg:col-span-1 flex flex-col min-h-0">
-          <CardHeader className="pb-3 shrink-0">
-            <CardTitle className="flex items-center gap-2">
-              <Briefcase className="w-5 h-5 text-primary" />
-              Top CNAEs da Carteira
-            </CardTitle>
-            <CardDescription>Principais setores com base nos clientes do Bitrix24</CardDescription>
-          </CardHeader>
-          <CardContent className="flex-1 overflow-hidden p-0">
-            <ScrollArea className="h-full px-6 pb-6">
-              <div className="space-y-3">
-                {topCnaes.length === 0 ? (
-                  <div className="text-center py-8 text-sm text-muted-foreground">
-                    Nenhum CNAE encontrado para os filtros atuais.
-                  </div>
-                ) : (
-                  topCnaes.map((t) => (
-                    <div
-                      key={t.cnae}
-                      onClick={() => handleCnaeClick(t.cnae)}
-                      className="flex items-center justify-between p-3 border rounded-xl hover:border-primary/50 hover:bg-muted/30 cursor-pointer transition-all group"
-                    >
-                      <div className="min-w-0 pr-3">
-                        <div className="font-semibold text-sm truncate text-foreground group-hover:text-primary transition-colors">
-                          {t.nome}
-                        </div>
-                        <div className="text-xs text-muted-foreground mt-0.5">{t.cnae}</div>
+      {clients.length > 0 && (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 shrink-0 bg-muted/20 p-4 rounded-xl border">
+            <div className="relative">
+              <Search className="w-4 h-4 absolute left-3 top-3 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por CNAE..."
+                className="pl-9 bg-background"
+                value={filters.cnae}
+                onChange={(e) => setFilters((f) => ({ ...f, cnae: e.target.value }))}
+              />
+            </div>
+            <Select
+              value={filters.uf}
+              onValueChange={(val) => setFilters((f) => ({ ...f, uf: val }))}
+            >
+              <SelectTrigger className="bg-background">
+                <SelectValue placeholder="Estado (UF)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Todos">Todas as UFs</SelectItem>
+                <SelectItem value="SP">São Paulo</SelectItem>
+                <SelectItem value="MG">Minas Gerais</SelectItem>
+                <SelectItem value="RJ">Rio de Janeiro</SelectItem>
+                <SelectItem value="PR">Paraná</SelectItem>
+                <SelectItem value="SC">Santa Catarina</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select
+              value={filters.segmento}
+              onValueChange={(val) => setFilters((f) => ({ ...f, segmento: val }))}
+            >
+              <SelectTrigger className="bg-background">
+                <SelectValue placeholder="Segmento" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Todos">Todos os Segmentos</SelectItem>
+                <SelectItem value="Tecnologia">Tecnologia</SelectItem>
+                <SelectItem value="Varejo">Varejo</SelectItem>
+                <SelectItem value="Indústria">Indústria</SelectItem>
+                <SelectItem value="Serviços">Serviços</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select
+              value={filters.porte}
+              onValueChange={(val) => setFilters((f) => ({ ...f, porte: val }))}
+            >
+              <SelectTrigger className="bg-background">
+                <SelectValue placeholder="Porte da Empresa" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Todos">Qualquer Porte</SelectItem>
+                <SelectItem value="MEI">MEI</SelectItem>
+                <SelectItem value="ME">Microempresa (ME)</SelectItem>
+                <SelectItem value="EPP">Pequena Empresa (EPP)</SelectItem>
+                <SelectItem value="MEDIO">Média Empresa</SelectItem>
+                <SelectItem value="GRANDE">Grande Empresa</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 min-h-0">
+            <Card className="lg:col-span-1 flex flex-col min-h-0">
+              <CardHeader className="pb-3 shrink-0">
+                <CardTitle className="flex items-center gap-2">
+                  <Briefcase className="w-5 h-5 text-primary" />
+                  Top CNAEs da Carteira
+                </CardTitle>
+                <CardDescription>
+                  Principais setores com base nos clientes do Bitrix24
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex-1 overflow-hidden p-0">
+                <ScrollArea className="h-full px-6 pb-6">
+                  <div className="space-y-3">
+                    {topCnaes.length === 0 ? (
+                      <div className="text-center py-8 text-sm text-muted-foreground">
+                        Nenhum CNAE encontrado para os filtros atuais.
                       </div>
-                      <Badge variant="secondary" className="shrink-0 font-mono">
-                        {t.count} cli
-                      </Badge>
-                    </div>
-                  ))
-                )}
-              </div>
-            </ScrollArea>
-          </CardContent>
-        </Card>
-
-        <div className="lg:col-span-2 flex flex-col gap-6 min-h-0 overflow-y-auto">
-          <Card className="shrink-0">
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-primary" />
-                Análise ABC de Clientes
-              </CardTitle>
-              <CardDescription>
-                Distribuição de clientes e representatividade de receita
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ChartContainer config={chartConfig} className="h-[250px] w-full mt-4">
-                <BarChart data={abcData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    vertical={false}
-                    stroke="hsl(var(--muted))"
-                  />
-                  <XAxis
-                    dataKey="name"
-                    stroke="hsl(var(--muted-foreground))"
-                    fontSize={12}
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <YAxis
-                    stroke="hsl(var(--muted-foreground))"
-                    fontSize={12}
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-                  <Bar
-                    dataKey="clientes"
-                    fill="var(--color-clientes)"
-                    radius={[4, 4, 0, 0]}
-                    maxBarSize={50}
-                  />
-                  <Bar
-                    dataKey="receita_perc"
-                    fill="var(--color-receita_perc)"
-                    radius={[4, 4, 0, 0]}
-                    maxBarSize={50}
-                  />
-                </BarChart>
-              </ChartContainer>
-            </CardContent>
-          </Card>
-
-          <Card className="shrink-0">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2">
-                <Anchor className="w-5 h-5 text-blue-500" />
-                Oceanos Azuis por Setor
-              </CardTitle>
-              <CardDescription>
-                CNAEs com baixa concorrência e alto potencial de conversão (Fit Operacional)
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4 pb-6">
-              {oceanosAzuis.length === 0 ? (
-                <div className="col-span-full text-center py-8 text-sm text-muted-foreground">
-                  Nenhuma oportunidade identificada.
-                </div>
-              ) : (
-                oceanosAzuis.map((o) => (
-                  <div
-                    key={o.cnae}
-                    onClick={() => handleCnaeClick(o.cnae)}
-                    className="p-4 border rounded-xl bg-card hover:border-blue-500/30 hover:shadow-md cursor-pointer transition-all flex flex-col justify-between"
-                  >
-                    <div>
-                      <div className="flex justify-between items-start mb-2 gap-2">
-                        <div className="font-semibold text-sm line-clamp-2 leading-tight pr-2">
-                          {o.nome_cnae || o.cnae}
+                    ) : (
+                      topCnaes.map((t) => (
+                        <div
+                          key={t.cnae}
+                          onClick={() => handleCnaeClick(t.cnae)}
+                          className="flex items-center justify-between p-3 border rounded-xl hover:border-primary/50 hover:bg-muted/30 cursor-pointer transition-all group"
+                        >
+                          <div className="min-w-0 pr-3">
+                            <div className="font-semibold text-sm truncate text-foreground group-hover:text-primary transition-colors">
+                              {t.nome}
+                            </div>
+                            <div className="text-xs text-muted-foreground mt-0.5">{t.cnae}</div>
+                          </div>
+                          <Badge variant="secondary" className="shrink-0 font-mono">
+                            {t.count} cli
+                          </Badge>
                         </div>
-                        <Badge className={o.badgeColor + ' shrink-0'}>{o.scoreLabel}</Badge>
-                      </div>
-                      <div className="text-xs text-muted-foreground font-mono mb-4">{o.cnae}</div>
-                    </div>
-                    <div className="flex items-center justify-between text-xs pt-3 border-t">
-                      <span className="flex items-center gap-1.5 text-muted-foreground">
-                        <Users className="w-3.5 h-3.5" />
-                        {o.total_clientes || 0} clis
-                      </span>
-                      <span className="flex items-center gap-1.5 font-medium text-foreground">
-                        <Target className="w-3.5 h-3.5 text-primary" />
-                        {o.fit_operacional_score} pts
-                      </span>
-                    </div>
+                      ))
+                    )}
                   </div>
-                ))
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+
+            <div className="lg:col-span-2 flex flex-col gap-6 min-h-0 overflow-y-auto">
+              <Card className="shrink-0">
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2">
+                    <TrendingUp className="w-5 h-5 text-primary" />
+                    Análise ABC de Clientes
+                  </CardTitle>
+                  <CardDescription>
+                    Distribuição de clientes e representatividade de receita
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ChartContainer config={chartConfig} className="h-[250px] w-full mt-4">
+                    <BarChart data={abcData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        vertical={false}
+                        stroke="hsl(var(--muted))"
+                      />
+                      <XAxis
+                        dataKey="name"
+                        stroke="hsl(var(--muted-foreground))"
+                        fontSize={12}
+                        tickLine={false}
+                        axisLine={false}
+                      />
+                      <YAxis
+                        stroke="hsl(var(--muted-foreground))"
+                        fontSize={12}
+                        tickLine={false}
+                        axisLine={false}
+                      />
+                      <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+                      <Bar
+                        dataKey="clientes"
+                        fill="var(--color-clientes)"
+                        radius={[4, 4, 0, 0]}
+                        maxBarSize={50}
+                      />
+                      <Bar
+                        dataKey="receita_perc"
+                        fill="var(--color-receita_perc)"
+                        radius={[4, 4, 0, 0]}
+                        maxBarSize={50}
+                      />
+                    </BarChart>
+                  </ChartContainer>
+                </CardContent>
+              </Card>
+
+              <Card className="shrink-0">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2">
+                    <Anchor className="w-5 h-5 text-blue-500" />
+                    Oceanos Azuis por Setor
+                  </CardTitle>
+                  <CardDescription>
+                    CNAEs com baixa concorrência e alto potencial de conversão (Fit Operacional)
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4 pb-6">
+                  {oceanosAzuis.length === 0 ? (
+                    <div className="col-span-full text-center py-8 text-sm text-muted-foreground">
+                      Nenhuma oportunidade identificada.
+                    </div>
+                  ) : (
+                    oceanosAzuis.map((o) => (
+                      <div
+                        key={o.cnae}
+                        onClick={() => handleCnaeClick(o.cnae)}
+                        className="p-4 border rounded-xl bg-card hover:border-blue-500/30 hover:shadow-md cursor-pointer transition-all flex flex-col justify-between"
+                      >
+                        <div>
+                          <div className="flex justify-between items-start mb-2 gap-2">
+                            <div className="font-semibold text-sm line-clamp-2 leading-tight pr-2">
+                              {o.nome_cnae || o.cnae}
+                            </div>
+                            <Badge className={o.badgeColor + ' shrink-0'}>{o.scoreLabel}</Badge>
+                          </div>
+                          <div className="text-xs text-muted-foreground font-mono mb-4">
+                            {o.cnae}
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between text-xs pt-3 border-t">
+                          <span className="flex items-center gap-1.5 text-muted-foreground">
+                            <Users className="w-3.5 h-3.5" />
+                            {o.total_clientes || 0} clis
+                          </span>
+                          <span className="flex items-center gap-1.5 font-medium text-foreground">
+                            <Target className="w-3.5 h-3.5 text-primary" />
+                            {o.fit_operacional_score} pts
+                          </span>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </>
+      )}
 
       <Sheet open={!!selectedCnae} onOpenChange={(open) => !open && setSelectedCnae(null)}>
         <SheetContent className="sm:max-w-md w-full overflow-y-auto border-l">
