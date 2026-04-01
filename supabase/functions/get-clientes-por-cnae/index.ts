@@ -4,7 +4,8 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS, PUT, DELETE',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, x-supabase-client-platform, apikey, content-type',
+  'Access-Control-Allow-Headers':
+    'authorization, x-client-info, x-supabase-client-platform, apikey, content-type',
 }
 
 Deno.serve(async (req: Request) => {
@@ -31,8 +32,8 @@ Deno.serve(async (req: Request) => {
 
     const cnaeCount: Record<string, number> = {}
     const groupedClientes: Record<string, any[]> = {}
-    
-    clientes?.forEach(c => {
+
+    clientes?.forEach((c) => {
       const cnae = c.cnae || 'N/A'
       cnaeCount[cnae] = (cnaeCount[cnae] || 0) + 1
       if (!groupedClientes[cnae]) groupedClientes[cnae] = []
@@ -40,13 +41,13 @@ Deno.serve(async (req: Request) => {
     })
 
     const result = Object.entries(cnaeCount).map(([cnae, count]) => {
-      const summary = summaries?.find(s => s.cnae === cnae)
+      const summary = summaries?.find((s) => s.cnae === cnae)
       return {
         cnae,
         count,
         descricao: summary?.descricao || 'Descrição não informada',
         percentual: summary?.percentual || 0,
-        clientes: groupedClientes[cnae] || []
+        clientes: groupedClientes[cnae] || [],
       }
     })
 

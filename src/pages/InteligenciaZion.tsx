@@ -388,9 +388,10 @@ export default function InteligenciaZion() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {topCnaes.map((t) => (
-                        <React.Fragment key={t.cnae}>
+                      {topCnaes.map((t) => {
+                        const rows = [
                           <TableRow
+                            key={t.cnae}
                             className={cn(
                               'cursor-pointer',
                               expandedRow === t.cnae && 'bg-muted/50',
@@ -416,9 +417,15 @@ export default function InteligenciaZion() {
                                 )}
                               </Button>
                             </TableCell>
-                          </TableRow>
-                          {expandedRow === t.cnae && (
-                            <TableRow className="bg-muted/5 hover:bg-muted/5">
+                          </TableRow>,
+                        ]
+
+                        if (expandedRow === t.cnae) {
+                          rows.push(
+                            <TableRow
+                              key={`${t.cnae}-expanded`}
+                              className="bg-muted/5 hover:bg-muted/5"
+                            >
                               <TableCell colSpan={5} className="p-0 border-b-2 border-primary/20">
                                 <div className="p-4 animate-in fade-in slide-in-from-top-2">
                                   <div className="flex justify-between items-center pb-3 mb-3 border-b border-border/50">
@@ -480,10 +487,12 @@ export default function InteligenciaZion() {
                                   </div>
                                 </div>
                               </TableCell>
-                            </TableRow>
-                          )}
-                        </React.Fragment>
-                      ))}
+                            </TableRow>,
+                          )
+                        }
+
+                        return rows
+                      })}
                     </TableBody>
                   </Table>
                 )}
