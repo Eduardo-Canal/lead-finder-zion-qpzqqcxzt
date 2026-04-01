@@ -12,9 +12,14 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
-import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts'
-import { Loader2, Search, Target, Anchor, TrendingUp, RefreshCw } from 'lucide-react'
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion'
+import { Badge } from '@/components/ui/badge'
+import { Loader2, Search, Target, Anchor, TrendingUp, RefreshCw, Briefcase } from 'lucide-react'
 import { toast } from 'sonner'
 
 const UFS = [
@@ -53,6 +58,7 @@ export default function InteligenciaZion() {
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
   const [clients, setClients] = useState<any[]>([])
+  const [cnaeGroups, setCnaeGroups] = useState<any[]>([])
   const [segmentoFilter, setSegmentoFilter] = useState('Todos')
 
   const loadData = async () => {
@@ -62,6 +68,9 @@ export default function InteligenciaZion() {
         method: 'POST',
       })
       if (error) throw error
+
+      setCnaeGroups(data?.data || [])
+
       const allClients: any[] = []
       data?.data?.forEach((item: any) => item.clientes && allClients.push(...item.clientes))
       setClients(allClients)
@@ -91,53 +100,10 @@ export default function InteligenciaZion() {
     }
   }
 
-  const abcData = useMemo(() => {
-    const counts = { A: 0, B: 0, C: 0 }
-    clients.forEach((c) => {
-      const curva = (c.curva_abc || '').toUpperCase()
-      if (curva.includes('A')) counts.A++
-      else if (curva.includes('B')) counts.B++
-      else if (curva.includes('C')) counts.C++
-    })
-    return [
-      {
-        name: 'Curva A',
-        value: counts.A,
-        fill: 'hsl(var(--chart-1))',
-        key: 'A',
-        desc: 'Melhores Clientes',
-      },
-      {
-        name: 'Curva B',
-        value: counts.B,
-        fill: 'hsl(var(--chart-2))',
-        key: 'B',
-        desc: 'Clientes Médios',
-      },
-      {
-        name: 'Curva C',
-        value: counts.C,
-        fill: 'hsl(var(--chart-3))',
-        key: 'C',
-        desc: 'Clientes Pequenos',
-      },
-    ].filter((d) => d.value > 0)
-  }, [clients])
-
-  const handleBuscarClones = (curva: string) => {
-    const cnaes: Record<string, number> = {}
-    clients
-      .filter((c) => (c.curva_abc || '').toUpperCase().includes(curva))
-      .forEach((c) => {
-        if (c.cnae) cnaes[c.cnae] = (cnaes[c.cnae] || 0) + 1
-      })
-    const topCnaes = Object.entries(cnaes)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 3)
-      .map((e) => e[0])
+  const handleBuscarClonesCnae = (cnae: string) => {
     clearFilters()
-    topCnaes.forEach(addCnae)
-    toast.success(`Buscando clones da Curva ${curva}.`)
+    addCnae(cnae)
+    toast.success(`Buscando empresas para o CNAE ${cnae}.`)
     navigate('/prospeccao')
   }
 
@@ -152,7 +118,7 @@ export default function InteligenciaZion() {
       })
     return Object.entries(ufCounts)
       .map(([uf, count]) => ({ uf, count }))
-      .sort((a, b) => a.count - b.count)
+      .sort((a, b) => b.count - a.count)
       .slice(0, 8)
   }, [clients, segmentoFilter])
 
@@ -178,79 +144,102 @@ export default function InteligenciaZion() {
         </Button>
       </div>
 
-      <Tabs defaultValue="abc" className="flex-1 flex flex-col min-h-0">
+      <Tabs defaultValue="cnae" className="flex-1 flex flex-col min-h-0">
         <TabsList className="shrink-0 grid grid-cols-2 w-full md:w-[400px]">
-          <TabsTrigger value="abc" className="gap-2">
-            <Target className="w-4 h-4" /> Análise ABC
+          <TabsTrigger value="cnae" className="gap-2">
+            <Target className="w-4 h-4" /> Análise CNAE
           </TabsTrigger>
           <TabsTrigger value="oceanos" className="gap-2">
             <Anchor className="w-4 h-4" /> Oceanos Azuis
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="abc" className="flex-1 overflow-auto mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Curva ABC</CardTitle>
+        <TabsContent value="cnae" className="flex-1 overflow-auto mt-4">
+          <Card className="h-full flex flex-col border-none shadow-none md:border md:shadow-sm">
+            <CardHeader className="shrink-0 px-0 md:px-6">
+              <CardTitle>Carteira por CNAE</CardTitle>
               <CardDescription>
-                Encontre "clones" dos seus melhores clientes baseados no faturamento e histórico.
+                Visualize todos os seus clientes organizados pelo código CNAE principal e encontre
+                novas oportunidades no mesmo setor.
               </CardDescription>
             </CardHeader>
-            <CardContent className="flex flex-col md:flex-row gap-8 items-center">
-              <div className="w-full md:w-1/2 h-[300px]">
-                {abcData.length > 0 ? (
-                  <ChartContainer config={{}} className="h-full w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={abcData}
-                          dataKey="value"
-                          nameKey="name"
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={60}
-                          outerRadius={100}
-                          paddingAngle={2}
-                        >
-                          {abcData.map((e, i) => (
-                            <Cell key={i} fill={e.fill} />
-                          ))}
-                        </Pie>
-                        <ChartTooltip content={<ChartTooltipContent />} />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </ChartContainer>
-                ) : (
-                  <div className="h-full flex items-center justify-center text-muted-foreground border-2 border-dashed rounded-lg">
-                    Sem dados de curva ABC
-                  </div>
-                )}
-              </div>
-              <div className="w-full md:w-1/2 space-y-4">
-                {abcData.map((item) => (
-                  <div
-                    key={item.key}
-                    className="p-4 border rounded-xl flex justify-between items-center hover:border-primary/50 transition-colors"
-                  >
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="w-3 h-3 rounded-full"
-                          style={{ backgroundColor: item.fill }}
-                        />
-                        <h4 className="font-semibold text-lg">{item.name}</h4>
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        {item.value} clientes - {item.desc}
-                      </p>
-                    </div>
-                    <Button onClick={() => handleBuscarClones(item.key)} variant="outline">
-                      <Search className="w-4 h-4 mr-2" />
-                      Buscar Clones
-                    </Button>
-                  </div>
-                ))}
-              </div>
+            <CardContent className="flex-1 overflow-auto min-h-0 px-0 md:px-6">
+              {cnaeGroups.length > 0 ? (
+                <Accordion type="multiple" className="w-full space-y-4">
+                  {cnaeGroups.map((group) => (
+                    <AccordionItem
+                      key={group.cnae}
+                      value={group.cnae}
+                      className="border rounded-lg px-4 bg-card"
+                    >
+                      <AccordionTrigger className="hover:no-underline py-4">
+                        <div className="flex flex-col md:flex-row md:items-center gap-2 text-left w-full pr-4">
+                          <div className="flex items-center gap-2">
+                            <Briefcase className="w-4 h-4 text-primary shrink-0" />
+                            <span className="font-semibold text-base md:text-lg">{group.cnae}</span>
+                          </div>
+                          <span className="text-muted-foreground text-sm line-clamp-1 md:flex-1">
+                            {group.descricao}
+                          </span>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <Badge variant="secondary">
+                              {group.count} {group.count === 1 ? 'cliente' : 'clientes'}
+                            </Badge>
+                            <Badge
+                              variant="outline"
+                              className="text-muted-foreground hidden md:inline-flex"
+                            >
+                              {group.percentual}%
+                            </Badge>
+                          </div>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="pt-2 pb-4">
+                        <div className="rounded-md border overflow-x-auto bg-background">
+                          <table className="w-full text-sm text-left whitespace-nowrap">
+                            <thead className="bg-muted/50 text-muted-foreground">
+                              <tr>
+                                <th className="p-3 font-medium">Cliente</th>
+                                <th className="p-3 font-medium">Curva ABC</th>
+                                <th className="p-3 font-medium">UF</th>
+                                <th className="p-3 font-medium">Segmento</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y">
+                              {group.clientes.map((cliente: any) => (
+                                <tr
+                                  key={cliente.id}
+                                  className="hover:bg-muted/30 transition-colors"
+                                >
+                                  <td className="p-3 font-medium">{cliente.nome}</td>
+                                  <td className="p-3">
+                                    <Badge variant="outline" className="font-normal">
+                                      {cliente.curva_abc}
+                                    </Badge>
+                                  </td>
+                                  <td className="p-3">{cliente.uf}</td>
+                                  <td className="p-3">{cliente.segmento}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                        <div className="mt-4 flex justify-end">
+                          <Button onClick={() => handleBuscarClonesCnae(group.cnae)} size="sm">
+                            <Search className="w-4 h-4 mr-2" />
+                            Buscar empresas deste CNAE
+                          </Button>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  ))}
+                </Accordion>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full text-muted-foreground border-2 border-dashed rounded-lg p-8">
+                  <Briefcase className="w-12 h-12 mb-4 text-muted/50" />
+                  <p>Nenhum cliente classificado por CNAE.</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
