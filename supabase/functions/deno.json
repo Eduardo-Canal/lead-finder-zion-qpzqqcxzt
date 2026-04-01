@@ -18,6 +18,7 @@
     "test-openai-connection": 2,
     "test-openai-prompt": 5,
     "generate-commercial-approach": 2,
-    "register-aspec-feature": 1
+    "register-aspec-feature": 1,
+    "get-clientes-por-cnae": 1
   }
 }
