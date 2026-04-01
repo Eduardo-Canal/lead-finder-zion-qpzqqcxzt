@@ -10,15 +10,18 @@ Deno.serve(async (req: Request) => {
   try {
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Acesso negado: Token ausente' }), { status: 401, headers: corsHeaders })
+      return new Response(JSON.stringify({ error: 'Acesso negado: Token ausente' }), {
+        status: 401,
+        headers: corsHeaders,
+      })
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
-    
+
     // Client com Service Role Key para contornar RLS e permitir admin.deleteUser
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey)
-    
+
     const token = authHeader.replace(/^Bearer\s+/i, '').trim()
 
     // Client padrão validado com o token recebido
@@ -26,13 +29,19 @@ Deno.serve(async (req: Request) => {
       auth: {
         persistSession: false,
         autoRefreshToken: false,
-        detectSessionInUrl: false
-      }
+        detectSessionInUrl: false,
+      },
     })
 
     const { data: userData, error: userError } = await supabaseAuth.auth.getUser(token)
     if (userError || !userData?.user) {
-      return new Response(JSON.stringify({ error: 'Acesso negado: Usuário solicitante inválido', details: userError?.message }), { status: 401, headers: corsHeaders })
+      return new Response(
+        JSON.stringify({
+          error: 'Acesso negado: Usuário solicitante inválido',
+          details: userError?.message,
+        }),
+        { status: 401, headers: corsHeaders },
+      )
     }
 
     // Verifica se o chamador possui permissão de Admin
@@ -42,36 +51,46 @@ Deno.serve(async (req: Request) => {
       .eq('user_id', userData.user.id)
       .maybeSingle()
 
-    const pa: any = profile?.perfis_acesso;
-    const nomePerfil = Array.isArray(pa) ? pa[0]?.nome : pa?.nome;
-    const permissoesPerfil = Array.isArray(pa) ? pa[0]?.permissoes : pa?.permissoes;
-    
-    const userEmail = userData.user.email?.toLowerCase() || '';
+    const pa: any = profile?.perfis_acesso
+    const nomePerfil = Array.isArray(pa) ? pa[0]?.nome : pa?.nome
+    const permissoesPerfil = Array.isArray(pa) ? pa[0]?.permissoes : pa?.permissoes
 
-    const isAdmin = nomePerfil === 'Administrador' || 
-                    (Array.isArray(permissoesPerfil) && permissoesPerfil.includes('Acessar Admin')) ||
-                    userEmail === 'eduardo.canal@zionlogtec.com.br' ||
-                    userEmail === 'admin@zion.com' ||
-                    userEmail.includes('admin');
+    const userEmail = userData.user.email?.toLowerCase() || ''
+
+    const isAdmin =
+      nomePerfil === 'Administrador' ||
+      (Array.isArray(permissoesPerfil) && permissoesPerfil.includes('Acessar Admin')) ||
+      userEmail === 'eduardo.canal@zionlogtec.com.br' ||
+      userEmail === 'admin@zion.com' ||
+      userEmail.includes('admin')
 
     if (!isAdmin) {
-      return new Response(JSON.stringify({ 
-        error: 'Acesso negado: Permissão insuficiente',
-      }), { status: 403, headers: corsHeaders })
+      return new Response(
+        JSON.stringify({
+          error: 'Acesso negado: Permissão insuficiente',
+        }),
+        { status: 403, headers: corsHeaders },
+      )
     }
 
     const body = await req.json()
     const { user_id } = body
 
     if (!user_id) {
-       return new Response(JSON.stringify({ error: 'ID do usuário de autenticação não fornecido' }), { status: 400, headers: corsHeaders })
+      return new Response(
+        JSON.stringify({ error: 'ID do usuário de autenticação não fornecido' }),
+        { status: 400, headers: corsHeaders },
+      )
     }
 
     // A exclusão no auth.users vai apagar em cascata o registro correspondente em public.profiles
     const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(user_id)
 
     if (deleteError) {
-      return new Response(JSON.stringify({ error: deleteError.message }), { status: 400, headers: corsHeaders })
+      return new Response(JSON.stringify({ error: deleteError.message }), {
+        status: 400,
+        headers: corsHeaders,
+      })
     }
 
     return new Response(JSON.stringify({ success: true }), {

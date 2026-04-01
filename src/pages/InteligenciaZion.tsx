@@ -112,11 +112,23 @@ export default function InteligenciaZion() {
   const handleSyncData = async () => {
     try {
       setSyncing(true)
-      toast.loading('Atualizando dados...', { id: 'sync-data' })
+      toast.loading('Sincronizando com Bitrix24...', { id: 'sync-data' })
+
+      const { error: syncError } = await supabase.functions.invoke('fetch-bitrix-clients-zion', {
+        method: 'POST',
+      })
+      if (syncError) throw syncError
+
+      toast.loading('Processando inteligência de carteira...', { id: 'sync-data' })
+      await supabase.functions.invoke('calculate-carteira-insights', {
+        method: 'POST',
+      })
+
+      toast.loading('Atualizando visualização...', { id: 'sync-data' })
       await loadData()
-      toast.success('Dados atualizados com sucesso!', { id: 'sync-data' })
+      toast.success('Dados atualizados com sucesso do Bitrix24!', { id: 'sync-data' })
     } catch (err: any) {
-      toast.error(`Erro ao atualizar: ${err.message}`, { id: 'sync-data' })
+      toast.error(`Erro ao sincronizar: ${err.message}`, { id: 'sync-data' })
     } finally {
       setSyncing(false)
     }
