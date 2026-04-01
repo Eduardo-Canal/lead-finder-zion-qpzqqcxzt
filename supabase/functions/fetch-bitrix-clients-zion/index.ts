@@ -8,16 +8,13 @@ Deno.serve(async (req: Request) => {
   }
 
   if (req.method !== 'GET' && req.method !== 'POST') {
-    return new Response(
-      JSON.stringify({
-        success: false,
-        error: 'Apenas requisições GET ou POST são permitidas.',
-      }),
-      {
-        status: 405,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      },
-    )
+    return new Response(JSON.stringify({ 
+      success: false, 
+      error: 'Apenas requisições GET ou POST são permitidas.' 
+    }), { 
+      status: 405, 
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+    })
   }
 
   try {
@@ -27,21 +24,21 @@ Deno.serve(async (req: Request) => {
 
     // Adicionado ADDRESS aos campos selecionados
     const selectFields = [
-      'ID',
-      'TITLE',
-      'UF_CRM_1742992784',
-      'UF_CRM_1771423651',
+      'ID', 
+      'TITLE', 
+      'UF_CRM_1742992784', 
+      'UF_CRM_1771423651', 
       'UF_CRM_F56E1FF4',
       'UF_CRM_1738583536320',
-      'EMAIL',
-      'PHONE',
+      'EMAIL', 
+      'PHONE', 
       'ADDRESS',
-      'ADDRESS_CITY',
-      'ADDRESS_PROVINCE',
+      'ADDRESS_CITY', 
+      'ADDRESS_PROVINCE'
     ]
-    const selectQuery = selectFields.map((f) => `select[]=${f}`).join('&')
+    const selectQuery = selectFields.map(f => `select[]=${f}`).join('&')
     const baseUrl = `https://zionlogtec.bitrix24.com.br/rest/5/eiyn7hzhaeu2lcm0/crm.company.list.json?filter[UF_CRM_1B70E8F8]=675&${selectQuery}`
-
+    
     const rateLimiterUrl = `${supabaseUrl}/functions/v1/bitrix-rate-limiter`
 
     let allCompanies: any[] = []
@@ -55,36 +52,28 @@ Deno.serve(async (req: Request) => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${serviceRoleKey}`,
+          'Authorization': `Bearer ${serviceRoleKey}`
         },
         body: JSON.stringify({
           endpoint,
-          method: 'GET',
-        }),
+          method: 'GET'
+        })
       })
 
       const rateLimiterData = await rateLimiterRes.json()
 
       if (!rateLimiterRes.ok || !rateLimiterData.success) {
         if (allCompanies.length > 0) {
-          console.warn(
-            'Rate limit ou erro atingido durante a paginação. Interrompendo e salvando parciais.',
-          )
-          break
+          console.warn("Rate limit ou erro atingido durante a paginação. Interrompendo e salvando parciais.");
+          break;
         }
-        return new Response(
-          JSON.stringify({
-            success: false,
-            error:
-              rateLimiterData.message ||
-              rateLimiterData.error ||
-              'Erro ao comunicar com a API do Bitrix via Rate Limiter',
-          }),
-          {
-            status: 200,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          },
-        )
+        return new Response(JSON.stringify({
+          success: false,
+          error: rateLimiterData.message || rateLimiterData.error || 'Erro ao comunicar com a API do Bitrix via Rate Limiter'
+        }), { 
+          status: 200, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        })
       }
 
       const bitrixData = rateLimiterData.data
@@ -111,73 +100,71 @@ Deno.serve(async (req: Request) => {
 
     // Função auxiliar para extrair Cidade e UF de endereços formatados como "Rua - Bairro, Cidade - UF, País"
     const parseAddress = (addressStr: any) => {
-      if (typeof addressStr !== 'string') return { city: '', state: '' }
-
-      let city = ''
-      let state = ''
-
-      const parts = addressStr.split(',')
+      if (typeof addressStr !== 'string') return { city: '', state: '' };
+      
+      let city = '';
+      let state = '';
+      
+      const parts = addressStr.split(',');
       if (parts.length >= 2) {
-        const targetIndex = parts.length >= 3 ? parts.length - 2 : 1
-        const targetPart = parts[targetIndex]?.trim() || ''
-
-        if (targetPart.includes('-')) {
-          const csParts = targetPart.split('-')
-          city = csParts[0].trim()
-          state = csParts[csParts.length - 1].trim()
-        } else {
-          city = targetPart
-        }
+          const targetIndex = parts.length >= 3 ? parts.length - 2 : 1;
+          const targetPart = parts[targetIndex]?.trim() || '';
+          
+          if (targetPart.includes('-')) {
+              const csParts = targetPart.split('-');
+              city = csParts[0].trim();
+              state = csParts[csParts.length - 1].trim();
+          } else {
+              city = targetPart;
+          }
       }
-
-      return { city, state }
+      
+      return { city, state };
     }
 
     // Função auxiliar para normalizar códigos de estado numéricos para siglas
     const normalizeState = (rawState: any) => {
-      if (!rawState) return ''
-      const s = String(rawState).trim().toUpperCase()
+      if (!rawState) return '';
+      const s = String(rawState).trim().toUpperCase();
       const map: Record<string, string> = {
         '150': 'SP',
         '010': 'SP',
         '070': 'SP',
         '530': 'SC',
-        ES: 'ES',
-        SP: 'SP',
-      }
-      return map[s] || s
+        'ES': 'ES',
+        'SP': 'SP'
+      };
+      return map[s] || s;
     }
 
-    const extractedClients = allCompanies
-      .map((c: any) => {
-        let city = c.ADDRESS_CITY || ''
-        let state = normalizeState(c.ADDRESS_PROVINCE)
+    const extractedClients = allCompanies.map((c: any) => {
+      let city = c.ADDRESS_CITY || '';
+      let state = normalizeState(c.ADDRESS_PROVINCE);
 
-        // Fallback para extrair do ADDRESS completo se os campos nativos estiverem vazios
-        if ((!city || !state) && c.ADDRESS) {
-          const parsed = parseAddress(c.ADDRESS)
-          if (!city) city = parsed.city
-          if (!state) state = normalizeState(parsed.state)
-        }
+      // Fallback para extrair do ADDRESS completo se os campos nativos estiverem vazios
+      if ((!city || !state) && c.ADDRESS) {
+          const parsed = parseAddress(c.ADDRESS);
+          if (!city) city = parsed.city;
+          if (!state) state = normalizeState(parsed.state);
+      }
 
-        // Default se não encontrar nada de forma alguma
-        city = city || 'Não informado'
-        state = state || 'Não informado'
+      // Default se não encontrar nada de forma alguma
+      city = city || 'Não informado';
+      state = state || 'Não informado';
 
-        return {
-          ID: parseInt(c.ID, 10) || 0,
-          TITLE: c.TITLE || '',
-          UF_CRM_1742992784: getPrimaryValue(c.UF_CRM_1742992784) || '',
-          UF_CRM_1771423651: getPrimaryValue(c.UF_CRM_1771423651) || 'Não informado',
-          UF_CRM_F56E1FF4: getPrimaryValue(c.UF_CRM_F56E1FF4) || 'Não informado',
-          UF_CRM_1738583536320: getPrimaryValue(c.UF_CRM_1738583536320) || 'Não classificado',
-          EMAIL: getPrimaryValue(c.EMAIL),
-          TELEFONE: getPrimaryValue(c.PHONE || c.TELEFONE),
-          ADDRESS_CITY: city,
-          ADDRESS_PROVINCE: state,
-        }
-      })
-      .filter((c: any) => c.ID > 0)
+      return {
+        ID: parseInt(c.ID, 10) || 0,
+        TITLE: c.TITLE || '',
+        UF_CRM_1742992784: getPrimaryValue(c.UF_CRM_1742992784) || '',
+        UF_CRM_1771423651: getPrimaryValue(c.UF_CRM_1771423651) || 'Não informado',
+        UF_CRM_F56E1FF4: getPrimaryValue(c.UF_CRM_F56E1FF4) || 'Não informado',
+        UF_CRM_1738583536320: getPrimaryValue(c.UF_CRM_1738583536320) || 'Não classificado',
+        EMAIL: getPrimaryValue(c.EMAIL),
+        TELEFONE: getPrimaryValue(c.PHONE || c.TELEFONE),
+        ADDRESS_CITY: city,
+        ADDRESS_PROVINCE: state
+      }
+    }).filter((c: any) => c.ID > 0)
 
     const dbClients = extractedClients.map((c: any) => ({
       bitrix_id: c.ID,
@@ -194,51 +181,43 @@ Deno.serve(async (req: Request) => {
     }))
 
     if (dbClients.length > 0) {
-      const chunkSize = 500
+      const chunkSize = 500;
       for (let i = 0; i < dbClients.length; i += chunkSize) {
-        const chunk = dbClients.slice(i, i + chunkSize)
-
+        const chunk = dbClients.slice(i, i + chunkSize);
+        
         const { error: upsertError } = await supabaseAdmin
           .from('bitrix_clients_zion')
           .upsert(chunk, { onConflict: 'bitrix_id' })
 
         if (upsertError) {
           console.error('Erro ao salvar no banco:', upsertError)
-          return new Response(
-            JSON.stringify({
-              success: false,
-              error: 'Erro ao salvar clientes no banco de dados local: ' + upsertError.message,
-            }),
-            {
-              status: 200,
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            },
-          )
+          return new Response(JSON.stringify({ 
+            success: false,
+            error: 'Erro ao salvar clientes no banco de dados local: ' + upsertError.message
+          }), { 
+            status: 200, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          })
         }
       }
     }
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        total_clients: extractedClients.length,
-        clients: extractedClients,
-      }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      },
-    )
+    return new Response(JSON.stringify({
+      success: true,
+      total_clients: extractedClients.length,
+      clients: extractedClients
+    }), {
+      status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    })
+
   } catch (error: any) {
-    return new Response(
-      JSON.stringify({
-        success: false,
-        error: error.message || 'Erro interno na Edge Function',
-      }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      },
-    )
+    return new Response(JSON.stringify({ 
+      success: false,
+      error: error.message || 'Erro interno na Edge Function'
+    }), {
+      status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    })
   }
 })
