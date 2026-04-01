@@ -363,107 +363,98 @@ export default function InteligenciaZion() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {topCnaes.map((t) => (
-                        <React.Fragment key={t.cnae}>
-                          <TableRow
-                            className={cn(
-                              'cursor-pointer',
-                              expandedRow === t.cnae && 'bg-muted/50',
-                            )}
-                            onClick={() =>
-                              setExpandedRow((prev) => (prev === t.cnae ? '' : t.cnae))
-                            }
-                          >
-                            <TableCell
-                              className="font-medium max-w-[250px] truncate"
-                              title={t.nome}
-                            >
-                              {t.nome}
-                            </TableCell>
-                            <TableCell className="font-mono text-xs">{t.cnae}</TableCell>
-                            <TableCell className="text-center">
-                              <Badge variant="secondary">{t.count}</Badge>
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                {expandedRow === t.cnae ? (
-                                  <ChevronUp className="h-4 w-4" />
-                                ) : (
-                                  <ChevronDown className="h-4 w-4" />
-                                )}
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                          {expandedRow === t.cnae && (
-                            <TableRow className="bg-muted/5 hover:bg-muted/5">
-                              <TableCell colSpan={4} className="p-0 border-b-2 border-primary/20">
-                                <div className="p-4 animate-in fade-in slide-in-from-top-2">
-                                  <div className="flex justify-between items-center pb-3 mb-3 border-b border-border/50">
-                                    <h4 className="font-medium text-sm flex items-center gap-2">
-                                      <Building2 className="w-4 h-4 text-blue-500" /> Empresas
-                                      associadas
-                                    </h4>
-                                    <div className="flex gap-2">
-                                      <Button variant="outline" size="sm" onClick={toggleAll}>
-                                        {selectedCompanyIds.size === expandedCnaeClients.length &&
-                                        expandedCnaeClients.length > 0
-                                          ? 'Desmarcar Todos'
-                                          : 'Selecionar Todos'}
-                                      </Button>
-                                      <Button
-                                        size="sm"
-                                        onClick={handleProspectar}
-                                        disabled={selectedCompanyIds.size === 0}
-                                      >
-                                        <Search className="w-3.5 h-3.5 mr-1.5" /> Usar como
-                                        Referência ({selectedCompanyIds.size})
-                                      </Button>
-                                    </div>
-                                  </div>
-                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-                                    {expandedCnaeClients.map((client) => (
-                                      <label
-                                        key={client.id}
-                                        className={cn(
-                                          'flex items-start space-x-3 p-3 border rounded-lg bg-background cursor-pointer transition-all',
-                                          selectedCompanyIds.has(client.id)
-                                            ? 'border-primary ring-1 ring-primary/20 bg-primary/5'
-                                            : 'hover:border-primary/40 hover:bg-muted/50',
-                                        )}
-                                      >
-                                        <Checkbox
-                                          checked={selectedCompanyIds.has(client.id)}
-                                          onCheckedChange={() => toggleCompany(client.id)}
-                                          className="mt-1"
-                                        />
-                                        <div className="grid gap-1.5 flex-1 min-w-0">
-                                          <div className="font-medium text-sm truncate text-foreground">
-                                            {client.company_name || 'S/N'}
-                                          </div>
-                                          <div className="flex items-center gap-2">
-                                            <Badge
-                                              variant="outline"
-                                              className={cn(
-                                                'text-[10px] h-5 px-1.5',
-                                                getCurvaBadgeColor(client.curva_abc),
-                                              )}
-                                            >
-                                              Curva {client.curva_abc || 'N/D'}
-                                            </Badge>
-                                            <span className="text-[11px] text-muted-foreground font-mono">
-                                              {client.cnpj || 'S/ CNPJ'}
-                                            </span>
-                                          </div>
-                                        </div>
-                                      </label>
-                                    ))}
+                      {topCnaes.map((t) => [
+                        <TableRow
+                          key={`row-${t.cnae}`}
+                          className={cn('cursor-pointer', expandedRow === t.cnae && 'bg-muted/50')}
+                          onClick={() => setExpandedRow((prev) => (prev === t.cnae ? '' : t.cnae))}
+                        >
+                          <TableCell className="font-medium max-w-[250px] truncate" title={t.nome}>
+                            {t.nome}
+                          </TableCell>
+                          <TableCell className="font-mono text-xs">{t.cnae}</TableCell>
+                          <TableCell className="text-center">
+                            <Badge variant="secondary">{t.count}</Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                              {expandedRow === t.cnae ? (
+                                <ChevronUp className="h-4 w-4" />
+                              ) : (
+                                <ChevronDown className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </TableCell>
+                        </TableRow>,
+                        expandedRow === t.cnae && (
+                          <TableRow key={`exp-${t.cnae}`} className="bg-muted/5 hover:bg-muted/5">
+                            <TableCell colSpan={4} className="p-0 border-b-2 border-primary/20">
+                              <div className="p-4 animate-in fade-in slide-in-from-top-2">
+                                <div className="flex justify-between items-center pb-3 mb-3 border-b border-border/50">
+                                  <h4 className="font-medium text-sm flex items-center gap-2">
+                                    <Building2 className="w-4 h-4 text-blue-500" /> Empresas
+                                    associadas
+                                  </h4>
+                                  <div className="flex gap-2">
+                                    <Button variant="outline" size="sm" onClick={toggleAll}>
+                                      {selectedCompanyIds.size === expandedCnaeClients.length &&
+                                      expandedCnaeClients.length > 0
+                                        ? 'Desmarcar Todos'
+                                        : 'Selecionar Todos'}
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      onClick={handleProspectar}
+                                      disabled={selectedCompanyIds.size === 0}
+                                    >
+                                      <Search className="w-3.5 h-3.5 mr-1.5" /> Usar como Referência
+                                      ({selectedCompanyIds.size})
+                                    </Button>
                                   </div>
                                 </div>
-                              </TableCell>
-                            </TableRow>
-                          )}
-                        </React.Fragment>
-                      ))}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                                  {expandedCnaeClients.map((client) => (
+                                    <label
+                                      key={client.id}
+                                      className={cn(
+                                        'flex items-start space-x-3 p-3 border rounded-lg bg-background cursor-pointer transition-all',
+                                        selectedCompanyIds.has(client.id)
+                                          ? 'border-primary ring-1 ring-primary/20 bg-primary/5'
+                                          : 'hover:border-primary/40 hover:bg-muted/50',
+                                      )}
+                                    >
+                                      <Checkbox
+                                        checked={selectedCompanyIds.has(client.id)}
+                                        onCheckedChange={() => toggleCompany(client.id)}
+                                        className="mt-1"
+                                      />
+                                      <div className="grid gap-1.5 flex-1 min-w-0">
+                                        <div className="font-medium text-sm truncate text-foreground">
+                                          {client.company_name || 'S/N'}
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                          <Badge
+                                            variant="outline"
+                                            className={cn(
+                                              'text-[10px] h-5 px-1.5',
+                                              getCurvaBadgeColor(client.curva_abc),
+                                            )}
+                                          >
+                                            Curva {client.curva_abc || 'N/D'}
+                                          </Badge>
+                                          <span className="text-[11px] text-muted-foreground font-mono">
+                                            {client.cnpj || 'S/ CNPJ'}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </label>
+                                  ))}
+                                </div>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ),
+                      ])}
                     </TableBody>
                   </Table>
                 )}
