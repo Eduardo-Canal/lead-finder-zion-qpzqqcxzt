@@ -31,7 +31,6 @@ import {
   Building2,
   Briefcase,
   RefreshCw,
-  MapPin,
   ChevronDown,
   ChevronUp,
 } from 'lucide-react'
@@ -68,16 +67,35 @@ export default function InteligenciaZion() {
   const loadData = async () => {
     setLoading(true)
     try {
-      const [resClients, resAnalise] = await Promise.all([
-        supabase
-          .from('bitrix_clients_zion')
-          .select('id, bitrix_id, company_name, cnpj, cnae_principal, curva_abc, state, segmento'),
-        supabase.from('analise_cnae').select('*'),
-      ])
-      setClients(resClients.data || [])
-      setAnaliseCnae(resAnalise.data || [])
+      const { data, error } = await supabase.functions.invoke('get-clientes-por-cnae', {
+        method: 'POST',
+      })
+      if (error) throw error
+
+      if (data?.success && data?.data) {
+        const allClients: any[] = []
+        const cnaeInfo: any[] = []
+
+        data.data.forEach((item: any) => {
+          if (item.clientes) {
+            allClients.push(...item.clientes)
+          }
+          cnaeInfo.push({
+            cnae: item.cnae,
+            nome_cnae: item.descricao,
+            percentual: item.percentual,
+          })
+        })
+
+        setClients(allClients)
+        setAnaliseCnae(cnaeInfo)
+      } else {
+        setClients([])
+        setAnaliseCnae([])
+      }
     } catch (e) {
       console.error('Error loading intelligence data:', e)
+      toast.error('Erro ao carregar dados.')
     } finally {
       setLoading(false)
     }
@@ -86,6 +104,7 @@ export default function InteligenciaZion() {
   useEffect(() => {
     loadData()
   }, [])
+
   useEffect(() => {
     setSelectedCompanyIds(new Set())
   }, [expandedRow])
@@ -93,20 +112,11 @@ export default function InteligenciaZion() {
   const handleSyncData = async () => {
     try {
       setSyncing(true)
-      toast.loading('Sincronizando clientes do Bitrix24...', { id: 'sync-bitrix' })
-      const { data, error } = await supabase.functions.invoke('fetch-bitrix-clients-zion', {
-        method: 'POST',
-      })
-      if (error) throw error
-      if (!data?.success) throw new Error(data?.error || 'Erro ao sincronizar')
-      toast.loading('Calculando insights estratégicos...', { id: 'sync-bitrix' })
-      await supabase.functions.invoke('calculate-carteira-insights', { method: 'POST' })
-      toast.success(`Sincronização concluída! ${data.total_clients || 0} clientes atualizados.`, {
-        id: 'sync-bitrix',
-      })
+      toast.loading('Atualizando dados...', { id: 'sync-data' })
       await loadData()
+      toast.success('Dados atualizados com sucesso!', { id: 'sync-data' })
     } catch (err: any) {
-      toast.error(`Erro ao sincronizar: ${err.message}`, { id: 'sync-bitrix' })
+      toast.error(`Erro ao atualizar: ${err.message}`, { id: 'sync-data' })
     } finally {
       setSyncing(false)
     }
@@ -115,9 +125,10 @@ export default function InteligenciaZion() {
   const filteredClients = useMemo(
     () =>
       clients.filter((c) => {
-        if (filters.uf !== 'Todos' && c.state !== filters.uf) return false
+        if (filters.uf !== 'Todos' && c.uf !== filters.uf) return false
         if (filters.segmento !== 'Todos' && c.segmento !== filters.segmento) return false
-        if (filters.cnae && !c.cnae_principal?.includes(filters.cnae)) return false
+        if (filters.porte !== 'Todos' && c.porte !== filters.porte) return false
+        if (filters.cnae && !c.cnae?.includes(filters.cnae)) return false
         return true
       }),
     [clients, filters],
@@ -125,22 +136,32 @@ export default function InteligenciaZion() {
 
   const topCnaes = useMemo(() => {
     const counts: Record<string, number> = {}
+    const setores: Record<string, string> = {}
     filteredClients.forEach((c) => {
-      if (c.cnae_principal) counts[c.cnae_principal] = (counts[c.cnae_principal] || 0) + 1
+      if (c.cnae) {
+        counts[c.cnae] = (counts[c.cnae] || 0) + 1
+        if (!setores[c.cnae] && c.segmento) {
+          setores[c.cnae] = c.segmento
+        }
+      }
     })
     return Object.entries(counts)
       .map(([cnae, count]) => {
         const info = analiseCnae.find((a) => a.cnae === cnae)
-        return { cnae, count, nome: info?.nome_cnae || 'Setor não identificado' }
+        return {
+          cnae,
+          count,
+          nome: info?.nome_cnae || 'Descrição não informada',
+          setor: setores[cnae] || 'Não classificado',
+          percentual: info?.percentual || 0,
+        }
       })
       .sort((a, b) => b.count - a.count)
   }, [filteredClients, analiseCnae])
 
   const expandedCnaeClients = useMemo(() => {
     if (!expandedRow) return []
-    return filteredClients.filter(
-      (c) => c.cnae_principal === expandedRow || c.cnae_principal?.includes(expandedRow),
-    )
+    return filteredClients.filter((c) => c.cnae === expandedRow || c.cnae?.includes(expandedRow))
   }, [filteredClients, expandedRow])
 
   const toggleCompany = (id: string) => {
@@ -158,7 +179,7 @@ export default function InteligenciaZion() {
   const handleProspectar = () => {
     if (!expandedRow) return
     const selected = expandedCnaeClients.filter((c) => selectedCompanyIds.has(c.id))
-    const ufs = Array.from(new Set(selected.map((c) => c.state).filter(Boolean)))
+    const ufs = Array.from(new Set(selected.map((c) => c.uf).filter(Boolean)))
     clearFilters()
     addCnae(expandedRow)
     if (ufs.length > 0) setAllFilters({ ufs })
@@ -178,6 +199,7 @@ export default function InteligenciaZion() {
       name: t.nome,
       cnae: t.cnae,
       value: t.count,
+      percentual: t.percentual,
       fill: colors[index % colors.length],
     }))
   }, [topCnaes])
@@ -203,7 +225,7 @@ export default function InteligenciaZion() {
     <div className="p-6 max-w-6xl mx-auto space-y-6 h-[calc(100vh-4rem)] flex flex-col overflow-y-auto animate-fade-in-up">
       <div className="flex flex-col md:flex-row justify-between gap-4 shrink-0">
         <div>
-          <h1 className="text-3xl font-bold text-primary">Pré-Filtro Visual: Clientes Zion</h1>
+          <h1 className="text-3xl font-bold text-primary">Inteligência Zion</h1>
           <p className="text-muted-foreground mt-1">
             Explore sua carteira por setor e selecione perfis para prospecção.
           </p>
@@ -328,8 +350,10 @@ export default function InteligenciaZion() {
                         </div>
                         <div className="flex items-center gap-4 text-muted-foreground shrink-0">
                           <span>{item.value}</span>
-                          <span className="w-10 text-right">
-                            {((item.value / filteredClients.length) * 100).toFixed(1)}%
+                          <span className="w-12 text-right">
+                            {item.percentual > 0
+                              ? `${item.percentual}%`
+                              : `${((item.value / Math.max(1, filteredClients.length)) * 100).toFixed(1)}%`}
                           </span>
                         </div>
                       </div>
@@ -356,105 +380,110 @@ export default function InteligenciaZion() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Descrição do CNAE</TableHead>
-                        <TableHead>Código CNAE</TableHead>
-                        <TableHead className="text-center">Clientes</TableHead>
+                        <TableHead>Setor</TableHead>
+                        <TableHead>CNAE</TableHead>
+                        <TableHead>Descrição</TableHead>
+                        <TableHead className="text-center">Quantidade de Clientes</TableHead>
                         <TableHead className="text-right">Ação</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {topCnaes.map((t) => [
-                        <TableRow
-                          key={`row-${t.cnae}`}
-                          className={cn('cursor-pointer', expandedRow === t.cnae && 'bg-muted/50')}
-                          onClick={() => setExpandedRow((prev) => (prev === t.cnae ? '' : t.cnae))}
-                        >
-                          <TableCell className="font-medium max-w-[250px] truncate" title={t.nome}>
-                            {t.nome}
-                          </TableCell>
-                          <TableCell className="font-mono text-xs">{t.cnae}</TableCell>
-                          <TableCell className="text-center">
-                            <Badge variant="secondary">{t.count}</Badge>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                              {expandedRow === t.cnae ? (
-                                <ChevronUp className="h-4 w-4" />
-                              ) : (
-                                <ChevronDown className="h-4 w-4" />
-                              )}
-                            </Button>
-                          </TableCell>
-                        </TableRow>,
-                        expandedRow === t.cnae && (
-                          <TableRow key={`exp-${t.cnae}`} className="bg-muted/5 hover:bg-muted/5">
-                            <TableCell colSpan={4} className="p-0 border-b-2 border-primary/20">
-                              <div className="p-4 animate-in fade-in slide-in-from-top-2">
-                                <div className="flex justify-between items-center pb-3 mb-3 border-b border-border/50">
-                                  <h4 className="font-medium text-sm flex items-center gap-2">
-                                    <Building2 className="w-4 h-4 text-blue-500" /> Empresas
-                                    associadas
-                                  </h4>
-                                  <div className="flex gap-2">
-                                    <Button variant="outline" size="sm" onClick={toggleAll}>
-                                      {selectedCompanyIds.size === expandedCnaeClients.length &&
-                                      expandedCnaeClients.length > 0
-                                        ? 'Desmarcar Todos'
-                                        : 'Selecionar Todos'}
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      onClick={handleProspectar}
-                                      disabled={selectedCompanyIds.size === 0}
-                                    >
-                                      <Search className="w-3.5 h-3.5 mr-1.5" /> Usar como Referência
-                                      ({selectedCompanyIds.size})
-                                    </Button>
-                                  </div>
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-                                  {expandedCnaeClients.map((client) => (
-                                    <label
-                                      key={client.id}
-                                      className={cn(
-                                        'flex items-start space-x-3 p-3 border rounded-lg bg-background cursor-pointer transition-all',
-                                        selectedCompanyIds.has(client.id)
-                                          ? 'border-primary ring-1 ring-primary/20 bg-primary/5'
-                                          : 'hover:border-primary/40 hover:bg-muted/50',
-                                      )}
-                                    >
-                                      <Checkbox
-                                        checked={selectedCompanyIds.has(client.id)}
-                                        onCheckedChange={() => toggleCompany(client.id)}
-                                        className="mt-1"
-                                      />
-                                      <div className="grid gap-1.5 flex-1 min-w-0">
-                                        <div className="font-medium text-sm truncate text-foreground">
-                                          {client.company_name || 'S/N'}
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                          <Badge
-                                            variant="outline"
-                                            className={cn(
-                                              'text-[10px] h-5 px-1.5',
-                                              getCurvaBadgeColor(client.curva_abc),
-                                            )}
-                                          >
-                                            Curva {client.curva_abc || 'N/D'}
-                                          </Badge>
-                                          <span className="text-[11px] text-muted-foreground font-mono">
-                                            {client.cnpj || 'S/ CNPJ'}
-                                          </span>
-                                        </div>
-                                      </div>
-                                    </label>
-                                  ))}
-                                </div>
-                              </div>
+                      {topCnaes.map((t) => (
+                        <React.Fragment key={t.cnae}>
+                          <TableRow
+                            className={cn(
+                              'cursor-pointer',
+                              expandedRow === t.cnae && 'bg-muted/50',
+                            )}
+                            onClick={() =>
+                              setExpandedRow((prev) => (prev === t.cnae ? '' : t.cnae))
+                            }
+                          >
+                            <TableCell className="font-medium">{t.setor}</TableCell>
+                            <TableCell className="font-mono text-xs">{t.cnae}</TableCell>
+                            <TableCell className="max-w-[250px] truncate" title={t.nome}>
+                              {t.nome}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <Badge variant="secondary">{t.count}</Badge>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                {expandedRow === t.cnae ? (
+                                  <ChevronUp className="h-4 w-4" />
+                                ) : (
+                                  <ChevronDown className="h-4 w-4" />
+                                )}
+                              </Button>
                             </TableCell>
                           </TableRow>
-                        ),
-                      ])}
+                          {expandedRow === t.cnae && (
+                            <TableRow className="bg-muted/5 hover:bg-muted/5">
+                              <TableCell colSpan={5} className="p-0 border-b-2 border-primary/20">
+                                <div className="p-4 animate-in fade-in slide-in-from-top-2">
+                                  <div className="flex justify-between items-center pb-3 mb-3 border-b border-border/50">
+                                    <h4 className="font-medium text-sm flex items-center gap-2">
+                                      <Building2 className="w-4 h-4 text-blue-500" /> Empresas
+                                      associadas
+                                    </h4>
+                                    <div className="flex gap-2">
+                                      <Button variant="outline" size="sm" onClick={toggleAll}>
+                                        {selectedCompanyIds.size === expandedCnaeClients.length &&
+                                        expandedCnaeClients.length > 0
+                                          ? 'Desmarcar Todos'
+                                          : 'Selecionar Todos'}
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        onClick={handleProspectar}
+                                        disabled={selectedCompanyIds.size === 0}
+                                      >
+                                        <Search className="w-3.5 h-3.5 mr-1.5" /> Usar como
+                                        Referência ({selectedCompanyIds.size})
+                                      </Button>
+                                    </div>
+                                  </div>
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                                    {expandedCnaeClients.map((client) => (
+                                      <label
+                                        key={client.id}
+                                        className={cn(
+                                          'flex items-start space-x-3 p-3 border rounded-lg bg-background cursor-pointer transition-all',
+                                          selectedCompanyIds.has(client.id)
+                                            ? 'border-primary ring-1 ring-primary/20 bg-primary/5'
+                                            : 'hover:border-primary/40 hover:bg-muted/50',
+                                        )}
+                                      >
+                                        <Checkbox
+                                          checked={selectedCompanyIds.has(client.id)}
+                                          onCheckedChange={() => toggleCompany(client.id)}
+                                          className="mt-1"
+                                        />
+                                        <div className="grid gap-1.5 flex-1 min-w-0">
+                                          <div className="font-medium text-sm truncate text-foreground">
+                                            {client.nome || 'S/N'}
+                                          </div>
+                                          <div className="flex items-center gap-2">
+                                            <Badge
+                                              variant="outline"
+                                              className={cn(
+                                                'text-[10px] h-5 px-1.5',
+                                                getCurvaBadgeColor(client.curva_abc),
+                                              )}
+                                            >
+                                              Curva {client.curva_abc || 'N/D'}
+                                            </Badge>
+                                          </div>
+                                        </div>
+                                      </label>
+                                    ))}
+                                  </div>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          )}
+                        </React.Fragment>
+                      ))}
                     </TableBody>
                   </Table>
                 )}
