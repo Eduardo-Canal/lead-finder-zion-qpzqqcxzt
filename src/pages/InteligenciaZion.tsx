@@ -12,15 +12,22 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion'
 import { Badge } from '@/components/ui/badge'
-import { Loader2, Search, Target, Anchor, TrendingUp, RefreshCw, Briefcase } from 'lucide-react'
+import {
+  Loader2,
+  Search,
+  Target,
+  Anchor,
+  TrendingUp,
+  RefreshCw,
+  Briefcase,
+  Hexagon,
+  Users,
+  PieChart as PieChartIcon,
+} from 'lucide-react'
 import { toast } from 'sonner'
+import { PieChart, Pie, Cell } from 'recharts'
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 
 const UFS = [
   'AC',
@@ -122,6 +129,44 @@ export default function InteligenciaZion() {
       .slice(0, 8)
   }, [clients, segmentoFilter])
 
+  const pieData = useMemo(() => {
+    const sorted = [...cnaeGroups].sort((a, b) => b.count - a.count)
+    const top = sorted.slice(0, 8)
+    const others = sorted.slice(8)
+    const othersCount = others.reduce((acc, curr) => acc + curr.count, 0)
+
+    const data = top.map((g, i) => ({
+      cnae: g.cnae,
+      descricao: g.descricao,
+      count: g.count,
+      fill: `hsl(var(--chart-${(i % 5) + 1}))`,
+    }))
+
+    if (othersCount > 0) {
+      data.push({
+        cnae: 'Outros',
+        descricao: 'Outros setores',
+        count: othersCount,
+        fill: 'hsl(var(--muted-foreground))',
+      })
+    }
+
+    return data
+  }, [cnaeGroups])
+
+  const chartConfig = useMemo(() => {
+    const config: Record<string, any> = {
+      count: { label: 'Clientes' },
+    }
+    pieData.forEach((item) => {
+      config[item.cnae] = {
+        label: item.cnae,
+        color: item.fill,
+      }
+    })
+    return config
+  }, [pieData])
+
   if (loading)
     return (
       <div className="flex h-full items-center justify-center">
@@ -155,93 +200,138 @@ export default function InteligenciaZion() {
         </TabsList>
 
         <TabsContent value="cnae" className="flex-1 overflow-auto mt-4">
-          <Card className="h-full flex flex-col border-none shadow-none md:border md:shadow-sm">
-            <CardHeader className="shrink-0 px-0 md:px-6">
-              <CardTitle>Carteira por CNAE</CardTitle>
-              <CardDescription>
-                Visualize todos os seus clientes organizados pelo código CNAE principal e encontre
-                novas oportunidades no mesmo setor.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex-1 overflow-auto min-h-0 px-0 md:px-6">
-              {cnaeGroups.length > 0 ? (
-                <Accordion type="multiple" className="w-full space-y-4">
-                  {cnaeGroups.map((group) => (
-                    <AccordionItem
-                      key={group.cnae}
-                      value={group.cnae}
-                      className="border rounded-lg px-4 bg-card"
+          <div className="flex flex-col gap-6 h-full">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 shrink-0">
+              <Card>
+                <CardContent className="p-6 flex items-center gap-4">
+                  <div className="p-4 bg-primary/10 rounded-full text-primary">
+                    <Users className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Total de Clientes</p>
+                    <h3 className="text-2xl font-bold">{clients.length}</h3>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-6 flex items-center gap-4">
+                  <div className="p-4 bg-primary/10 rounded-full text-primary">
+                    <Briefcase className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Total de CNAEs</p>
+                    <h3 className="text-2xl font-bold">{cnaeGroups.length}</h3>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 min-h-0 flex-1 pb-4">
+              <Card className="flex flex-col border-none shadow-none md:border md:shadow-sm">
+                <CardHeader className="shrink-0 px-0 md:px-6">
+                  <CardTitle>Composição da Carteira</CardTitle>
+                  <CardDescription>Distribuição percentual por setor</CardDescription>
+                </CardHeader>
+                <CardContent className="flex-1 flex-col pb-0 px-0 md:px-6 min-h-0 flex items-center justify-center">
+                  {cnaeGroups.length > 0 ? (
+                    <ChartContainer
+                      config={chartConfig}
+                      className="w-full aspect-square max-h-[300px]"
                     >
-                      <AccordionTrigger className="hover:no-underline py-4">
-                        <div className="flex flex-col md:flex-row md:items-center gap-2 text-left w-full pr-4">
-                          <div className="flex items-center gap-2">
-                            <Briefcase className="w-4 h-4 text-primary shrink-0" />
-                            <span className="font-semibold text-base md:text-lg">{group.cnae}</span>
-                          </div>
-                          <span className="text-muted-foreground text-sm line-clamp-1 md:flex-1">
-                            {group.descricao}
-                          </span>
-                          <div className="flex items-center gap-2 shrink-0">
-                            <Badge variant="secondary">
-                              {group.count} {group.count === 1 ? 'cliente' : 'clientes'}
-                            </Badge>
-                            <Badge
-                              variant="outline"
-                              className="text-muted-foreground hidden md:inline-flex"
-                            >
-                              {group.percentual}%
-                            </Badge>
-                          </div>
-                        </div>
-                      </AccordionTrigger>
-                      <AccordionContent className="pt-2 pb-4">
-                        <div className="rounded-md border overflow-x-auto bg-background">
-                          <table className="w-full text-sm text-left whitespace-nowrap">
-                            <thead className="bg-muted/50 text-muted-foreground">
-                              <tr>
-                                <th className="p-3 font-medium">Cliente</th>
-                                <th className="p-3 font-medium">Curva ABC</th>
-                                <th className="p-3 font-medium">UF</th>
-                                <th className="p-3 font-medium">Segmento</th>
+                      <PieChart>
+                        <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
+                        <Pie
+                          data={pieData}
+                          dataKey="count"
+                          nameKey="cnae"
+                          innerRadius={60}
+                          strokeWidth={2}
+                          stroke="hsl(var(--background))"
+                        >
+                          {pieData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.fill} />
+                          ))}
+                        </Pie>
+                      </PieChart>
+                    </ChartContainer>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+                      <PieChartIcon className="w-12 h-12 mb-4 text-muted/50" />
+                      <p>Sem dados suficientes.</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card className="flex flex-col border-none shadow-none md:border md:shadow-sm">
+                <CardHeader className="shrink-0 px-0 md:px-6">
+                  <CardTitle>Top CNAE na Carteira</CardTitle>
+                  <CardDescription>
+                    Sua base organizada pelos nichos mais relevantes
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="flex-1 overflow-auto min-h-0 px-0 md:px-6">
+                  {cnaeGroups.length > 0 ? (
+                    <div className="rounded-md border overflow-x-auto bg-background h-full">
+                      <table className="w-full text-sm text-left">
+                        <thead className="bg-muted/50 sticky top-0 z-10 shadow-sm">
+                          <tr>
+                            <th className="p-3 font-medium">CNAE</th>
+                            <th className="p-3 font-medium text-center whitespace-nowrap">
+                              Total Cliente
+                            </th>
+                            <th className="p-3 font-medium text-center whitespace-nowrap">
+                              Repres. %
+                            </th>
+                            <th className="p-3 font-medium text-center">Ação</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y">
+                          {cnaeGroups
+                            .sort((a, b) => b.count - a.count)
+                            .map((group) => (
+                              <tr key={group.cnae} className="hover:bg-muted/30 transition-colors">
+                                <td className="p-3 min-w-[200px]">
+                                  <div className="font-semibold text-primary">{group.cnae}</div>
+                                  <div
+                                    className="text-xs text-muted-foreground line-clamp-2 mt-0.5"
+                                    title={group.descricao}
+                                  >
+                                    {group.descricao}
+                                  </div>
+                                </td>
+                                <td className="p-3 text-center font-medium">{group.count}</td>
+                                <td className="p-3 text-center">
+                                  <Badge variant="secondary" className="font-normal">
+                                    {group.percentual}%
+                                  </Badge>
+                                </td>
+                                <td className="p-3 text-center">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleBuscarClonesCnae(group.cnae)}
+                                    title="Buscar Clones"
+                                    className="hover:text-primary hover:bg-primary/10"
+                                  >
+                                    <Hexagon className="w-5 h-5" />
+                                  </Button>
+                                </td>
                               </tr>
-                            </thead>
-                            <tbody className="divide-y">
-                              {group.clientes.map((cliente: any) => (
-                                <tr
-                                  key={cliente.id}
-                                  className="hover:bg-muted/30 transition-colors"
-                                >
-                                  <td className="p-3 font-medium">{cliente.nome}</td>
-                                  <td className="p-3">
-                                    <Badge variant="outline" className="font-normal">
-                                      {cliente.curva_abc}
-                                    </Badge>
-                                  </td>
-                                  <td className="p-3">{cliente.uf}</td>
-                                  <td className="p-3">{cliente.segmento}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                        <div className="mt-4 flex justify-end">
-                          <Button onClick={() => handleBuscarClonesCnae(group.cnae)} size="sm">
-                            <Search className="w-4 h-4 mr-2" />
-                            Buscar empresas deste CNAE
-                          </Button>
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-                  ))}
-                </Accordion>
-              ) : (
-                <div className="flex flex-col items-center justify-center h-full text-muted-foreground border-2 border-dashed rounded-lg p-8">
-                  <Briefcase className="w-12 h-12 mb-4 text-muted/50" />
-                  <p>Nenhum cliente classificado por CNAE.</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                            ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center h-full text-muted-foreground border-2 border-dashed rounded-lg p-8">
+                      <Briefcase className="w-12 h-12 mb-4 text-muted/50" />
+                      <p>Nenhum cliente classificado por CNAE.</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </TabsContent>
 
         <TabsContent value="oceanos" className="flex-1 overflow-auto mt-4">
