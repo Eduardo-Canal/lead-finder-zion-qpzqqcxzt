@@ -32,48 +32,36 @@ A abordagem deve:
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         model: 'gpt-3.5-turbo',
         messages: [{ role: 'user', content: prompt }],
         max_tokens: 350,
-        temperature: 0.7,
-      }),
+        temperature: 0.7
+      })
     })
 
     if (response.ok) {
       const data = await response.json()
-      const generatedText =
-        data.choices && data.choices.length > 0
-          ? data.choices[0].message.content
-          : 'Nenhuma resposta gerada.'
-
+      const generatedText = data.choices && data.choices.length > 0 ? data.choices[0].message.content : 'Nenhuma resposta gerada.'
+      
       return new Response(JSON.stringify({ success: true, result: generatedText }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     } else {
       const errorData = await response.json().catch(() => ({}))
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: errorData.error?.message || 'Erro ao comunicar com a API da OpenAI.',
-        }),
-        {
-          status: response.status,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        },
-      )
+      return new Response(JSON.stringify({ success: false, error: errorData.error?.message || 'Erro ao comunicar com a API da OpenAI.' }), {
+        status: response.status,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
   } catch (error: any) {
-    return new Response(
-      JSON.stringify({ success: false, error: error.message || 'Erro interno no servidor.' }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      },
-    )
+    return new Response(JSON.stringify({ success: false, error: error.message || 'Erro interno no servidor.' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
   }
 })
