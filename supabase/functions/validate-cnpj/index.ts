@@ -60,7 +60,7 @@ Deno.serve(async (req: Request) => {
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 400,
-        },
+        }
       )
     }
 
@@ -75,7 +75,7 @@ Deno.serve(async (req: Request) => {
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 200,
-        },
+        }
       )
     } else {
       return new Response(
@@ -86,7 +86,7 @@ Deno.serve(async (req: Request) => {
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 200,
-        },
+        }
       )
     }
   } catch (error) {
@@ -99,7 +99,7 @@ Deno.serve(async (req: Request) => {
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500,
-      },
+      }
     )
   }
 })
