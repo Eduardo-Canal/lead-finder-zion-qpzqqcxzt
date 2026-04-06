@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { ArrowLeft, Eye, Filter, Building2, Loader2 } from 'lucide-react'
+import { ArrowLeft, Filter, Building2, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { supabase } from '@/lib/supabase/client'
@@ -136,9 +136,6 @@ export default function CnaeDetails() {
                   <th className="p-3 font-semibold text-muted-foreground border-b text-center">
                     Curva ABC
                   </th>
-                  <th className="p-3 font-semibold text-muted-foreground border-b text-center w-[80px]">
-                    Ações
-                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -155,23 +152,12 @@ export default function CnaeDetails() {
                       <td className="p-3 text-center">
                         <Badge className={cn('font-medium', getBadgeColor(label))}>{label}</Badge>
                       </td>
-                      <td className="p-3 text-center">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => toast.info('Visualização detalhada em breve.')}
-                          title="Visualizar"
-                          className="h-8 w-8 text-muted-foreground group-hover:text-primary hover:bg-primary/10"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </Button>
-                      </td>
                     </tr>
                   )
                 })}
                 {filteredCompanies.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="p-8 text-center text-muted-foreground">
+                    <td colSpan={3} className="p-8 text-center text-muted-foreground">
                       Nenhuma empresa encontrada para este filtro.
                     </td>
                   </tr>
