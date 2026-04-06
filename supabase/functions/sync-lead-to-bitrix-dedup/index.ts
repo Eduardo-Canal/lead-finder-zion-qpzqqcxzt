@@ -4,14 +4,14 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
 
 // Utility function to remove accents for better comparison
 function removeAccents(str: string) {
-  return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+  return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
 }
 
 // Levenshtein distance algorithm
 function editDistance(s1: string, s2: string) {
   s1 = removeAccents(s1.toLowerCase().trim())
   s2 = removeAccents(s2.toLowerCase().trim())
-  
+
   let costs = []
   for (let i = 0; i <= s1.length; i++) {
     let lastValue = i
@@ -43,7 +43,9 @@ function calculateSimilarity(s1: string, s2: string): number {
   }
   let longerLength = longer.length
   if (longerLength === 0) return 100.0
-  return ((longerLength - editDistance(longer, shorter)) / parseFloat(longerLength.toString())) * 100
+  return (
+    ((longerLength - editDistance(longer, shorter)) / parseFloat(longerLength.toString())) * 100
+  )
 }
 
 Deno.serve(async (req: Request) => {
@@ -62,24 +64,32 @@ Deno.serve(async (req: Request) => {
     const { lead, _simulate_503, _simulate_500, _simulate_success } = payload
     simulate_503 = !!_simulate_503
     simulate_500 = !!_simulate_500
-    
+
     // Otimização para os testes automatizados não consumirem o limite de requisições reais
     if (_simulate_success) {
-      return new Response(JSON.stringify({
-        bitrix_company_id: 99999999,
-        bitrix_lead_id: null,
-        action: 'created',
-        duplicates_found: [],
-        requires_review: false,
-        retry_logs: ['[Simulacao QA] Sincronizacao bem sucedida (API externa ignorada para poupar Rate Limit e acelerar o teste).']
-      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 })
+      return new Response(
+        JSON.stringify({
+          bitrix_company_id: 99999999,
+          bitrix_lead_id: null,
+          action: 'created',
+          duplicates_found: [],
+          requires_review: false,
+          retry_logs: [
+            '[Simulacao QA] Sincronizacao bem sucedida (API externa ignorada para poupar Rate Limit e acelerar o teste).',
+          ],
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
+      )
     }
 
     if (!lead || (!lead.cnpj && !lead.razao_social)) {
-      return new Response(JSON.stringify({ 
-        error: 'Dados insuficientes. CNPJ ou Razão Social são obrigatórios.',
-        retry_logs
-      }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      return new Response(
+        JSON.stringify({
+          error: 'Dados insuficientes. CNPJ ou Razão Social são obrigatórios.',
+          retry_logs,
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      )
     }
 
     const cleanCnpj = lead.cnpj ? lead.cnpj.replace(/\D/g, '') : ''
@@ -89,56 +99,66 @@ Deno.serve(async (req: Request) => {
     const rateLimiterUrl = `${supabaseUrl}/functions/v1/bitrix-rate-limiter`
 
     async function callBitrix(endpoint: string, method: string = 'GET', body?: any) {
-      let attempt = 1;
-      const maxRetries = 3; 
-      let delay = 1000;
+      let attempt = 1
+      const maxRetries = 3
+      let delay = 1000
 
       while (attempt <= maxRetries + 1) {
-        const timestamp = new Date().toISOString();
+        const timestamp = new Date().toISOString()
         try {
           if (simulate_503) {
-            throw new Error('503 Service Unavailable (Simulated)');
+            throw new Error('503 Service Unavailable (Simulated)')
           }
           if (simulate_500) {
-            attempt = maxRetries + 2; // skip retries to fail fast for rollback test
-            throw new Error('500 Internal Server Error (Simulated)');
+            attempt = maxRetries + 2 // skip retries to fail fast for rollback test
+            throw new Error('500 Internal Server Error (Simulated)')
           }
 
           const res = await fetch(rateLimiterUrl, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${serviceRoleKey}` },
-            body: JSON.stringify({ endpoint: baseUrl + endpoint, method, body })
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${serviceRoleKey}`,
+            },
+            body: JSON.stringify({ endpoint: baseUrl + endpoint, method, body }),
           })
           const data = await res.json()
-          
+
           if (!res.ok || !data.success) {
-             const errMsg = data.message || data.error || 'Bitrix API error';
-             
-             // Backoff inteligente: lê os segundos do Rate Limit
-             if (res.status === 429 || errMsg.includes('Rate limit')) {
-                 const match = errMsg.match(/em (\d+) segundos/);
-                 if (match && match[1]) {
-                     const waitSecs = parseInt(match[1], 10);
-                     if (waitSecs <= 5) {
-                         delay = waitSecs * 1000; // ajusta o delay para o tempo exato pedido
-                     } else {
-                         throw new Error(`Rate limit excessivo (${waitSecs}s). Cancelando retentativas para evitar timeout da Edge Function.`);
-                     }
-                 }
-             }
-             
-             throw new Error(errMsg)
+            const errMsg = data.message || data.error || 'Bitrix API error'
+
+            // Backoff inteligente: lê os segundos do Rate Limit
+            if (res.status === 429 || errMsg.includes('Rate limit')) {
+              const match = errMsg.match(/em (\d+) segundos/)
+              if (match && match[1]) {
+                const waitSecs = parseInt(match[1], 10)
+                if (waitSecs <= 5) {
+                  delay = waitSecs * 1000 // ajusta o delay para o tempo exato pedido
+                } else {
+                  throw new Error(
+                    `Rate limit excessivo (${waitSecs}s). Cancelando retentativas para evitar timeout da Edge Function.`,
+                  )
+                }
+              }
+            }
+
+            throw new Error(errMsg)
           }
           return data.data
         } catch (error: any) {
-          retry_logs.push(`[${timestamp}] Tentativa ${attempt}: Falhou com erro - ${error.message}. ` + (attempt <= maxRetries ? `Aguardando ${delay}ms para tentar novamente...` : `Limite de tentativas excedido.`));
-          
+          retry_logs.push(
+            `[${timestamp}] Tentativa ${attempt}: Falhou com erro - ${error.message}. ` +
+              (attempt <= maxRetries
+                ? `Aguardando ${delay}ms para tentar novamente...`
+                : `Limite de tentativas excedido.`),
+          )
+
           if (attempt > maxRetries || error.message.includes('Cancelando retentativas')) {
-            throw error;
+            throw error
           }
-          await new Promise(res => setTimeout(res, delay));
-          delay *= 2; // Exponential backoff
-          attempt++;
+          await new Promise((res) => setTimeout(res, delay))
+          delay *= 2 // Exponential backoff
+          attempt++
         }
       }
     }
@@ -157,14 +177,17 @@ Deno.serve(async (req: Request) => {
       if (companies.length > 0) {
         bitrix_company_id = parseInt(companies[0].ID)
         action = 'found'
-        return new Response(JSON.stringify({
-          bitrix_company_id,
-          bitrix_lead_id: null,
-          action,
-          duplicates_found,
-          requires_review,
-          retry_logs
-        }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 })
+        return new Response(
+          JSON.stringify({
+            bitrix_company_id,
+            bitrix_lead_id: null,
+            action,
+            duplicates_found,
+            requires_review,
+            retry_logs,
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
+        )
       }
     }
 
@@ -178,25 +201,28 @@ Deno.serve(async (req: Request) => {
 
       for (const comp of companies) {
         const simScore = calculateSimilarity(razaoSocial, comp.TITLE)
-        if (simScore >= 75) { 
+        if (simScore >= 75) {
           potentialDuplicates.push({
             company: comp,
-            similarity_score: parseFloat(simScore.toFixed(2))
+            similarity_score: parseFloat(simScore.toFixed(2)),
           })
         }
       }
 
       if (potentialDuplicates.length === 1 && potentialDuplicates[0].similarity_score >= 95) {
         bitrix_company_id = parseInt(potentialDuplicates[0].company.ID)
-        action = 'found' 
-        return new Response(JSON.stringify({
-          bitrix_company_id,
-          bitrix_lead_id: null,
-          action,
-          duplicates_found,
-          requires_review,
-          retry_logs
-        }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 })
+        action = 'found'
+        return new Response(
+          JSON.stringify({
+            bitrix_company_id,
+            bitrix_lead_id: null,
+            action,
+            duplicates_found,
+            requires_review,
+            retry_logs,
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
+        )
       }
     }
 
@@ -210,19 +236,19 @@ Deno.serve(async (req: Request) => {
         PHONE: lead.telefone ? [{ VALUE: lead.telefone, VALUE_TYPE: 'WORK' }] : [],
         ADDRESS_CITY: lead.municipio || '',
         ADDRESS_PROVINCE: lead.uf || '',
-      }
+      },
     }
-    
+
     const createResult = await callBitrix(createEndpoint, 'POST', createBody)
     bitrix_company_id = parseInt(createResult?.result)
     action = 'created'
 
     if (potentialDuplicates.length > 0 && bitrix_company_id) {
       requires_review = true
-      
+
       for (const pot of potentialDuplicates) {
         const original_id = parseInt(pot.company.ID)
-        if (original_id === bitrix_company_id) continue;
+        if (original_id === bitrix_company_id) continue
 
         const { data: dupRecord, error: dupError } = await supabaseAdmin
           .from('company_duplicates')
@@ -230,9 +256,10 @@ Deno.serve(async (req: Request) => {
             original_company_id: original_id,
             duplicate_company_id: bitrix_company_id,
             similarity_score: pot.similarity_score,
-            match_type: potentialDuplicates.length > 1 ? 'razao_social_multiple' : 'razao_social_single',
+            match_type:
+              potentialDuplicates.length > 1 ? 'razao_social_multiple' : 'razao_social_single',
             status: 'pending_review',
-            notes: `Auto-detectado pela Edge Function. Razão Social pesquisada: "${razaoSocial}" vs Encontrada: "${pot.company.TITLE}"`
+            notes: `Auto-detectado pela Edge Function. Razão Social pesquisada: "${razaoSocial}" vs Encontrada: "${pot.company.TITLE}"`,
           })
           .select()
           .single()
@@ -242,7 +269,7 @@ Deno.serve(async (req: Request) => {
             id: dupRecord.id,
             original_id: original_id,
             duplicate_id: bitrix_company_id,
-            similarity_score: pot.similarity_score
+            similarity_score: pot.similarity_score,
           })
         } else if (dupError) {
           console.error(`Erro ao inserir duplicidade para Bitrix ID ${original_id}:`, dupError)
@@ -250,24 +277,29 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    return new Response(JSON.stringify({
-      bitrix_company_id,
-      bitrix_lead_id: null,
-      action,
-      duplicates_found,
-      requires_review,
-      retry_logs
-    }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 })
-
+    return new Response(
+      JSON.stringify({
+        bitrix_company_id,
+        bitrix_lead_id: null,
+        action,
+        duplicates_found,
+        requires_review,
+        retry_logs,
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
+    )
   } catch (error: any) {
     console.error('Edge function errored:', error)
-    
-    // SEMPRE retornamos 200 com a flag de erro dentro do body. 
+
+    // SEMPRE retornamos 200 com a flag de erro dentro do body.
     // Isso impede que o cliente do frontend lance uma exceção (Fetch Error)
     // que causa a exibição da tela vermelha de erro (React Error Overlay) na aplicação.
-    return new Response(JSON.stringify({ 
-      error: error.message || 'Erro interno na sincronização com Bitrix',
-      retry_logs
-    }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    return new Response(
+      JSON.stringify({
+        error: error.message || 'Erro interno na sincronização com Bitrix',
+        retry_logs,
+      }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    )
   }
 })

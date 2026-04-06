@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -19,6 +19,7 @@ import {
   BarChart3,
   Presentation,
   Loader2,
+  RefreshCw,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -59,10 +60,11 @@ export default function AnaliseCarteira() {
   const [clients, setClients] = useState<any[]>([])
   const [marketData, setMarketData] = useState<Record<string, any>>({})
   const [loading, setLoading] = useState(true)
+  const [syncing, setSyncing] = useState(false)
 
-  useEffect(() => {
-    async function fetchData() {
-      setLoading(true)
+  const fetchData = useCallback(
+    async (showLoading = true) => {
+      if (showLoading) setLoading(true)
       try {
         const [clientsRes, marketRes] = await Promise.all([
           supabase.from('bitrix_clients_zion').select('cnae_principal, curva_abc, state'),
@@ -105,11 +107,15 @@ export default function AnaliseCarteira() {
           variant: 'destructive',
         })
       } finally {
-        setLoading(false)
+        if (showLoading) setLoading(false)
       }
-    }
+    },
+    [toast],
+  )
+
+  useEffect(() => {
     fetchData()
-  }, [toast])
+  }, [fetchData])
 
   const ESTADOS = useMemo(() => {
     const states = new Set(
@@ -214,6 +220,35 @@ export default function AnaliseCarteira() {
     })
   }
 
+  const handleSyncMarketData = async () => {
+    setSyncing(true)
+    toast({
+      title: 'Atualizando dados...',
+      description: 'Buscando informações atualizadas de mercado. Isso pode levar alguns segundos.',
+    })
+
+    try {
+      const { error } = await supabase.functions.invoke('sync-cnae-market-data')
+      if (error) throw error
+
+      toast({
+        title: 'Dados atualizados com sucesso',
+        description: 'As métricas de mercado foram sincronizadas.',
+      })
+
+      await fetchData(false)
+    } catch (error: any) {
+      console.error('Error syncing:', error)
+      toast({
+        title: 'Erro na atualização',
+        description: error.message || 'Não foi possível atualizar os dados de mercado.',
+        variant: 'destructive',
+      })
+    } finally {
+      setSyncing(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center min-h-[80vh] gap-4">
@@ -251,9 +286,21 @@ export default function AnaliseCarteira() {
 
       <Card className="border-slate-200 shadow-sm">
         <CardContent className="p-5">
-          <div className="flex items-center gap-2 mb-4 text-sm font-semibold text-slate-700 uppercase tracking-wider">
-            <Filter className="w-4 h-4 text-slate-500" />
-            Filtros Avançados
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2 text-sm font-semibold text-slate-700 uppercase tracking-wider">
+              <Filter className="w-4 h-4 text-slate-500" />
+              Filtros Avançados
+            </div>
+            <Button
+              onClick={handleSyncMarketData}
+              disabled={syncing}
+              size="sm"
+              variant="outline"
+              className="h-8 text-xs font-semibold"
+            >
+              <RefreshCw className={cn('w-3.5 h-3.5 mr-2', syncing && 'animate-spin')} />
+              Atualizar Potencial
+            </Button>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div className="space-y-2">
