@@ -71,7 +71,9 @@ export default function AnaliseCarteira() {
           supabase
             .from('cnae_market_data')
             .select('cnae_code, cnae_description, potencial_mercado, tendencia'),
-          supabase.from('cnae_market_data_potencial').select('cnae, potencial_mercado, tendencia'),
+          supabase
+            .from('cnae_market_data_potencial')
+            .select('cnae_code, potencial_mercado, tendencia'),
         ])
 
         if (clientsRes.data) {
@@ -105,14 +107,16 @@ export default function AnaliseCarteira() {
             // Vamos garantir que tentamos bater com a chave com e sem máscara
 
             // Busca a chave existente formatada que contenha os mesmos números
-            const existingKey = Object.keys(mData).find((k) => k.replace(/\D/g, '') === item.cnae)
+            const existingKey = Object.keys(mData).find(
+              (k) => k.replace(/\D/g, '') === item.cnae_code,
+            )
 
             if (existingKey) {
               mData[existingKey].potencial_mercado = item.potencial_mercado
               mData[existingKey].tendencia = item.tendencia
             } else {
-              mData[item.cnae] = {
-                cnae_code: item.cnae,
+              mData[item.cnae_code] = {
+                cnae_code: item.cnae_code,
                 potencial_mercado: item.potencial_mercado,
                 tendencia: item.tendencia,
               }
@@ -191,7 +195,7 @@ export default function AnaliseCarteira() {
           c: 0,
           nc: 0,
           potencial: market.potencial_mercado || 0,
-          tendencia: market.tendencia || 'Estável',
+          tendencia: market.tendencia || 'estavel',
         })
       }
 
@@ -573,37 +577,54 @@ export default function AnaliseCarteira() {
                       )}
                     </TableCell>
                     <TableCell className="text-right text-slate-700 font-bold">
-                      {row.potencial.toLocaleString('pt-BR')}
+                      {row.potencial > 0 ? (
+                        row.potencial.toLocaleString('pt-BR')
+                      ) : (
+                        <div className="flex flex-col items-end">
+                          <span className="text-slate-300">-</span>
+                          <span className="text-[10px] font-normal text-slate-400 mt-1 max-w-[120px] text-right leading-tight">
+                            Dados não disponíveis, clique em Atualizar Potencial
+                          </span>
+                        </div>
+                      )}
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <span className="text-sm font-bold text-slate-700">
-                          {row.penetracao.toFixed(1)}%
-                        </span>
-                        <div className="w-16 h-2 bg-slate-200 rounded-full overflow-hidden shadow-inner">
-                          <div
-                            className="h-full bg-primary rounded-full transition-all duration-1000"
-                            style={{ width: `${Math.min(row.penetracao, 100)}%` }}
-                          />
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right pr-4">
-                      {row.tendencia?.includes('Crescimento') ? (
-                        <div className="flex items-center justify-end text-emerald-600 text-sm font-bold bg-emerald-50 px-2 py-1 rounded-md ml-auto w-max">
-                          <TrendingUp className="w-4 h-4 mr-1" />
-                          {row.tendencia}
-                        </div>
-                      ) : row.tendencia === 'Saturação' ? (
-                        <div className="flex items-center justify-end text-rose-600 text-sm font-bold bg-rose-50 px-2 py-1 rounded-md ml-auto w-max">
-                          <TrendingDown className="w-4 h-4 mr-1" />
-                          {row.tendencia}
+                      {row.potencial > 0 ? (
+                        <div className="flex items-center justify-end gap-2">
+                          <span className="text-sm font-bold text-slate-700">
+                            {row.penetracao.toFixed(1)}%
+                          </span>
+                          <div className="w-16 h-2 bg-slate-200 rounded-full overflow-hidden shadow-inner">
+                            <div
+                              className="h-full bg-primary rounded-full transition-all duration-1000"
+                              style={{ width: `${Math.min(row.penetracao, 100)}%` }}
+                            />
+                          </div>
                         </div>
                       ) : (
-                        <div className="flex items-center justify-end text-slate-500 text-sm font-bold bg-slate-100 px-2 py-1 rounded-md ml-auto w-max">
-                          <Minus className="w-4 h-4 mr-1" />
-                          {row.tendencia}
-                        </div>
+                        <span className="text-slate-300">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right pr-4">
+                      {row.potencial > 0 ? (
+                        row.tendencia?.toLowerCase() === 'crescente' ? (
+                          <div className="flex items-center justify-end text-emerald-600 text-sm font-bold bg-emerald-50 px-2 py-1 rounded-md ml-auto w-max">
+                            <TrendingUp className="w-4 h-4 mr-1" />
+                            Crescente
+                          </div>
+                        ) : row.tendencia?.toLowerCase() === 'decrescente' ? (
+                          <div className="flex items-center justify-end text-rose-600 text-sm font-bold bg-rose-50 px-2 py-1 rounded-md ml-auto w-max">
+                            <TrendingDown className="w-4 h-4 mr-1" />
+                            Decrescente
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-end text-slate-500 text-sm font-bold bg-slate-100 px-2 py-1 rounded-md ml-auto w-max">
+                            <Minus className="w-4 h-4 mr-1" />
+                            Estável
+                          </div>
+                        )
+                      ) : (
+                        <span className="text-slate-300">-</span>
                       )}
                     </TableCell>
                   </TableRow>
