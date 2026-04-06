@@ -1,16 +1,7 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
-import { RefreshCw, Loader2, Calendar as CalendarIcon, Filter, X } from 'lucide-react'
-import { supabase } from '@/lib/supabase/client'
-import { useToast } from '@/hooks/use-toast'
-import { cn } from '@/lib/utils'
-import { format } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
-import type { DateRange } from 'react-day-picker'
-import { Calendar } from '@/components/ui/calendar'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import {
   Select,
   SelectContent,
@@ -19,25 +10,16 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-  ChartLegend,
-  ChartLegendContent,
-  type ChartConfig,
-} from '@/components/ui/chart'
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  XAxis,
-  YAxis,
-  LabelList,
-  PieChart,
-  Pie,
-  LineChart,
-  Line,
-} from 'recharts'
+  Download,
+  Target,
+  TrendingUp,
+  TrendingDown,
+  Minus,
+  Filter,
+  BarChart3,
+  Presentation,
+} from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
 import {
   Table,
   TableBody,
@@ -46,686 +28,601 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from '@/components/ui/chart'
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Legend } from 'recharts'
+import { useToast } from '@/hooks/use-toast'
+import { cn } from '@/lib/utils'
 
-interface AnaliseCnae {
-  id: string
-  cnae: string
-  nome_cnae: string
-  total_clientes: number
-  distribuicao_geografica: Record<string, number> | null
-  taxa_sucesso: number | null
-}
+// --- MOCK DATA GENERATION ---
+const ESTADOS = ['SP', 'RJ', 'MG', 'PR', 'RS', 'SC', 'BA', 'GO', 'MT', 'ES']
+const CURVAS = ['Todos', 'A+', 'A', 'B', 'C', 'Não Classificado']
 
-interface SegmentoTicket {
-  segmento: string
-  ticket_medio: number
-}
-
-interface ClusterEstrategico {
-  id: string
-  cluster_name: string
-  oportunidade_score: number | null
-  prioridade: string | null
-  cnae_list?: string[] | null
-}
-
-const barChartConfig = {
-  total_clientes: {
-    label: 'Clientes',
-    color: 'hsl(var(--primary))',
+const CNAES_REF = [
+  {
+    codigo: '4930-2/02',
+    desc: 'Transporte rodoviário de carga, exceto produtos perigosos e mudanças, intermunicipal, interestadual e internacional',
+    weight: 100,
   },
-} satisfies ChartConfig
-
-const lineChartConfig = {
-  taxa_sucesso: {
-    label: 'Taxa de Sucesso (%)',
-    color: 'hsl(var(--secondary))',
+  {
+    codigo: '4930-2/01',
+    desc: 'Transporte rodoviário de carga, exceto produtos perigosos e mudanças, municipal',
+    weight: 80,
   },
+  { codigo: '4930-2/03', desc: 'Transporte rodoviário de produtos perigosos', weight: 60 },
+  {
+    codigo: '5229-0/99',
+    desc: 'Outras atividades auxiliares dos transportes terrestres não especificadas anteriormente',
+    weight: 50,
+  },
+  { codigo: '5212-5/00', desc: 'Carga e descarga', weight: 45 },
+  {
+    codigo: '5211-7/99',
+    desc: 'Depósitos de mercadorias para terceiros, exceto armazéns gerais e guarda-móveis',
+    weight: 40,
+  },
+  { codigo: '5250-8/04', desc: 'Organização logística do transporte de carga', weight: 40 },
+  { codigo: '4930-2/04', desc: 'Transporte rodoviário de mudanças', weight: 35 },
+  { codigo: '5320-2/02', desc: 'Serviços de entrega rápida', weight: 35 },
+  {
+    codigo: '5250-8/03',
+    desc: 'Agenciamento de cargas, exceto para o transporte marítimo',
+    weight: 30,
+  },
+  {
+    codigo: '7739-0/99',
+    desc: 'Aluguel de outras máquinas e equipamentos comerciais e industriais não especificados, sem operador',
+    weight: 25,
+  },
+  {
+    codigo: '4619-2/00',
+    desc: 'Representantes comerciais e agentes do comércio de mercadorias em geral não especializado',
+    weight: 25,
+  },
+  {
+    codigo: '4530-7/01',
+    desc: 'Comércio por atacado de peças e acessórios novos para veículos automotores',
+    weight: 20,
+  },
+  {
+    codigo: '4530-7/03',
+    desc: 'Comércio a varejo de peças e acessórios novos para veículos automotores',
+    weight: 20,
+  },
+  {
+    codigo: '4520-0/01',
+    desc: 'Serviços de manutenção e reparação mecânica de veículos automotores',
+    weight: 20,
+  },
+  {
+    codigo: '7490-1/04',
+    desc: 'Atividades de intermediação e agenciamento de serviços e negócios em geral',
+    weight: 15,
+  },
+  {
+    codigo: '4639-7/01',
+    desc: 'Comércio atacadista de produtos alimentícios em geral',
+    weight: 15,
+  },
+  {
+    codigo: '4789-0/99',
+    desc: 'Comércio varejista de outros produtos não especificados anteriormente',
+    weight: 15,
+  },
+  {
+    codigo: '4923-0/02',
+    desc: 'Serviço de transporte de passageiros - locação de automóveis com motorista',
+    weight: 15,
+  },
+  { codigo: '5223-1/00', desc: 'Estacionamento de veículos', weight: 10 },
+  {
+    codigo: '4649-4/99',
+    desc: 'Comércio atacadista de outros equipamentos e artigos de uso pessoal e doméstico',
+    weight: 10,
+  },
+  {
+    codigo: '8211-3/00',
+    desc: 'Serviços combinados de escritório e apoio administrativo',
+    weight: 10,
+  },
+  {
+    codigo: '8299-2/99',
+    desc: 'Outras atividades de serviços prestados principalmente às empresas',
+    weight: 10,
+  },
+  { codigo: '4681-8/05', desc: 'Comércio atacadista de lubrificantes', weight: 8 },
+  {
+    codigo: '4661-3/00',
+    desc: 'Comércio atacadista de defensivos agrícolas, adubos, fertilizantes e corretivos do solo',
+    weight: 8,
+  },
+  {
+    codigo: '4637-1/99',
+    desc: 'Comércio atacadista especializado em outros produtos alimentícios não especificados',
+    weight: 8,
+  },
+  { codigo: '4744-0/99', desc: 'Comércio varejista de ferragens e ferramentas', weight: 5 },
+  { codigo: '4672-9/00', desc: 'Comércio atacadista de ferragens e ferramentas', weight: 5 },
+  {
+    codigo: '4679-6/99',
+    desc: 'Comércio atacadista de materiais de construção em geral',
+    weight: 5,
+  },
+  {
+    codigo: '4663-0/00',
+    desc: 'Comércio atacadista de máquinas e equipamentos para uso industrial; partes e peças',
+    weight: 5,
+  },
+  {
+    codigo: '3314-7/10',
+    desc: 'Manutenção e reparação de máquinas e equipamentos para uso geral',
+    weight: 5,
+  },
+  {
+    codigo: '2599-3/99',
+    desc: 'Fabricação de outros produtos de metal não especificados anteriormente',
+    weight: 5,
+  },
+  { codigo: '7112-0/00', desc: 'Serviços de engenharia', weight: 5 },
+  {
+    codigo: '6201-5/01',
+    desc: 'Desenvolvimento de programas de computador sob encomenda',
+    weight: 5,
+  },
+]
+
+const MOCK_CLIENTS: any[] = []
+let idCounter = 1
+CNAES_REF.forEach((cnae) => {
+  const numClients = cnae.weight * 2 + (idCounter % 5)
+  for (let i = 0; i < numClients; i++) {
+    const r = (idCounter * 13) % 100
+    let curve = 'Não Classificado'
+    if (r < 5) curve = 'A+'
+    else if (r < 20) curve = 'A'
+    else if (r < 50) curve = 'B'
+    else if (r < 80) curve = 'C'
+
+    const s = (idCounter * 7) % ESTADOS.length
+
+    MOCK_CLIENTS.push({
+      id: String(idCounter++),
+      cnae: cnae.codigo,
+      curvaAbc: curve,
+      estado: ESTADOS[s],
+    })
+  }
+})
+
+const MOCK_STATS = CNAES_REF.reduce(
+  (acc, cnae, idx) => {
+    const pot = cnae.weight * 50 + ((idx * 137) % 500)
+    const trendDir = idx % 3 === 0 ? 'down' : idx % 5 === 0 ? 'neutral' : 'up'
+    const trendVal = ((idx * 1.3) % 15).toFixed(1)
+    acc[cnae.codigo] = {
+      potencial: pot,
+      tendencia: { dir: trendDir, val: Number(trendVal) },
+    }
+    return acc
+  },
+  {} as Record<string, any>,
+)
+
+// --- CHART CONFIG ---
+const chartConfig = {
+  aPlus: { label: 'Curva A+', color: '#064e3b' },
+  a: { label: 'Curva A', color: '#10b981' },
+  b: { label: 'Curva B', color: '#f59e0b' },
+  c: { label: 'Curva C', color: '#ef4444' },
+  nc: { label: 'Não Classificado', color: '#94a3b8' },
 } satisfies ChartConfig
 
 export default function AnaliseCarteira() {
-  const [rawAnalises, setRawAnalises] = useState<AnaliseCnae[]>([])
-  const [rawCarteira, setRawCarteira] = useState<any[]>([])
-  const [rawClusters, setRawClusters] = useState<ClusterEstrategico[]>([])
-
-  const [analises, setAnalises] = useState<AnaliseCnae[]>([])
-  const [segmentos, setSegmentos] = useState<SegmentoTicket[]>([])
-  const [clusters, setClusters] = useState<ClusterEstrategico[]>([])
-
-  const [loading, setLoading] = useState(true)
-  const [recalculating, setRecalculating] = useState(false)
-
-  // Filters State
-  const [dateRange, setDateRange] = useState<DateRange | undefined>()
-  const [segmentoFiltro, setSegmentoFiltro] = useState<string>('Todos')
-  const [porteFiltro, setPorteFiltro] = useState<string>('Todos')
-
   const { toast } = useToast()
+  const [filtroCurva, setFiltroCurva] = useState<string>('Todos')
+  const [filtroEstado, setFiltroEstado] = useState<string>('Todos')
 
-  const fetchDados = async () => {
-    setLoading(true)
-    try {
-      const [analiseRes, carteiraRes, clustersRes] = await Promise.all([
-        supabase
-          .from('analise_cnae')
-          .select('id, cnae, nome_cnae, total_clientes, distribuicao_geografica, taxa_sucesso')
-          .order('total_clientes', { ascending: false }),
-        supabase.from('carteira_clientes').select('*'), // Buscando tudo para os filtros funcionarem
-        supabase
-          .from('clusters_estrategicos')
-          .select('id, cluster_name, oportunidade_score, prioridade, cnae_list')
-          .order('oportunidade_score', { ascending: false }),
-      ])
-
-      if (analiseRes.error) throw analiseRes.error
-      if (carteiraRes.error) throw carteiraRes.error
-      if (clustersRes.error) throw clustersRes.error
-
-      setRawAnalises(analiseRes.data || [])
-      setRawCarteira(carteiraRes.data || [])
-      setRawClusters(clustersRes.data || [])
-    } catch (error: any) {
-      toast({
-        title: 'Erro ao carregar dados',
-        description: error.message,
-        variant: 'destructive',
-      })
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    fetchDados()
-  }, [])
-
-  // Filter effect
-  useEffect(() => {
-    if (!rawCarteira.length && !rawAnalises.length && !rawClusters.length) {
-      setAnalises([])
-      setSegmentos([])
-      setClusters([])
-      return
-    }
-
-    let filteredCart = [...rawCarteira]
-
-    if (segmentoFiltro !== 'Todos') {
-      filteredCart = filteredCart.filter((c) => c.segmento === segmentoFiltro)
-    }
-    if (porteFiltro !== 'Todos') {
-      filteredCart = filteredCart.filter((c) => c.porte === porteFiltro)
-    }
-    if (dateRange?.from) {
-      filteredCart = filteredCart.filter((c) => {
-        if (!c.data_contratacao) return false
-        return new Date(c.data_contratacao) >= dateRange.from!
-      })
-    }
-    if (dateRange?.to) {
-      filteredCart = filteredCart.filter((c) => {
-        if (!c.data_contratacao) return false
-        return new Date(c.data_contratacao) <= dateRange.to!
-      })
-    }
-
-    // 1. Process Segmentos Table
-    const segmentMap: Record<string, { total: number; count: number }> = {}
-    filteredCart.forEach((item) => {
-      const seg = item.segmento || 'Não classificado'
-      const val = Number(item.ticket_medio) || 0
-      if (!segmentMap[seg]) {
-        segmentMap[seg] = { total: 0, count: 0 }
-      }
-      if (val > 0) {
-        segmentMap[seg].total += val
-        segmentMap[seg].count += 1
-      }
-    })
-
-    const processedSegments = Object.keys(segmentMap)
-      .map((seg) => ({
-        segmento: seg,
-        ticket_medio: segmentMap[seg].count > 0 ? segmentMap[seg].total / segmentMap[seg].count : 0,
-      }))
-      .sort((a, b) => b.ticket_medio - a.ticket_medio)
-    setSegmentos(processedSegments)
-
-    // 2. Process Analises
-    const validCnaes = new Set(filteredCart.map((c) => c.cnae))
-
-    const cnaeCounts: Record<string, number> = {}
-    filteredCart.forEach((c) => {
-      if (c.cnae) cnaeCounts[c.cnae] = (cnaeCounts[c.cnae] || 0) + 1
-    })
-
-    const currentAnalises = rawAnalises
-      .filter((a) => validCnaes.has(a.cnae))
-      .map((a) => ({
-        ...a,
-        total_clientes: cnaeCounts[a.cnae] || 0,
-      }))
-      .filter((a) => a.total_clientes > 0)
-
-    // Sort again by new total_clientes
-    currentAnalises.sort((a, b) => b.total_clientes - a.total_clientes)
-    setAnalises(currentAnalises)
-
-    // 3. Process Clusters
-    const currentClusters = rawClusters.filter((cluster) => {
-      if (segmentoFiltro !== 'Todos') {
-        if (cluster.cluster_name !== `Cluster ${segmentoFiltro}`) return false
-      }
-      if (cluster.cnae_list && Array.isArray(cluster.cnae_list)) {
-        return cluster.cnae_list.some((c) => validCnaes.has(c))
-      }
+  // Filter clients
+  const filteredClients = useMemo(() => {
+    return MOCK_CLIENTS.filter((c) => {
+      if (filtroCurva !== 'Todos' && c.curvaAbc !== filtroCurva) return false
+      if (filtroEstado !== 'Todos' && c.estado !== filtroEstado) return false
       return true
     })
-    setClusters(currentClusters)
-  }, [rawCarteira, rawAnalises, rawClusters, segmentoFiltro, porteFiltro, dateRange])
+  }, [filtroCurva, filtroEstado])
 
-  const handleRecalculate = async () => {
-    setRecalculating(true)
-    try {
-      const { data, error } = await supabase.functions.invoke('calculate-carteira-insights')
+  // Aggregate by CNAE
+  const cnaesData = useMemo(() => {
+    const map = new Map<string, any>()
 
-      if (error) throw error
-      if (!data?.success) throw new Error(data?.error || 'Erro desconhecido ao processar função')
-
-      toast({
-        title: 'Insights Atualizados',
-        description: 'Os dados da sua carteira foram recalculados com sucesso!',
-      })
-
-      fetchDados()
-    } catch (error: any) {
-      toast({
-        title: 'Erro ao recalcular',
-        description: error.message,
-        variant: 'destructive',
-      })
-    } finally {
-      setRecalculating(false)
-    }
-  }
-
-  const clearFilters = () => {
-    setDateRange(undefined)
-    setSegmentoFiltro('Todos')
-    setPorteFiltro('Todos')
-  }
-
-  const uniqueSegments = useMemo(() => {
-    const segments = new Set(rawCarteira.map((c) => c.segmento).filter(Boolean))
-    return Array.from(segments).sort()
-  }, [rawCarteira])
-
-  const uniquePortes = useMemo(() => {
-    const portes = new Set(rawCarteira.map((c) => c.porte).filter(Boolean))
-    return Array.from(portes).sort()
-  }, [rawCarteira])
-
-  const chartData = useMemo(() => {
-    return analises.map((a) => ({
-      cnae: a.cnae,
-      nome_cnae: a.nome_cnae || 'Sem Nome',
-      total_clientes: a.total_clientes,
-    }))
-  }, [analises])
-
-  const lineChartData = useMemo(() => {
-    return analises.map((a) => ({
-      cnae: a.cnae,
-      nome_cnae: a.nome_cnae || 'Sem Nome',
-      taxa_sucesso: Number(a.taxa_sucesso) || 0,
-    }))
-  }, [analises])
-
-  const { geoChartData, geoChartConfig } = useMemo(() => {
-    const ufCounts: Record<string, number> = {}
-    analises.forEach((a) => {
-      if (a.distribuicao_geografica) {
-        Object.entries(a.distribuicao_geografica).forEach(([uf, count]) => {
-          if (uf && uf !== 'ND') {
-            ufCounts[uf] = (ufCounts[uf] || 0) + Number(count)
-          }
+    filteredClients.forEach((c) => {
+      if (!map.has(c.cnae)) {
+        const ref = CNAES_REF.find((x) => x.codigo === c.cnae)
+        map.set(c.cnae, {
+          codigo: c.cnae,
+          descricao: ref?.desc || '',
+          total: 0,
+          aPlus: 0,
+          a: 0,
+          b: 0,
+          c: 0,
+          nc: 0,
+          potencial: MOCK_STATS[c.cnae]?.potencial || 0,
+          tendencia: MOCK_STATS[c.cnae]?.tendencia || { dir: 'neutral', val: 0 },
         })
       }
+      const data = map.get(c.cnae)
+      data.total++
+      if (c.curvaAbc === 'A+') data.aPlus++
+      else if (c.curvaAbc === 'A') data.a++
+      else if (c.curvaAbc === 'B') data.b++
+      else if (c.curvaAbc === 'C') data.c++
+      else data.nc++
     })
 
-    const sortedUfs = Object.entries(ufCounts)
-      .map(([uf, count]) => ({ name: uf, value: count }))
-      .sort((a, b) => b.value - a.value)
-
-    const config: ChartConfig = {}
-    const PREDEFINED_COLORS = [
-      '#0066cc',
-      '#f39200',
-      '#10b981',
-      '#8b5cf6',
-      '#f59e0b',
-      '#0ea5e9',
-      '#14b8a6',
-      '#64748b',
-      '#ec4899',
-      '#f43f5e',
-    ]
-
-    let data = sortedUfs.map((item, index) => {
-      const key = item.name.toLowerCase()
-      const color = PREDEFINED_COLORS[index % PREDEFINED_COLORS.length]
-      config[key] = { label: item.name, color }
-      return { ...item, fill: `var(--color-${key})` }
+    const arr = Array.from(map.values())
+    arr.forEach((item) => {
+      item.penetracao = item.potencial > 0 ? (item.total / item.potencial) * 100 : 0
     })
 
-    if (data.length > 7) {
-      const top = data.slice(0, 6)
-      const others = data.slice(6)
-      const othersValue = others.reduce((acc, curr) => acc + curr.value, 0)
-      top.push({ name: 'Outros', value: othersValue, fill: 'var(--color-outros)' })
-      config['outros'] = { label: 'Outros', color: '#94a3b8' }
-      data = top
-    }
+    arr.sort((x, y) => y.total - x.total)
+    return arr
+  }, [filteredClients])
 
-    return { geoChartData: data, geoChartConfig: config }
-  }, [analises])
+  const top10Data = useMemo(() => cnaesData.slice(0, 10), [cnaesData])
+
+  // Executive Summary
+  const summary = useMemo(() => {
+    const s = { totalClientes: 0, totalCnaes: cnaesData.length, aPlus: 0, a: 0, b: 0, c: 0, nc: 0 }
+    filteredClients.forEach((c) => {
+      s.totalClientes++
+      if (c.curvaAbc === 'A+') s.aPlus++
+      else if (c.curvaAbc === 'A') s.a++
+      else if (c.curvaAbc === 'B') s.b++
+      else if (c.curvaAbc === 'C') s.c++
+      else s.nc++
+    })
+    return s
+  }, [filteredClients, cnaesData.length])
+
+  const handleExport = () => {
+    toast({
+      title: 'Relatório Solicitado',
+      description: 'O relatório em Excel está sendo gerado e o download iniciará em breve.',
+    })
+  }
+
+  const handleCreateAlert = () => {
+    toast({
+      title: 'Alertas Inteligentes',
+      description: 'Painel de configuração de alertas será aberto em uma nova janela.',
+    })
+  }
 
   return (
-    <div className="p-6 max-w-[1200px] mx-auto space-y-6 animate-fade-in-up">
+    <div className="flex-1 space-y-6 p-4 md:p-8 pt-6 animate-fade-in-up max-w-[1400px] mx-auto">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-primary">Análise de Carteira</h1>
-          <p className="text-muted-foreground mt-1">
-            Visualização de clientes por setor (CNAE) com base nos dados mais recentes.
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
+            <Presentation className="w-8 h-8 text-primary" /> Análise de Carteira
+          </h1>
+          <p className="text-muted-foreground mt-1 text-base">
+            Inteligência de mercado, penetração por setor e distribuição da Curva ABC.
           </p>
         </div>
-        <Button
-          onClick={handleRecalculate}
-          disabled={recalculating || loading}
-          className="shrink-0"
-        >
-          {recalculating ? (
-            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-          ) : (
-            <RefreshCw className="w-4 h-4 mr-2" />
-          )}
-          Recalcular Insights
-        </Button>
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <Button variant="outline" onClick={handleExport} className="w-full sm:w-auto">
+            <Download className="w-4 h-4 mr-2" /> Exportar Relatório
+          </Button>
+          <Button
+            onClick={handleCreateAlert}
+            className="w-full sm:w-auto bg-primary hover:bg-primary/90"
+          >
+            <Target className="w-4 h-4 mr-2" /> Criar Alertas/Metas
+          </Button>
+        </div>
       </div>
 
-      <Card className="border-slate-200">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-semibold flex items-center gap-2 text-slate-700">
-            <Filter className="w-4 h-4 text-slate-500" /> Filtros de Análise Globais
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="space-y-2 flex flex-col">
-              <Label className="text-xs font-bold text-slate-600">Período (Contratação)</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    id="date"
-                    variant={'outline'}
-                    className={cn(
-                      'w-full justify-start text-left font-normal bg-white hover:bg-slate-50 border-slate-200',
-                      !dateRange && 'text-muted-foreground',
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4 opacity-50" />
-                    {dateRange?.from ? (
-                      dateRange.to ? (
-                        <>
-                          {format(dateRange.from, 'dd/MM/yyyy', { locale: ptBR })} -{' '}
-                          {format(dateRange.to, 'dd/MM/yyyy', { locale: ptBR })}
-                        </>
-                      ) : (
-                        format(dateRange.from, 'dd/MM/yyyy', { locale: ptBR })
-                      )
-                    ) : (
-                      <span>Selecionar período...</span>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0 rounded-xl shadow-lg" align="start">
-                  <Calendar
-                    initialFocus
-                    mode="range"
-                    defaultMonth={dateRange?.from}
-                    selected={dateRange}
-                    onSelect={(range) => setDateRange(range)}
-                    numberOfMonths={2}
-                    locale={ptBR}
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-
+      <Card className="border-slate-200 shadow-sm">
+        <CardContent className="p-5">
+          <div className="flex items-center gap-2 mb-4 text-sm font-semibold text-slate-700 uppercase tracking-wider">
+            <Filter className="w-4 h-4 text-slate-500" />
+            Filtros Avançados
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <Label className="text-xs font-bold text-slate-600">Segmento de Atuação</Label>
-              <Select value={segmentoFiltro} onValueChange={setSegmentoFiltro}>
-                <SelectTrigger className="bg-white hover:bg-slate-50 border-slate-200">
+              <Label className="text-sm font-bold text-slate-600">Curva ABC</Label>
+              <Select value={filtroCurva} onValueChange={setFiltroCurva}>
+                <SelectTrigger className="bg-white border-slate-200 shadow-sm h-11">
                   <SelectValue placeholder="Selecione..." />
                 </SelectTrigger>
-                <SelectContent className="rounded-xl shadow-lg">
-                  <SelectItem value="Todos">Todos os Segmentos</SelectItem>
-                  {uniqueSegments.map((seg) => (
-                    <SelectItem key={seg} value={seg}>
-                      {seg}
+                <SelectContent>
+                  {CURVAS.map((c) => (
+                    <SelectItem key={c} value={c}>
+                      {c}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-
             <div className="space-y-2">
-              <Label className="text-xs font-bold text-slate-600">Porte da Empresa</Label>
-              <Select value={porteFiltro} onValueChange={setPorteFiltro}>
-                <SelectTrigger className="bg-white hover:bg-slate-50 border-slate-200">
+              <Label className="text-sm font-bold text-slate-600">Estado / Região</Label>
+              <Select value={filtroEstado} onValueChange={setFiltroEstado}>
+                <SelectTrigger className="bg-white border-slate-200 shadow-sm h-11">
                   <SelectValue placeholder="Selecione..." />
                 </SelectTrigger>
-                <SelectContent className="rounded-xl shadow-lg">
-                  <SelectItem value="Todos">Todos os Portes</SelectItem>
-                  {uniquePortes.map((p) => (
-                    <SelectItem key={p} value={p}>
-                      {p}
+                <SelectContent>
+                  <SelectItem value="Todos">Todos os Estados</SelectItem>
+                  {ESTADOS.sort().map((uf) => (
+                    <SelectItem key={uf} value={uf}>
+                      {uf}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-
-            <div className="flex items-end pb-0.5">
-              <Button
-                variant="ghost"
-                onClick={clearFilters}
-                className="w-full text-slate-500 hover:text-red-600 hover:bg-red-50"
-              >
-                <X className="w-4 h-4 mr-2" /> Limpar Filtros
-              </Button>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="flex flex-col col-span-1 lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Total de Clientes por CNAE</CardTitle>
-            <CardDescription>
-              Quantidade de clientes ativos ou histórico na carteira por CNAE principal.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex-1 min-h-[400px]">
-            {loading ? (
-              <div className="flex items-center justify-center h-full min-h-[300px] text-muted-foreground">
-                <Loader2 className="w-6 h-6 animate-spin mr-2" /> Carregando gráfico...
-              </div>
-            ) : chartData.length === 0 ? (
-              <div className="flex items-center justify-center h-full min-h-[300px] text-muted-foreground">
-                Nenhum dado encontrado para os filtros selecionados.
-              </div>
-            ) : (
-              <ChartContainer config={barChartConfig} className="w-full aspect-auto h-[450px]">
-                <BarChart
-                  data={chartData}
-                  layout="vertical"
-                  margin={{ top: 20, right: 40, left: 10, bottom: 20 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
-                  <XAxis type="number" hide />
-                  <YAxis
-                    dataKey="cnae"
-                    type="category"
-                    axisLine={false}
-                    tickLine={false}
-                    tickMargin={10}
-                    width={100}
-                  />
-                  <ChartTooltip
-                    cursor={{ fill: 'var(--color-muted)', opacity: 0.1 }}
-                    content={
-                      <ChartTooltipContent
-                        hideLabel={false}
-                        labelKey="nome_cnae"
-                        indicator="line"
-                      />
-                    }
-                  />
-                  <Bar
-                    dataKey="total_clientes"
-                    fill="var(--color-total_clientes)"
-                    radius={[0, 4, 4, 0]}
-                    barSize={32}
-                  >
-                    <LabelList
-                      dataKey="total_clientes"
-                      position="right"
-                      offset={8}
-                      className="fill-foreground"
-                      fontSize={12}
-                    />
-                  </Bar>
-                </BarChart>
-              </ChartContainer>
-            )}
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+        <Card className="shadow-sm">
+          <CardContent className="p-5 flex flex-col justify-center">
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+              Total Clientes
+            </span>
+            <span className="text-3xl font-extrabold text-slate-900 mt-1">
+              {summary.totalClientes.toLocaleString()}
+            </span>
           </CardContent>
         </Card>
+        <Card className="shadow-sm">
+          <CardContent className="p-5 flex flex-col justify-center">
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+              Total CNAEs
+            </span>
+            <span className="text-3xl font-extrabold text-slate-900 mt-1">
+              {summary.totalCnaes.toLocaleString()}
+            </span>
+          </CardContent>
+        </Card>
+        <Card className="border-t-4 border-t-[#064e3b] shadow-sm bg-emerald-50/30">
+          <CardContent className="p-5 flex flex-col justify-center">
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+              Curva A+
+            </span>
+            <span className="text-3xl font-extrabold text-[#064e3b] mt-1">
+              {summary.aPlus.toLocaleString()}
+            </span>
+          </CardContent>
+        </Card>
+        <Card className="border-t-4 border-t-[#10b981] shadow-sm bg-emerald-50/10">
+          <CardContent className="p-5 flex flex-col justify-center">
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+              Curva A
+            </span>
+            <span className="text-3xl font-extrabold text-[#10b981] mt-1">
+              {summary.a.toLocaleString()}
+            </span>
+          </CardContent>
+        </Card>
+        <Card className="border-t-4 border-t-[#f59e0b] shadow-sm bg-amber-50/30">
+          <CardContent className="p-5 flex flex-col justify-center">
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+              Curva B
+            </span>
+            <span className="text-3xl font-extrabold text-[#f59e0b] mt-1">
+              {summary.b.toLocaleString()}
+            </span>
+          </CardContent>
+        </Card>
+        <Card className="border-t-4 border-t-[#ef4444] shadow-sm bg-rose-50/30">
+          <CardContent className="p-5 flex flex-col justify-center">
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+              Curva C
+            </span>
+            <span className="text-3xl font-extrabold text-[#ef4444] mt-1">
+              {summary.c.toLocaleString()}
+            </span>
+          </CardContent>
+        </Card>
+        <Card className="border-t-4 border-t-slate-400 shadow-sm bg-slate-50/50">
+          <CardContent className="p-5 flex flex-col justify-center">
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+              Não Class.
+            </span>
+            <span className="text-3xl font-extrabold text-slate-600 mt-1">
+              {summary.nc.toLocaleString()}
+            </span>
+          </CardContent>
+        </Card>
+      </div>
 
-        <Card className="flex flex-col">
-          <CardHeader>
-            <CardTitle>Distribuição Geográfica</CardTitle>
-            <CardDescription>Concentração de clientes por Estado (UF).</CardDescription>
-          </CardHeader>
-          <CardContent className="flex-1 pb-4 flex flex-col justify-center min-h-[300px]">
-            {loading ? (
-              <div className="flex items-center justify-center h-full text-muted-foreground">
-                <Loader2 className="w-6 h-6 animate-spin mr-2" />
-              </div>
-            ) : geoChartData.length === 0 ? (
-              <div className="flex items-center justify-center h-full text-muted-foreground text-center">
-                Nenhum dado de localização encontrado.
-              </div>
-            ) : (
-              <ChartContainer
-                config={geoChartConfig}
-                className="mx-auto aspect-square w-full max-h-[350px]"
+      <Card className="border-slate-200 shadow-sm">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <BarChart3 className="w-5 h-5 text-primary" /> Top 10 CNAEs na Carteira
+          </CardTitle>
+          <CardDescription>
+            Principais setores classificados pelo volume de clientes ativos e distribuição de Curva
+            ABC.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {top10Data.length === 0 ? (
+            <div className="flex items-center justify-center h-[350px] text-slate-500">
+              Nenhum dado disponível para os filtros selecionados.
+            </div>
+          ) : (
+            <ChartContainer config={chartConfig} className="w-full aspect-auto h-[400px]">
+              <BarChart
+                data={top10Data}
+                layout="vertical"
+                margin={{ top: 20, right: 20, left: 10, bottom: 20 }}
               >
-                <PieChart>
-                  <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
-                  <Pie
-                    data={geoChartData}
-                    dataKey="value"
-                    nameKey="name"
-                    innerRadius={60}
-                    outerRadius={100}
-                    strokeWidth={2}
-                    paddingAngle={2}
-                  />
-                  <ChartLegend
-                    content={<ChartLegendContent nameKey="name" />}
-                    className="-translate-y-2 flex-wrap gap-2 [&>*]:basis-1/4 [&>*]:justify-center"
-                  />
-                </PieChart>
-              </ChartContainer>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+                <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
+                <XAxis type="number" hide />
+                <YAxis
+                  dataKey="codigo"
+                  type="category"
+                  axisLine={false}
+                  tickLine={false}
+                  width={80}
+                  tick={{ fontSize: 12, fill: 'hsl(var(--foreground))', fontWeight: 500 }}
+                />
+                <ChartTooltip
+                  cursor={{ fill: 'var(--color-muted)', opacity: 0.1 }}
+                  content={<ChartTooltipContent indicator="line" />}
+                />
+                <Legend wrapperStyle={{ paddingTop: '10px' }} iconType="circle" />
+                <Bar dataKey="aPlus" stackId="a" fill="var(--color-aPlus)" />
+                <Bar dataKey="a" stackId="a" fill="var(--color-a)" />
+                <Bar dataKey="b" stackId="a" fill="var(--color-b)" />
+                <Bar dataKey="c" stackId="a" fill="var(--color-c)" />
+                <Bar dataKey="nc" stackId="a" fill="var(--color-nc)" radius={[0, 4, 4, 0]} />
+              </BarChart>
+            </ChartContainer>
+          )}
+        </CardContent>
+      </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="flex flex-col">
-          <CardHeader>
-            <CardTitle>Ticket Médio por Segmento</CardTitle>
-            <CardDescription>
-              Média de valor do ticket dos clientes agrupada por segmento de atuação.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="flex items-center justify-center min-h-[200px] text-muted-foreground">
-                <Loader2 className="w-6 h-6 animate-spin mr-2" />
-              </div>
-            ) : segmentos.length === 0 ? (
-              <div className="flex items-center justify-center min-h-[200px] text-muted-foreground">
-                Nenhum dado de segmento encontrado para os filtros.
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Segmento</TableHead>
-                    <TableHead className="text-right">Ticket Médio</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {segmentos.map((item) => (
-                    <TableRow key={item.segmento}>
-                      <TableCell className="font-medium">{item.segmento}</TableCell>
-                      <TableCell className="text-right">
-                        {new Intl.NumberFormat('pt-BR', {
-                          style: 'currency',
-                          currency: 'BRL',
-                        }).format(item.ticket_medio)}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="flex flex-col">
-          <CardHeader>
-            <CardTitle>Taxa de Sucesso por CNAE</CardTitle>
-            <CardDescription>
-              Percentual de conversão e sucesso dos clientes por setor (CNAE).
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex-1 min-h-[300px]">
-            {loading ? (
-              <div className="flex items-center justify-center h-full min-h-[200px] text-muted-foreground">
-                <Loader2 className="w-6 h-6 animate-spin mr-2" />
-              </div>
-            ) : lineChartData.length === 0 ? (
-              <div className="flex items-center justify-center h-full min-h-[200px] text-muted-foreground">
-                Nenhum dado encontrado para os filtros.
-              </div>
-            ) : (
-              <ChartContainer config={lineChartConfig} className="w-full aspect-auto h-[350px]">
-                <LineChart
-                  data={lineChartData}
-                  margin={{ top: 20, right: 20, left: 0, bottom: 20 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis
-                    dataKey="cnae"
-                    axisLine={false}
-                    tickLine={false}
-                    tickMargin={10}
-                    tick={{ fontSize: 12 }}
-                  />
-                  <YAxis
-                    tickFormatter={(value) => `${value}%`}
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fontSize: 12 }}
-                  />
-                  <ChartTooltip
-                    cursor={{
-                      stroke: 'var(--color-muted)',
-                      strokeWidth: 1,
-                      strokeDasharray: '3 3',
-                    }}
-                    content={<ChartTooltipContent indicator="line" labelKey="nome_cnae" />}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="taxa_sucesso"
-                    stroke="var(--color-taxa_sucesso)"
-                    strokeWidth={2}
-                    dot={{ r: 4, fill: 'var(--color-taxa_sucesso)' }}
-                    activeDot={{ r: 6, fill: 'var(--color-taxa_sucesso)' }}
-                  />
-                </LineChart>
-              </ChartContainer>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 gap-6">
-        <Card className="flex flex-col">
-          <CardHeader>
-            <CardTitle>Clusters Estratégicos</CardTitle>
-            <CardDescription>
-              Oportunidades mapeadas e categorizadas por potencial de score.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="flex items-center justify-center min-h-[200px] text-muted-foreground">
-                <Loader2 className="w-6 h-6 animate-spin mr-2" />
-              </div>
-            ) : clusters.length === 0 ? (
-              <div className="flex items-center justify-center min-h-[200px] text-muted-foreground">
-                Nenhum cluster estratégico encontrado para os filtros.
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {clusters.map((cluster) => {
-                  let colorClass = 'bg-rose-50 border-rose-200 text-rose-900' // Low priority
-
-                  const p = cluster.prioridade?.toLowerCase()
-                  if (p === 'alta' || (cluster.oportunidade_score || 0) > 5000) {
-                    colorClass = 'bg-emerald-50 border-emerald-200 text-emerald-900'
-                  } else if (
-                    p === 'média' ||
-                    p === 'media' ||
-                    (cluster.oportunidade_score || 0) > 2000
-                  ) {
-                    colorClass = 'bg-amber-50 border-amber-200 text-amber-900'
-                  }
-
-                  return (
-                    <div
-                      key={cluster.id}
-                      className={cn(
-                        'p-5 rounded-xl border flex flex-col gap-3 transition-all hover:-translate-y-1 hover:shadow-md cursor-default',
-                        colorClass,
-                      )}
+      <Card className="border-slate-200 shadow-sm overflow-hidden">
+        <CardHeader className="bg-slate-50/50 border-b pb-4">
+          <CardTitle className="text-lg">Inteligência Estratégica por CNAE</CardTitle>
+          <CardDescription>
+            Detalhamento analítico e tendências de mercado baseadas na base atual.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-slate-50 hover:bg-slate-50">
+                  <TableHead className="w-[100px] font-bold text-slate-700">Código</TableHead>
+                  <TableHead className="font-bold text-slate-700">Descrição CNAE</TableHead>
+                  <TableHead className="text-right font-bold text-slate-700">Clientes</TableHead>
+                  <TableHead className="text-center w-[60px] font-bold text-[#064e3b]">
+                    A+
+                  </TableHead>
+                  <TableHead className="text-center w-[60px] font-bold text-[#10b981]">A</TableHead>
+                  <TableHead className="text-center w-[60px] font-bold text-[#f59e0b]">B</TableHead>
+                  <TableHead className="text-center w-[60px] font-bold text-[#ef4444]">C</TableHead>
+                  <TableHead className="text-center w-[60px] font-bold text-slate-500">
+                    NC
+                  </TableHead>
+                  <TableHead className="text-right font-bold text-slate-700">Potencial</TableHead>
+                  <TableHead className="text-right font-bold text-slate-700">Penetração</TableHead>
+                  <TableHead className="text-right font-bold text-slate-700">Tendência</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {cnaesData.map((row) => (
+                  <TableRow key={row.codigo} className="hover:bg-slate-50/80 transition-colors">
+                    <TableCell className="font-semibold text-slate-900">{row.codigo}</TableCell>
+                    <TableCell
+                      className="max-w-[250px] truncate text-slate-600 font-medium"
+                      title={row.descricao}
                     >
-                      <h4 className="font-semibold text-sm line-clamp-2 leading-tight">
-                        {cluster.cluster_name}
-                      </h4>
-                      <div className="flex items-end justify-between mt-auto pt-3 border-t border-black/10">
-                        <div className="flex flex-col">
-                          <span className="text-[10px] font-bold uppercase tracking-wider opacity-60">
-                            Prioridade
-                          </span>
-                          <span className="text-xs font-semibold capitalize">
-                            {cluster.prioridade || 'Baixa'}
-                          </span>
-                        </div>
-                        <div className="flex flex-col text-right">
-                          <span className="text-[10px] font-bold uppercase tracking-wider opacity-60">
-                            Score
-                          </span>
-                          <span className="font-bold text-lg leading-none">
-                            {cluster.oportunidade_score?.toLocaleString('pt-BR')}
-                          </span>
+                      {row.descricao}
+                    </TableCell>
+                    <TableCell className="text-right font-extrabold text-slate-900">
+                      {row.total}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {row.aPlus > 0 ? (
+                        <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-200 border-0 shadow-none font-bold">
+                          {row.aPlus}
+                        </Badge>
+                      ) : (
+                        <span className="text-slate-300">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {row.a > 0 ? (
+                        <Badge className="bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border-0 shadow-none font-bold">
+                          {row.a}
+                        </Badge>
+                      ) : (
+                        <span className="text-slate-300">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {row.b > 0 ? (
+                        <Badge className="bg-amber-50 text-amber-600 hover:bg-amber-100 border-0 shadow-none font-bold">
+                          {row.b}
+                        </Badge>
+                      ) : (
+                        <span className="text-slate-300">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {row.c > 0 ? (
+                        <Badge className="bg-rose-50 text-rose-600 hover:bg-rose-100 border-0 shadow-none font-bold">
+                          {row.c}
+                        </Badge>
+                      ) : (
+                        <span className="text-slate-300">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {row.nc > 0 ? (
+                        <Badge className="bg-slate-100 text-slate-600 hover:bg-slate-200 border-0 shadow-none font-bold">
+                          {row.nc}
+                        </Badge>
+                      ) : (
+                        <span className="text-slate-300">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right text-slate-700 font-bold">
+                      {row.potencial.toLocaleString('pt-BR')}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <span className="text-sm font-bold text-slate-700">
+                          {row.penetracao.toFixed(1)}%
+                        </span>
+                        <div className="w-16 h-2 bg-slate-200 rounded-full overflow-hidden shadow-inner">
+                          <div
+                            className="h-full bg-primary rounded-full transition-all duration-1000"
+                            style={{ width: `${Math.min(row.penetracao, 100)}%` }}
+                          />
                         </div>
                       </div>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+                    </TableCell>
+                    <TableCell className="text-right pr-4">
+                      {row.tendencia.dir === 'up' ? (
+                        <div className="flex items-center justify-end text-emerald-600 text-sm font-bold bg-emerald-50 px-2 py-1 rounded-md ml-auto w-max">
+                          <TrendingUp className="w-4 h-4 mr-1" />+{row.tendencia.val}%
+                        </div>
+                      ) : row.tendencia.dir === 'down' ? (
+                        <div className="flex items-center justify-end text-rose-600 text-sm font-bold bg-rose-50 px-2 py-1 rounded-md ml-auto w-max">
+                          <TrendingDown className="w-4 h-4 mr-1" />-{row.tendencia.val}%
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-end text-slate-500 text-sm font-bold bg-slate-100 px-2 py-1 rounded-md ml-auto w-max">
+                          <Minus className="w-4 h-4 mr-1" />
+                          0.0%
+                        </div>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {cnaesData.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={11} className="h-32 text-center text-slate-500 font-medium">
+                      Nenhum dado encontrado para os filtros selecionados. Tente ajustar sua busca.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }
