@@ -49,6 +49,7 @@ const TestesValidacao = lazyWithRetry(() => import('@/pages/TestesValidacao'))
 const EmpresasDuplicadas = lazyWithRetry(() => import('@/pages/EmpresasDuplicadas'))
 const InteligenciaZion = lazyWithRetry(() => import('@/pages/InteligenciaZion'))
 const AnaliseCarteira = lazyWithRetry(() => import('@/pages/AnaliseCarteira'))
+const CnaeDetails = lazyWithRetry(() => import('@/pages/CnaeDetails'))
 const NotFound = lazyWithRetry(() => import('@/pages/NotFound'))
 const UpdatePassword = lazyWithRetry(() => import('@/pages/UpdatePassword'))
 const ChangePassword = lazyWithRetry(() => import('@/pages/ChangePassword'))
@@ -122,6 +123,7 @@ const App = () => (
                   >
                     <Route path="/" element={<Index />} />
                     <Route path="/inteligencia-zion" element={<InteligenciaZion />} />
+                    <Route path="/cnae/:cnae_code" element={<CnaeDetails />} />
                     <Route path="/analise-carteira" element={<AnaliseCarteira />} />
                     <Route path="/prospeccao" element={<Prospeccao />} />
                     <Route path="/meus-leads" element={<MyLeads />} />

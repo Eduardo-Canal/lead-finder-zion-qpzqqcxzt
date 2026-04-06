@@ -10,6 +10,7 @@ import {
   Hexagon,
   Users,
   PieChart as PieChartIcon,
+  Eye,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts'
@@ -235,8 +236,8 @@ export default function InteligenciaZion() {
                         <th className="p-3 font-semibold text-muted-foreground text-center border-b">
                           Total
                         </th>
-                        <th className="p-3 font-semibold text-muted-foreground text-center border-b w-[60px]">
-                          Ação
+                        <th className="p-3 font-semibold text-muted-foreground text-center border-b w-[90px]">
+                          Ações
                         </th>
                       </tr>
                     </thead>
@@ -269,15 +270,28 @@ export default function InteligenciaZion() {
                               </span>
                             </td>
                             <td className="p-3 text-center">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleBuscarClonesCnae(group.cnae)}
-                                title="Buscar Clones"
-                                className="hover:text-primary hover:bg-primary/10 h-8 w-8 text-muted-foreground group-hover:text-primary"
-                              >
-                                <Hexagon className="w-4 h-4" />
-                              </Button>
+                              <div className="flex items-center justify-center gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() =>
+                                    navigate(`/cnae/${encodeURIComponent(group.cnae)}`)
+                                  }
+                                  title="Ver Detalhes"
+                                  className="hover:text-primary hover:bg-primary/10 h-8 w-8 text-muted-foreground group-hover:text-primary"
+                                >
+                                  <Eye className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleBuscarClonesCnae(group.cnae)}
+                                  title="Buscar Clones"
+                                  className="hover:text-primary hover:bg-primary/10 h-8 w-8 text-muted-foreground group-hover:text-primary"
+                                >
+                                  <Hexagon className="w-4 h-4" />
+                                </Button>
+                              </div>
                             </td>
                           </tr>
                         ))}
