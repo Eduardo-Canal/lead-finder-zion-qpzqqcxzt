@@ -222,7 +222,7 @@ export default function InteligenciaZion() {
 
         <TabsContent
           value="cnae"
-          className="flex-1 data-[state=active]:flex flex-col min-h-0 mt-4 outline-none w-full"
+          className="flex-1 data-[state=active]:flex flex-col min-h-0 mt-4 outline-none w-full overflow-y-auto pb-4"
         >
           {/* Linha Superior: 2 Cards de Resumo */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 shrink-0">
@@ -254,14 +254,14 @@ export default function InteligenciaZion() {
             </div>
           </div>
 
-          {/* Linha Inferior: Gráfico + Tabela */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 pb-6 min-h-0 flex-1">
-            {/* Coluna Esquerda: Gráfico (70%) */}
-            <div className="lg:col-span-2 bg-card rounded-lg shadow border p-6 flex flex-col">
+          {/* Layout Empilhado (Vertical) */}
+          <div className="flex flex-col gap-6 w-full flex-1 shrink-0">
+            {/* Linha do Meio: Gráfico */}
+            <div className="bg-card rounded-lg shadow border p-6 flex flex-col w-full shrink-0">
               <h3 className="text-lg font-semibold text-foreground mb-2">Composição da Carteira</h3>
-              <div className="w-full">
+              <div className="w-full min-h-[350px]">
                 {cnaeGroups.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={400}>
+                  <ResponsiveContainer width="100%" height={350}>
                     <PieChart>
                       <RechartsTooltip
                         formatter={(value: number, name: string) => [`${value} clientes`, name]}
@@ -285,7 +285,7 @@ export default function InteligenciaZion() {
                     </PieChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="flex flex-col items-center justify-center h-[400px] text-muted-foreground">
+                  <div className="flex flex-col items-center justify-center h-[350px] text-muted-foreground">
                     <PieChartIcon className="w-12 h-12 mb-4 text-muted/30" />
                     <p>Sem dados suficientes.</p>
                   </div>
@@ -293,8 +293,8 @@ export default function InteligenciaZion() {
               </div>
             </div>
 
-            {/* Coluna Direita: Tabela (30%) */}
-            <div className="lg:col-span-1 bg-card rounded-lg shadow border p-4 flex flex-col overflow-y-auto max-h-[450px]">
+            {/* Linha Inferior: Tabela */}
+            <div className="bg-card rounded-lg shadow border p-4 flex flex-col overflow-y-auto h-[300px] w-full shrink-0">
               <h3 className="text-lg font-semibold text-foreground mb-4 shrink-0">
                 Top CNAE na Carteira
               </h3>
@@ -355,7 +355,7 @@ export default function InteligenciaZion() {
                     </tbody>
                   </table>
                 ) : (
-                  <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
+                  <div className="flex flex-col items-center justify-center h-full min-h-[150px] text-muted-foreground">
                     <Briefcase className="w-10 h-10 mb-4 text-muted/30" />
                     <p className="text-sm">Nenhum dado encontrado.</p>
                   </div>
