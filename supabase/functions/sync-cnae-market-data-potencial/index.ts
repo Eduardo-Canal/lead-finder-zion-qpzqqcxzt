@@ -38,7 +38,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const cnaeCounts: Record<string, number> = {}
-    clients.forEach((c) => {
+    clients.forEach(c => {
       const cnae = c.cnae_principal?.trim()
       if (cnae && cnae !== 'Não classificado' && cnae !== 'ND') {
         const cleanCnae = cnae.replace(/\D/g, '')
@@ -56,7 +56,7 @@ Deno.serve(async (req: Request) => {
       .from('cnae_market_data_potencial')
       .select('cnae, potencial_mercado')
 
-    const prevDataMap = new Map((prevDataList || []).map((p) => [p.cnae, p.potencial_mercado]))
+    const prevDataMap = new Map((prevDataList || []).map(p => [p.cnae, p.potencial_mercado]))
 
     for (const cnae of cnaesToProcess) {
       const clientes_zion = cnaeCounts[cnae]
@@ -68,7 +68,7 @@ Deno.serve(async (req: Request) => {
       const msgBuffer = new TextEncoder().encode(JSON.stringify(payloadToHash))
       const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer)
       const hashArray = Array.from(new Uint8Array(hashBuffer))
-      const chave_cache = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('')
+      const chave_cache = hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
 
       const { data: cachedData } = await supabaseAdmin
         .from('cache_pesquisas')
@@ -82,7 +82,7 @@ Deno.serve(async (req: Request) => {
         // 3. POST request to API
         try {
           const payloadSearch = {
-            cnae_fiscal_principal: [cnae],
+              cnae_fiscal_principal: [cnae]
           }
 
           const tokenRaw = apiKey.replace(/^Bearer\s+/i, '').trim()
@@ -91,10 +91,10 @@ Deno.serve(async (req: Request) => {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              Accept: 'application/json',
-              'api-key': tokenRaw,
+              'Accept': 'application/json',
+              'api-key': tokenRaw
             },
-            body: JSON.stringify(payloadSearch),
+            body: JSON.stringify(payloadSearch)
           })
 
           apiCalled = true
@@ -104,16 +104,13 @@ Deno.serve(async (req: Request) => {
             potencial_mercado = data.total || data.count || 0
 
             const expira_em = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
-            await supabaseAdmin.from('cache_pesquisas').upsert(
-              {
-                chave_cache,
-                resultados: [],
-                total_registros: potencial_mercado,
-                expira_em,
-                parametros: payloadToHash,
-              },
-              { onConflict: 'chave_cache' },
-            )
+            await supabaseAdmin.from('cache_pesquisas').upsert({
+              chave_cache,
+              resultados: [],
+              total_registros: potencial_mercado,
+              expira_em,
+              parametros: payloadToHash
+            }, { onConflict: 'chave_cache' })
           } else {
             // 9. Log error
             await supabaseAdmin.from('api_debug_logs').insert({
@@ -121,7 +118,7 @@ Deno.serve(async (req: Request) => {
               status_http: response.status,
               sucesso: false,
               tempo_resposta_ms: 0,
-              resposta_json: { error: await response.text() },
+              resposta_json: { error: await response.text() }
             })
           }
         } catch (err: any) {
@@ -130,18 +127,17 @@ Deno.serve(async (req: Request) => {
             status_http: 500,
             sucesso: false,
             tempo_resposta_ms: 0,
-            resposta_json: { error: err.message },
+            resposta_json: { error: err.message }
           })
         }
       }
 
       if (apiCalled) {
-        await new Promise((resolve) => setTimeout(resolve, 500))
+        await new Promise(resolve => setTimeout(resolve, 500))
       }
 
       // 4. Calculate taxa_penetracao
-      const taxa_penetracao =
-        potencial_mercado > 0 ? Number(((clientes_zion / potencial_mercado) * 100).toFixed(2)) : 0
+      const taxa_penetracao = potencial_mercado > 0 ? Number(((clientes_zion / potencial_mercado) * 100).toFixed(2)) : 0
 
       // 5. Determine tendencia
       let tendencia = 'Estável'
@@ -157,7 +153,7 @@ Deno.serve(async (req: Request) => {
         clientes_zion,
         taxa_penetracao,
         tendencia,
-        data_atualizacao: new Date().toISOString(),
+        data_atualizacao: new Date().toISOString()
       })
     }
 
@@ -176,6 +172,7 @@ Deno.serve(async (req: Request) => {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
+
   } catch (error: any) {
     console.error('sync-cnae-market-data-potencial error:', error)
     return new Response(JSON.stringify({ success: false, error: error.message }), {

@@ -1,11 +1,17 @@
 // AVOID UPDATING THIS FILE DIRECTLY. It is automatically generated.
-export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
 
 export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: '14.4'
+    PostgrestVersion: "14.4"
   }
   public: {
     Tables: {
@@ -453,6 +459,36 @@ export type Database = {
         }
         Relationships: []
       }
+      cnae_market_data_potencial: {
+        Row: {
+          clientes_zion: number | null
+          cnae: string
+          data_atualizacao: string | null
+          id: string
+          potencial_mercado: number | null
+          taxa_penetracao: number | null
+          tendencia: string | null
+        }
+        Insert: {
+          clientes_zion?: number | null
+          cnae: string
+          data_atualizacao?: string | null
+          id?: string
+          potencial_mercado?: number | null
+          taxa_penetracao?: number | null
+          tendencia?: string | null
+        }
+        Update: {
+          clientes_zion?: number | null
+          cnae?: string
+          data_atualizacao?: string | null
+          id?: string
+          potencial_mercado?: number | null
+          taxa_penetracao?: number | null
+          tendencia?: string | null
+        }
+        Relationships: []
+      }
       cnae_summary: {
         Row: {
           cnae: string
@@ -482,52 +518,52 @@ export type Database = {
           created_at: string
           duplicate_company_id: number
           id: string
-          match_type: Database['public']['Enums']['duplicate_match_type']
+          match_type: Database["public"]["Enums"]["duplicate_match_type"]
           merged_at: string | null
           merged_by: string | null
           notes: string | null
           original_company_id: number
           similarity_score: number | null
-          status: Database['public']['Enums']['duplicate_status']
+          status: Database["public"]["Enums"]["duplicate_status"]
         }
         Insert: {
           created_at?: string
           duplicate_company_id: number
           id?: string
-          match_type: Database['public']['Enums']['duplicate_match_type']
+          match_type: Database["public"]["Enums"]["duplicate_match_type"]
           merged_at?: string | null
           merged_by?: string | null
           notes?: string | null
           original_company_id: number
           similarity_score?: number | null
-          status?: Database['public']['Enums']['duplicate_status']
+          status?: Database["public"]["Enums"]["duplicate_status"]
         }
         Update: {
           created_at?: string
           duplicate_company_id?: number
           id?: string
-          match_type?: Database['public']['Enums']['duplicate_match_type']
+          match_type?: Database["public"]["Enums"]["duplicate_match_type"]
           merged_at?: string | null
           merged_by?: string | null
           notes?: string | null
           original_company_id?: number
           similarity_score?: number | null
-          status?: Database['public']['Enums']['duplicate_status']
+          status?: Database["public"]["Enums"]["duplicate_status"]
         }
         Relationships: [
           {
-            foreignKeyName: 'company_duplicates_duplicate_company_id_fkey'
-            columns: ['duplicate_company_id']
+            foreignKeyName: "company_duplicates_duplicate_company_id_fkey"
+            columns: ["duplicate_company_id"]
             isOneToOne: false
-            referencedRelation: 'bitrix_clients_zion'
-            referencedColumns: ['bitrix_id']
+            referencedRelation: "bitrix_clients_zion"
+            referencedColumns: ["bitrix_id"]
           },
           {
-            foreignKeyName: 'company_duplicates_original_company_id_fkey'
-            columns: ['original_company_id']
+            foreignKeyName: "company_duplicates_original_company_id_fkey"
+            columns: ["original_company_id"]
             isOneToOne: false
-            referencedRelation: 'bitrix_clients_zion'
-            referencedColumns: ['bitrix_id']
+            referencedRelation: "bitrix_clients_zion"
+            referencedColumns: ["bitrix_id"]
           },
         ]
       }
@@ -603,11 +639,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'company_merge_history_merged_to_company_id_fkey'
-            columns: ['merged_to_company_id']
+            foreignKeyName: "company_merge_history_merged_to_company_id_fkey"
+            columns: ["merged_to_company_id"]
             isOneToOne: false
-            referencedRelation: 'bitrix_clients_zion'
-            referencedColumns: ['bitrix_id']
+            referencedRelation: "bitrix_clients_zion"
+            referencedColumns: ["bitrix_id"]
           },
         ]
       }
@@ -659,11 +695,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'contatos_realizados_executivo_id_fkey'
-            columns: ['executivo_id']
+            foreignKeyName: "contatos_realizados_executivo_id_fkey"
+            columns: ["executivo_id"]
             isOneToOne: false
-            referencedRelation: 'profiles'
-            referencedColumns: ['id']
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -718,11 +754,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'documentation_history_documentation_id_fkey'
-            columns: ['documentation_id']
+            foreignKeyName: "documentation_history_documentation_id_fkey"
+            columns: ["documentation_id"]
             isOneToOne: false
-            referencedRelation: 'documentation'
-            referencedColumns: ['id']
+            referencedRelation: "documentation"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -894,11 +930,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'leads_bitrix_sync_lead_id_fkey'
-            columns: ['lead_id']
+            foreignKeyName: "leads_bitrix_sync_lead_id_fkey"
+            columns: ["lead_id"]
             isOneToOne: false
-            referencedRelation: 'leads_salvos'
-            referencedColumns: ['id']
+            referencedRelation: "leads_salvos"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -980,11 +1016,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'leads_salvos_salvo_por_fkey'
-            columns: ['salvo_por']
+            foreignKeyName: "leads_salvos_salvo_por_fkey"
+            columns: ["salvo_por"]
             isOneToOne: false
-            referencedRelation: 'profiles'
-            referencedColumns: ['id']
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -1023,7 +1059,7 @@ export type Database = {
           lead_id: string
           notes: string | null
           probability: number | null
-          stage: Database['public']['Enums']['opportunity_stage']
+          stage: Database["public"]["Enums"]["opportunity_stage"]
           updated_at: string
           value: number | null
         }
@@ -1034,7 +1070,7 @@ export type Database = {
           lead_id: string
           notes?: string | null
           probability?: number | null
-          stage?: Database['public']['Enums']['opportunity_stage']
+          stage?: Database["public"]["Enums"]["opportunity_stage"]
           updated_at?: string
           value?: number | null
         }
@@ -1045,17 +1081,17 @@ export type Database = {
           lead_id?: string
           notes?: string | null
           probability?: number | null
-          stage?: Database['public']['Enums']['opportunity_stage']
+          stage?: Database["public"]["Enums"]["opportunity_stage"]
           updated_at?: string
           value?: number | null
         }
         Relationships: [
           {
-            foreignKeyName: 'opportunities_lead_id_fkey'
-            columns: ['lead_id']
+            foreignKeyName: "opportunities_lead_id_fkey"
+            columns: ["lead_id"]
             isOneToOne: false
-            referencedRelation: 'leads_salvos'
-            referencedColumns: ['id']
+            referencedRelation: "leads_salvos"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -1107,11 +1143,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'profiles_perfil_id_fkey'
-            columns: ['perfil_id']
+            foreignKeyName: "profiles_perfil_id_fkey"
+            columns: ["perfil_id"]
             isOneToOne: false
-            referencedRelation: 'perfis_acesso'
-            referencedColumns: ['id']
+            referencedRelation: "perfis_acesso"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -1123,7 +1159,7 @@ export type Database = {
           is_active: boolean
           last_reminded_at: string | null
           lead_id: string
-          reminder_type: Database['public']['Enums']['reminder_type_enum']
+          reminder_type: Database["public"]["Enums"]["reminder_type_enum"]
           updated_at: string
           user_id: string
         }
@@ -1134,7 +1170,7 @@ export type Database = {
           is_active?: boolean
           last_reminded_at?: string | null
           lead_id: string
-          reminder_type?: Database['public']['Enums']['reminder_type_enum']
+          reminder_type?: Database["public"]["Enums"]["reminder_type_enum"]
           updated_at?: string
           user_id: string
         }
@@ -1145,17 +1181,17 @@ export type Database = {
           is_active?: boolean
           last_reminded_at?: string | null
           lead_id?: string
-          reminder_type?: Database['public']['Enums']['reminder_type_enum']
+          reminder_type?: Database["public"]["Enums"]["reminder_type_enum"]
           updated_at?: string
           user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: 'reminders_lead_id_fkey'
-            columns: ['lead_id']
+            foreignKeyName: "reminders_lead_id_fkey"
+            columns: ["lead_id"]
             isOneToOne: false
-            referencedRelation: 'leads_salvos'
-            referencedColumns: ['id']
+            referencedRelation: "leads_salvos"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -1402,19 +1438,26 @@ export type Database = {
           lead_id: string
           razao_social: string
           reminder_id: string
-          reminder_type: Database['public']['Enums']['reminder_type_enum']
+          reminder_type: Database["public"]["Enums"]["reminder_type_enum"]
           user_id: string
         }[]
       }
       limpar_cache_pesquisas: { Args: { p_cnae?: string }; Returns: number }
       show_limit: { Args: never; Returns: number }
-      show_trgm: { Args: { '': string }; Returns: string[] }
+      show_trgm: { Args: { "": string }; Returns: string[] }
     }
     Enums: {
-      duplicate_match_type: 'cnpj_exact' | 'razao_social_single' | 'razao_social_multiple'
-      duplicate_status: 'pending_review' | 'merged' | 'ignored'
-      opportunity_stage: 'prospecting' | 'qualification' | 'proposal' | 'closing'
-      reminder_type_enum: 'follow_up' | 'proposal' | 'closing'
+      duplicate_match_type:
+        | "cnpj_exact"
+        | "razao_social_single"
+        | "razao_social_multiple"
+      duplicate_status: "pending_review" | "merged" | "ignored"
+      opportunity_stage:
+        | "prospecting"
+        | "qualification"
+        | "proposal"
+        | "closing"
+      reminder_type_enum: "follow_up" | "proposal" | "closing"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1422,31 +1465,33 @@ export type Database = {
   }
 }
 
-type DatabaseWithoutInternals = Omit<Database, '__InternalSupabase'>
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
 
-type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, 'public'>]
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
-    | keyof (DefaultSchema['Tables'] & DefaultSchema['Views'])
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'] &
-        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Views'])
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
     : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'] &
-      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Views'])[TableName] extends {
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
     ? R
     : never
-  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema['Tables'] & DefaultSchema['Views'])
-    ? (DefaultSchema['Tables'] & DefaultSchema['Views'])[DefaultSchemaTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
         Row: infer R
       }
       ? R
@@ -1455,23 +1500,23 @@ export type Tables<
 
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema['Tables']
+    | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables']
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'][TableName] extends {
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Insert: infer I
     }
     ? I
     : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema['Tables']
-    ? DefaultSchema['Tables'][DefaultSchemaTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
         Insert: infer I
       }
       ? I
@@ -1480,23 +1525,23 @@ export type TablesInsert<
 
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema['Tables']
+    | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables']
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'][TableName] extends {
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Update: infer U
     }
     ? U
     : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema['Tables']
-    ? DefaultSchema['Tables'][DefaultSchemaTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
         Update: infer U
       }
       ? U
@@ -1505,48 +1550,58 @@ export type TablesUpdate<
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
-    | keyof DefaultSchema['Enums']
+    | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions['schema']]['Enums']
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
     : never = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions['schema']]['Enums'][EnumName]
-  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema['Enums']
-    ? DefaultSchema['Enums'][DefaultSchemaEnumNameOrOptions]
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
     : never
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
-    | keyof DefaultSchema['CompositeTypes']
+    | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions['schema']]['CompositeTypes']
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
     : never = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions['schema']]['CompositeTypes'][CompositeTypeName]
-  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema['CompositeTypes']
-    ? DefaultSchema['CompositeTypes'][PublicCompositeTypeNameOrOptions]
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
 
 export const Constants = {
   public: {
     Enums: {
-      duplicate_match_type: ['cnpj_exact', 'razao_social_single', 'razao_social_multiple'],
-      duplicate_status: ['pending_review', 'merged', 'ignored'],
-      opportunity_stage: ['prospecting', 'qualification', 'proposal', 'closing'],
-      reminder_type_enum: ['follow_up', 'proposal', 'closing'],
+      duplicate_match_type: [
+        "cnpj_exact",
+        "razao_social_single",
+        "razao_social_multiple",
+      ],
+      duplicate_status: ["pending_review", "merged", "ignored"],
+      opportunity_stage: [
+        "prospecting",
+        "qualification",
+        "proposal",
+        "closing",
+      ],
+      reminder_type_enum: ["follow_up", "proposal", "closing"],
     },
   },
 } as const
+
 
 // ====== DATABASE EXTENDED CONTEXT (auto-generated) ======
 // This section contains actual PostgreSQL column types, constraints, RLS policies,
@@ -1679,6 +1734,14 @@ export const Constants = {
 //   c: integer (nullable, default: 0)
 //   nao_classificado: integer (nullable, default: 0)
 //   potencial_mercado: integer (nullable, default: 0)
+//   taxa_penetracao: numeric (nullable, default: 0)
+//   tendencia: text (nullable)
+//   data_atualizacao: timestamp with time zone (nullable, default: now())
+// Table: cnae_market_data_potencial
+//   id: uuid (not null, default: gen_random_uuid())
+//   cnae: text (not null)
+//   potencial_mercado: integer (nullable, default: 0)
+//   clientes_zion: integer (nullable, default: 0)
 //   taxa_penetracao: numeric (nullable, default: 0)
 //   tendencia: text (nullable)
 //   data_atualizacao: timestamp with time zone (nullable, default: now())
@@ -1943,6 +2006,9 @@ export const Constants = {
 // Table: cnae_market_data
 //   UNIQUE cnae_market_data_cnae_code_key: UNIQUE (cnae_code)
 //   PRIMARY KEY cnae_market_data_pkey: PRIMARY KEY (id)
+// Table: cnae_market_data_potencial
+//   UNIQUE cnae_market_data_potencial_cnae_key: UNIQUE (cnae)
+//   PRIMARY KEY cnae_market_data_potencial_pkey: PRIMARY KEY (id)
 // Table: cnae_summary
 //   UNIQUE cnae_summary_cnae_key: UNIQUE (cnae)
 //   PRIMARY KEY cnae_summary_pkey: PRIMARY KEY (id)
@@ -2080,6 +2146,11 @@ export const Constants = {
 //   Policy "admin_all_cnae_market_data" (ALL, PERMISSIVE) roles={authenticated}
 //     USING: (EXISTS ( SELECT 1    FROM (profiles p      JOIN perfis_acesso pa ON ((p.perfil_id = pa.id)))   WHERE ((p.user_id = auth.uid()) AND (pa.nome = 'Administrador'::text))))
 //   Policy "authenticated_select_cnae_market_data" (SELECT, PERMISSIVE) roles={authenticated}
+//     USING: true
+// Table: cnae_market_data_potencial
+//   Policy "admin_all_cnae_market_data_potencial" (ALL, PERMISSIVE) roles={authenticated}
+//     USING: (EXISTS ( SELECT 1    FROM (profiles p      JOIN perfis_acesso pa ON ((p.perfil_id = pa.id)))   WHERE ((p.user_id = auth.uid()) AND (pa.nome = 'Administrador'::text))))
+//   Policy "authenticated_select_cnae_market_data_potencial" (SELECT, PERMISSIVE) roles={authenticated}
 //     USING: true
 // Table: cnae_summary
 //   Policy "authenticated_select_cnae_summary" (SELECT, PERMISSIVE) roles={authenticated}
@@ -2222,20 +2293,20 @@ export const Constants = {
 //       -- Configure the similarity threshold locally for this transaction
 //       -- This allows the '%' operator to utilize the GiST index efficiently
 //       PERFORM set_config('pg_trgm.similarity_threshold', min_score::text, true);
-//
+//       
 //       RETURN QUERY
-//       SELECT
+//       SELECT 
 //           a.bitrix_id as empresa1_id,
 //           b.bitrix_id as empresa2_id,
 //           (similarity(a.company_name, b.company_name) * 100)::numeric as similarity_score,
 //           'Razão Social (Fuzzy)'::text as tipo_similaridade
 //       FROM public.bitrix_clients_zion a
-//       JOIN public.bitrix_clients_zion b
+//       JOIN public.bitrix_clients_zion b 
 //         ON a.company_name % b.company_name
 //         AND a.bitrix_id < b.bitrix_id
 //       WHERE a.company_name IS NOT NULL AND b.company_name IS NOT NULL
 //       AND NOT EXISTS (
-//           SELECT 1 FROM public.company_duplicates cd
+//           SELECT 1 FROM public.company_duplicates cd 
 //           WHERE (cd.original_company_id = a.bitrix_id AND cd.duplicate_company_id = b.bitrix_id)
 //              OR (cd.original_company_id = b.bitrix_id AND cd.duplicate_company_id = a.bitrix_id)
 //       )
@@ -2243,7 +2314,7 @@ export const Constants = {
 //       LIMIT 50;
 //   END;
 //   $function$
-//
+//   
 // FUNCTION get_due_followups()
 //   CREATE OR REPLACE FUNCTION public.get_due_followups()
 //    RETURNS TABLE(lead_id uuid, user_id uuid, razao_social text, executivo_email text, executivo_nome text, opp_stage text, dias_sem_contato integer, reminder_type text)
@@ -2253,7 +2324,7 @@ export const Constants = {
 //   BEGIN
 //       RETURN QUERY
 //       WITH lead_data AS (
-//           SELECT
+//           SELECT 
 //               l.id as lead_id,
 //               l.razao_social,
 //               l.ultima_data_contato,
@@ -2275,23 +2346,23 @@ export const Constants = {
 //           WHERE l.status_contato NOT IN ('Convertido', 'Sem Interesse')
 //       ),
 //       due_leads AS (
-//           SELECT
+//           SELECT 
 //               d.*,
 //               -- Define o tipo de lembrete esperado com base no estágio do lead no funil
-//               CASE
+//               CASE 
 //                   WHEN d.opp_stage = 'proposal' THEN 'proposal'
 //                   WHEN d.opp_stage = 'closing' THEN 'closing'
 //                   ELSE 'follow_up'
 //               END as expected_reminder_type,
 //               -- Define a meta de dias com base nas configurações e estágio
-//               CASE
+//               CASE 
 //                   WHEN d.opp_stage = 'proposal' THEN d.proposal_days
 //                   WHEN d.opp_stage = 'closing' THEN d.closing_days
 //                   ELSE d.follow_up_days
 //               END as target_days
 //           FROM lead_data d
 //       )
-//       SELECT
+//       SELECT 
 //           d.lead_id,
 //           d.user_id,
 //           d.razao_social,
@@ -2309,7 +2380,7 @@ export const Constants = {
 //       AND (r.last_reminded_at IS NULL OR EXTRACT(DAY FROM (NOW() - r.last_reminded_at)) >= 1);
 //   END;
 //   $function$
-//
+//   
 // FUNCTION get_due_reminders_with_leads()
 //   CREATE OR REPLACE FUNCTION public.get_due_reminders_with_leads()
 //    RETURNS TABLE(reminder_id uuid, user_id uuid, lead_id uuid, reminder_type reminder_type_enum, days_interval integer, razao_social text, executivo_email text, executivo_nome text)
@@ -2334,7 +2405,7 @@ export const Constants = {
 //       AND NOW() >= COALESCE(r.last_reminded_at, r.created_at) + (r.days_interval * interval '1 day');
 //   END;
 //   $function$
-//
+//   
 // FUNCTION limpar_cache_pesquisas(text)
 //   CREATE OR REPLACE FUNCTION public.limpar_cache_pesquisas(p_cnae text DEFAULT NULL::text)
 //    RETURNS integer
@@ -2352,24 +2423,24 @@ export const Constants = {
 //       ELSE
 //           -- Clean up formatting from the input CNAE
 //           v_cnae_clean := regexp_replace(p_cnae, '\D', '', 'g');
-//
+//           
 //           -- Delete cache entries where:
 //           -- 1. The input CNAE is present in the 'parametros->cnaes' JSON array (new way)
 //           -- 2. OR the results text contains the cleaned CNAE (fallback for older cache entries)
 //           -- 3. OR the results text contains the formatted input CNAE (fallback for older cache entries)
 //           DELETE FROM public.cache_pesquisas
-//           WHERE
+//           WHERE 
 //               (parametros->'cnaes')::jsonb ? v_cnae_clean
 //               OR resultados::text LIKE '%' || v_cnae_clean || '%'
 //               OR resultados::text LIKE '%' || p_cnae || '%';
-//
+//               
 //           GET DIAGNOSTICS v_count = ROW_COUNT;
 //       END IF;
-//
+//       
 //       RETURN v_count;
 //   END;
 //   $function$
-//
+//   
 // FUNCTION update_opportunities_updated_at()
 //   CREATE OR REPLACE FUNCTION public.update_opportunities_updated_at()
 //    RETURNS trigger
@@ -2381,7 +2452,7 @@ export const Constants = {
 //       RETURN NEW;
 //   END;
 //   $function$
-//
+//   
 // FUNCTION update_reminders_updated_at()
 //   CREATE OR REPLACE FUNCTION public.update_reminders_updated_at()
 //    RETURNS trigger
@@ -2393,7 +2464,7 @@ export const Constants = {
 //       RETURN NEW;
 //   END;
 //   $function$
-//
+//   
 
 // --- TRIGGERS ---
 // Table: opportunities
@@ -2428,6 +2499,9 @@ export const Constants = {
 //   CREATE INDEX idx_clusters_name ON public.clusters_estrategicos USING btree (cluster_name)
 // Table: cnae_market_data
 //   CREATE UNIQUE INDEX cnae_market_data_cnae_code_key ON public.cnae_market_data USING btree (cnae_code)
+// Table: cnae_market_data_potencial
+//   CREATE UNIQUE INDEX cnae_market_data_potencial_cnae_key ON public.cnae_market_data_potencial USING btree (cnae)
+//   CREATE INDEX idx_cnae_market_data_potencial_cnae ON public.cnae_market_data_potencial USING btree (cnae)
 // Table: cnae_summary
 //   CREATE UNIQUE INDEX cnae_summary_cnae_key ON public.cnae_summary USING btree (cnae)
 // Table: company_duplicates
@@ -2468,3 +2542,4 @@ export const Constants = {
 // Table: user_sessions
 //   CREATE INDEX idx_user_sessions_timestamp ON public.user_sessions USING btree (login_time)
 //   CREATE INDEX idx_user_sessions_user_id ON public.user_sessions USING btree (user_id)
+
