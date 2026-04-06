@@ -16,9 +16,9 @@ Deno.serve(async (req: Request) => {
     const { endpoint, method = 'GET', headers = {}, body } = payload
 
     if (!endpoint) {
-      return new Response(JSON.stringify({ success: false, message: 'Endpoint is required' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      return new Response(JSON.stringify({ success: false, message: 'Endpoint is required' }), { 
+        status: 400, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       })
     }
 
@@ -28,7 +28,7 @@ Deno.serve(async (req: Request) => {
       .select('*')
       .limit(1)
       .maybeSingle()
-
+      
     const maxReqs = config?.max_requests ?? 2
     const timeWindowMins = config?.time_window_minutes ?? 1
 
@@ -45,17 +45,14 @@ Deno.serve(async (req: Request) => {
       const nextAvailable = new Date(oldestInWindow.getTime() + timeWindowMins * 60 * 1000)
       const waitSeconds = Math.ceil((nextAvailable.getTime() - Date.now()) / 1000)
 
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: `Rate limit atingido. Próxima requisição permitida em ${waitSeconds > 0 ? waitSeconds : 1} segundos`,
-          next_available_at: nextAvailable.toISOString(),
-        }),
-        {
-          status: 429,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        },
-      )
+      return new Response(JSON.stringify({
+        success: false,
+        message: `Rate limit atingido. Próxima requisição permitida em ${waitSeconds > 0 ? waitSeconds : 1} segundos`,
+        next_available_at: nextAvailable.toISOString()
+      }), { 
+        status: 429, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      })
     }
 
     // 3. Executar a requisição para a API externa
@@ -70,16 +67,16 @@ Deno.serve(async (req: Request) => {
         method,
         headers,
       }
-
+      
       if (method !== 'GET' && method !== 'HEAD' && body) {
         fetchOptions.body = typeof body === 'string' ? body : JSON.stringify(body)
       }
 
       const res = await fetch(endpoint, fetchOptions)
       fetchStatus = res.status
-
+      
       res.headers.forEach((val, key) => {
-        responseHeaders[key] = val
+         responseHeaders[key] = val
       })
 
       const text = await res.text()
@@ -90,8 +87,7 @@ Deno.serve(async (req: Request) => {
       }
 
       if (!res.ok) {
-        fetchError =
-          typeof responseData === 'object' ? JSON.stringify(responseData) : String(responseData)
+        fetchError = typeof responseData === 'object' ? JSON.stringify(responseData) : String(responseData)
       }
     } catch (err: any) {
       fetchError = err.message
@@ -107,34 +103,27 @@ Deno.serve(async (req: Request) => {
       status_code: fetchStatus,
       response_time_ms: timeTaken,
       error_message: fetchError,
-      request_body: typeof body === 'object' ? body : body ? { raw: body } : null,
-      response_body:
-        typeof responseData === 'object'
-          ? responseData
-          : responseData
-            ? { raw: responseData }
-            : null,
+      request_body: typeof body === 'object' ? body : (body ? { raw: body } : null),
+      response_body: typeof responseData === 'object' ? responseData : (responseData ? { raw: responseData } : null)
     })
 
     // 5. Retornar resposta ao cliente
-    return new Response(
-      JSON.stringify({
-        success: fetchStatus >= 200 && fetchStatus < 300,
-        message: fetchError ? 'Erro na requisição externa' : 'Requisição realizada com sucesso',
-        status_code: fetchStatus,
-        data: responseData,
-        response_headers: responseHeaders,
-        time_ms: timeTaken,
-      }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      },
-    )
+    return new Response(JSON.stringify({
+      success: fetchStatus >= 200 && fetchStatus < 300,
+      message: fetchError ? 'Erro na requisição externa' : 'Requisição realizada com sucesso',
+      status_code: fetchStatus,
+      data: responseData,
+      response_headers: responseHeaders,
+      time_ms: timeTaken
+    }), { 
+      status: 200, 
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+    })
+
   } catch (error: any) {
-    return new Response(JSON.stringify({ success: false, message: error.message }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    return new Response(JSON.stringify({ success: false, message: error.message }), { 
+      status: 500, 
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
     })
   }
 })
