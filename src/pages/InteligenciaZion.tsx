@@ -265,7 +265,11 @@ export default function InteligenciaZion() {
                               </div>
                             </td>
                             <td className="p-3 text-center">
-                              <span className="inline-flex items-center justify-center bg-primary/10 text-primary font-bold px-2 py-0.5 rounded-md min-w-[2rem] text-xs">
+                              <span
+                                onClick={() => navigate(`/cnae/${encodeURIComponent(group.cnae)}`)}
+                                className="inline-flex items-center justify-center bg-primary/10 text-primary font-bold px-2 py-0.5 rounded-md min-w-[2rem] text-xs cursor-pointer hover:bg-primary/30 transition-colors shadow-sm hover:shadow"
+                                title="Ver Detalhes do CNAE"
+                              >
                                 {group.count}
                               </span>
                             </td>
