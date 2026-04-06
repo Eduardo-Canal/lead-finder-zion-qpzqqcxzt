@@ -72,14 +72,19 @@ export default function AnaliseCarteira() {
         ])
 
         if (clientsRes.data) {
-          // Normalize curves
+          // Normalize curves (7592=A+, 7594=A, 7596=B, 7598=C)
           const normalizedClients = clientsRes.data.map((c) => {
-            const rawCurve = c.curva_abc?.trim().toUpperCase() || ''
+            const rawCurve = c.curva_abc || ''
+            let normalized = 'Não Classificado'
+            const r = rawCurve.trim().toUpperCase()
+            if (r === '7592' || r === 'A+') normalized = 'A+'
+            else if (r === '7594' || r === 'A') normalized = 'A'
+            else if (r === '7596' || r === 'B') normalized = 'B'
+            else if (r === '7598' || r === 'C') normalized = 'C'
+
             return {
               ...c,
-              normalizedCurve: ['A+', 'A', 'B', 'C'].includes(rawCurve)
-                ? rawCurve
-                : 'Não Classificado',
+              normalizedCurve: normalized,
             }
           })
           setClients(normalizedClients)
@@ -133,9 +138,22 @@ export default function AnaliseCarteira() {
       const code = c.cnae_principal || 'N/D'
       if (!map.has(code)) {
         const market = marketData[code] || {}
+        const shortCode = code.includes('-') ? code.split(' - ')[0].trim() : code
+
+        let desc = market.cnae_description
+        if (!desc || desc === 'Descrição não informada') {
+          const parts = code.split(' - ')
+          if (parts.length > 1) {
+            desc = parts.slice(1).join(' - ').trim()
+          } else {
+            desc = 'Setor não detalhado'
+          }
+        }
+
         map.set(code, {
           codigo: code,
-          descricao: market.cnae_description || 'Setor não detalhado',
+          shortCode,
+          descricao: desc,
           total: 0,
           aPlus: 0,
           a: 0,
@@ -371,11 +389,11 @@ export default function AnaliseCarteira() {
                 <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
                 <XAxis type="number" hide />
                 <YAxis
-                  dataKey="codigo"
+                  dataKey="shortCode"
                   type="category"
                   axisLine={false}
                   tickLine={false}
-                  width={90}
+                  width={100}
                   tick={{ fontSize: 12, fill: 'hsl(var(--foreground))', fontWeight: 500 }}
                 />
                 <ChartTooltip
@@ -426,7 +444,9 @@ export default function AnaliseCarteira() {
               <TableBody>
                 {cnaesData.map((row) => (
                   <TableRow key={row.codigo} className="hover:bg-slate-50/80 transition-colors">
-                    <TableCell className="font-semibold text-slate-900">{row.codigo}</TableCell>
+                    <TableCell className="font-semibold text-slate-900" title={row.codigo}>
+                      {row.shortCode}
+                    </TableCell>
                     <TableCell
                       className="max-w-[250px] truncate text-slate-600 font-medium"
                       title={row.descricao}
@@ -438,7 +458,7 @@ export default function AnaliseCarteira() {
                     </TableCell>
                     <TableCell className="text-center">
                       {row.aPlus > 0 ? (
-                        <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-200 border-0 shadow-none font-bold">
+                        <Badge className="bg-[#064e3b] text-white hover:bg-[#064e3b]/90 border-0 shadow-none font-bold">
                           {row.aPlus}
                         </Badge>
                       ) : (
@@ -447,7 +467,7 @@ export default function AnaliseCarteira() {
                     </TableCell>
                     <TableCell className="text-center">
                       {row.a > 0 ? (
-                        <Badge className="bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border-0 shadow-none font-bold">
+                        <Badge className="bg-[#10b981] text-white hover:bg-[#10b981]/90 border-0 shadow-none font-bold">
                           {row.a}
                         </Badge>
                       ) : (
@@ -456,7 +476,7 @@ export default function AnaliseCarteira() {
                     </TableCell>
                     <TableCell className="text-center">
                       {row.b > 0 ? (
-                        <Badge className="bg-amber-50 text-amber-600 hover:bg-amber-100 border-0 shadow-none font-bold">
+                        <Badge className="bg-[#f59e0b] text-white hover:bg-[#f59e0b]/90 border-0 shadow-none font-bold">
                           {row.b}
                         </Badge>
                       ) : (
@@ -465,7 +485,7 @@ export default function AnaliseCarteira() {
                     </TableCell>
                     <TableCell className="text-center">
                       {row.c > 0 ? (
-                        <Badge className="bg-rose-50 text-rose-600 hover:bg-rose-100 border-0 shadow-none font-bold">
+                        <Badge className="bg-[#ef4444] text-white hover:bg-[#ef4444]/90 border-0 shadow-none font-bold">
                           {row.c}
                         </Badge>
                       ) : (
@@ -474,7 +494,7 @@ export default function AnaliseCarteira() {
                     </TableCell>
                     <TableCell className="text-center">
                       {row.nc > 0 ? (
-                        <Badge className="bg-slate-100 text-slate-600 hover:bg-slate-200 border-0 shadow-none font-bold">
+                        <Badge className="bg-slate-400 text-white hover:bg-slate-500 border-0 shadow-none font-bold">
                           {row.nc}
                         </Badge>
                       ) : (

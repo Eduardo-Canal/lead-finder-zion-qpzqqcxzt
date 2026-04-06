@@ -12,9 +12,9 @@ Deno.serve(async (req: Request) => {
     const leads = payload.leads || []
 
     if (!Array.isArray(leads) || leads.length === 0) {
-      return new Response(JSON.stringify({ results: [] }), { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-        status: 200 
+      return new Response(JSON.stringify({ results: [] }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
       })
     }
 
@@ -25,21 +25,23 @@ Deno.serve(async (req: Request) => {
     // API Key fallback logic
     let apiKey = Deno.env.get('CASA_DOS_DADOS_API_KEY') || Deno.env.get('CASADOSDADOS_API_KEY')
     if (!apiKey) {
-       const { data: config } = await supabaseAdmin
-         .from('configuracoes_sistema')
-         .select('casadosdados_api_token')
-         .eq('id', 1)
-         .maybeSingle()
-       apiKey = config?.casadosdados_api_token?.trim() || ''
+      const { data: config } = await supabaseAdmin
+        .from('configuracoes_sistema')
+        .select('casadosdados_api_token')
+        .eq('id', 1)
+        .maybeSingle()
+      apiKey = config?.casadosdados_api_token?.trim() || ''
     }
 
-    const cleanCnpjs = leads.map((l: any) => (l.cnpj || '').replace(/\D/g, '')).filter((c: string) => c.length === 14)
+    const cleanCnpjs = leads
+      .map((l: any) => (l.cnpj || '').replace(/\D/g, ''))
+      .filter((c: string) => c.length === 14)
 
     if (cleanCnpjs.length === 0) {
-       return new Response(JSON.stringify({ results: leads }), { 
-         headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-         status: 200 
-       })
+      return new Response(JSON.stringify({ results: leads }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      })
     }
 
     // 1. Check Cache
@@ -52,87 +54,87 @@ Deno.serve(async (req: Request) => {
 
     const cachedMap = new Map((cached || []).map((c: any) => [c.cnpj, c.data]))
     const missingCnpjs = cleanCnpjs.filter((c: string) => !cachedMap.has(c))
-    
+
     // Remove duplicates from missingCnpjs to avoid redundant API calls
     const uniqueMissingCnpjs = [...new Set(missingCnpjs)]
 
     // 2. Fetch missing (max 10 concurrent)
     const fetchEnrichedData = async (cnpj: string) => {
-       try {
-         if (!apiKey) throw new Error('API Key missing')
-         let tokenRaw = apiKey.replace(/^Bearer\s+/i, '').trim()
+      try {
+        if (!apiKey) throw new Error('API Key missing')
+        let tokenRaw = apiKey.replace(/^Bearer\s+/i, '').trim()
 
-         const res = await fetch(`https://api.casadosdados.com.br/v5/cnpj/${cnpj}`, {
-           method: 'GET',
-           headers: {
-             'Accept': 'application/json',
-             'api-key': tokenRaw
-           }
-         })
+        const res = await fetch(`https://api.casadosdados.com.br/v5/cnpj/${cnpj}`, {
+          method: 'GET',
+          headers: {
+            Accept: 'application/json',
+            'api-key': tokenRaw,
+          },
+        })
 
-         if (!res.ok) {
-            throw new Error(`API error: ${res.status}`)
-         }
+        if (!res.ok) {
+          throw new Error(`API error: ${res.status}`)
+        }
 
-         const rawData = await res.json()
-         return {
-            cnpj,
-            faturamento_anual: rawData.faturamento_estimado || rawData.capital_social || null,
-            numero_funcionarios: rawData.quantidade_funcionarios || rawData.faixa_funcionarios || null,
-            contatos_principais: rawData.socios?.map((s:any) => ({
-                nome: s.nome,
-                email: s.email || rawData.email || null,
-                telefone: s.telefone || rawData.telefone || null,
-                cargo: s.qualificacao_socio?.descricao || 'Sócio'
+        const rawData = await res.json()
+        return {
+          cnpj,
+          faturamento_anual: rawData.faturamento_estimado || rawData.capital_social || null,
+          numero_funcionarios:
+            rawData.quantidade_funcionarios || rawData.faixa_funcionarios || null,
+          contatos_principais:
+            rawData.socios?.map((s: any) => ({
+              nome: s.nome,
+              email: s.email || rawData.email || null,
+              telefone: s.telefone || rawData.telefone || null,
+              cargo: s.qualificacao_socio?.descricao || 'Sócio',
             })) || [],
-            score_credito: rawData.score_credito || rawData.score || null,
-            dados_incompletos: false
-         }
-       } catch (error) {
-         return {
-            cnpj,
-            faturamento_anual: null,
-            numero_funcionarios: null,
-            contatos_principais: [],
-            score_credito: null,
-            dados_incompletos: true
-         }
-       }
+          score_credito: rawData.score_credito || rawData.score || null,
+          dados_incompletos: false,
+        }
+      } catch (error) {
+        return {
+          cnpj,
+          faturamento_anual: null,
+          numero_funcionarios: null,
+          contatos_principais: [],
+          score_credito: null,
+          dados_incompletos: true,
+        }
+      }
     }
 
     const newEnrichedData = []
     const batchSize = 10
-    
+
     for (let i = 0; i < uniqueMissingCnpjs.length; i += batchSize) {
-       const batch = uniqueMissingCnpjs.slice(i, i + batchSize)
-       const results = await Promise.all(batch.map((c: string) => fetchEnrichedData(c)))
-       newEnrichedData.push(...results)
+      const batch = uniqueMissingCnpjs.slice(i, i + batchSize)
+      const results = await Promise.all(batch.map((c: string) => fetchEnrichedData(c)))
+      newEnrichedData.push(...results)
     }
 
     // 3. Store in cache
     if (newEnrichedData.length > 0) {
-       const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
-       const upserts = newEnrichedData.map(d => ({
-          cnpj: d.cnpj,
-          data: d,
-          expires_at: expiresAt
-       }))
-       
-       await supabaseAdmin
-         .from('company_enriched_cache')
-         .upsert(upserts, { onConflict: 'cnpj' })
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+      const upserts = newEnrichedData.map((d) => ({
+        cnpj: d.cnpj,
+        data: d,
+        expires_at: expiresAt,
+      }))
+
+      await supabaseAdmin.from('company_enriched_cache').upsert(upserts, { onConflict: 'cnpj' })
     }
 
-    const newMap = new Map(newEnrichedData.map(d => [d.cnpj, d]))
+    const newMap = new Map(newEnrichedData.map((d) => [d.cnpj, d]))
 
     // 4. Merge results
     const finalResults = leads.map((lead: any) => {
-        const clean = (lead.cnpj || '').replace(/\D/g, '')
-        let enriched = cachedMap.get(clean) || newMap.get(clean) || { dados_incompletos: true }
-        return {
-            ...lead,
-            enriquecimento: enriched
-        }
+      const clean = (lead.cnpj || '').replace(/\D/g, '')
+      let enriched = cachedMap.get(clean) || newMap.get(clean) || { dados_incompletos: true }
+      return {
+        ...lead,
+        enriquecimento: enriched,
+      }
     })
 
     return new Response(JSON.stringify({ results: finalResults }), {
