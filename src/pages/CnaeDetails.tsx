@@ -132,7 +132,6 @@ export default function CnaeDetails() {
               <thead className="bg-muted/40">
                 <tr>
                   <th className="p-3 font-semibold text-muted-foreground border-b">Razão Social</th>
-                  <th className="p-3 font-semibold text-muted-foreground border-b">CNPJ</th>
                   <th className="p-3 font-semibold text-muted-foreground border-b text-center">
                     Curva ABC
                   </th>
@@ -146,9 +145,6 @@ export default function CnaeDetails() {
                       <td className="p-3 font-medium text-foreground">
                         {company.company_name || 'Empresa Sem Nome'}
                       </td>
-                      <td className="p-3 text-muted-foreground">
-                        {company.cnpj || 'Não informado'}
-                      </td>
                       <td className="p-3 text-center">
                         <Badge className={cn('font-medium', getBadgeColor(label))}>{label}</Badge>
                       </td>
@@ -157,7 +153,7 @@ export default function CnaeDetails() {
                 })}
                 {filteredCompanies.length === 0 && (
                   <tr>
-                    <td colSpan={3} className="p-8 text-center text-muted-foreground">
+                    <td colSpan={2} className="p-8 text-center text-muted-foreground">
                       Nenhuma empresa encontrada para este filtro.
                     </td>
                   </tr>
