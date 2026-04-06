@@ -7,41 +7,33 @@ Deno.serve(async (req: Request) => {
     return new Response('ok', { headers: corsHeaders })
   }
 
-  const start = performance.now()
+  const start = performance.now();
 
   try {
     const payload = await req.json().catch(() => ({}))
-    const {
-      cnae_fiscal_principal,
-      uf,
+    const { 
+      cnae_fiscal_principal, 
+      uf, 
       municipio,
       situacao_cadastral,
       porte,
-      limit = 10,
+      limit = 10, 
       page = 1,
-      bypass_cache = false,
+      bypass_cache = false 
     } = payload
 
     // Strictly sanitize CNAEs to be numeric only as required by Casa dos Dados
-    const cnaes = Array.isArray(cnae_fiscal_principal)
+    const cnaes = Array.isArray(cnae_fiscal_principal) 
       ? cnae_fiscal_principal
-          .map((c) => (typeof c === 'string' ? c.replace(/\D/g, '') : String(c).replace(/\D/g, '')))
+          .map(c => typeof c === 'string' ? c.replace(/\D/g, '') : String(c).replace(/\D/g, ''))
           .filter(Boolean)
       : []
 
     if (!cnaes || cnaes.length === 0) {
-      return new Response(
-        JSON.stringify({
-          error: 'O filtro de CNAE é obrigatório.',
-          cnpjs: [],
-          page,
-          count: 0,
-          pages: 0,
-          cached: false,
-          status_http: 400,
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
-      )
+      return new Response(JSON.stringify({ 
+        error: "O filtro de CNAE é obrigatório.", 
+        cnpjs: [], page, count: 0, pages: 0, cached: false, status_http: 400 
+      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 })
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
@@ -50,9 +42,9 @@ Deno.serve(async (req: Request) => {
     const authHeader = req.headers.get('Authorization')
 
     const supabase = createClient(supabaseUrl, supabaseKey, {
-      global: { headers: { Authorization: authHeader || '' } },
+      global: { headers: { Authorization: authHeader || '' } }
     })
-
+    
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey)
 
     const { data: config } = await supabase
@@ -61,21 +53,13 @@ Deno.serve(async (req: Request) => {
       .eq('id', 1)
       .maybeSingle()
 
-    const apiKey = config?.casadosdados_api_token?.trim() || ''
+    const apiKey = config?.casadosdados_api_token?.trim() || '';
 
-    const payloadToHash = {
-      cnaes,
-      uf: uf || null,
-      municipio: municipio || null,
-      situacao_cadastral: situacao_cadastral || null,
-      porte: porte || null,
-      limit,
-      page,
-    }
+    const payloadToHash = { cnaes, uf: uf || null, municipio: municipio || null, situacao_cadastral: situacao_cadastral || null, porte: porte || null, limit, page }
     const msgBuffer = new TextEncoder().encode(JSON.stringify(payloadToHash))
     const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer)
     const hashArray = Array.from(new Uint8Array(hashBuffer))
-    const chave_cache = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('')
+    const chave_cache = hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
 
     if (!bypass_cache) {
       const { data: cachedData } = await supabase
@@ -85,43 +69,40 @@ Deno.serve(async (req: Request) => {
         .maybeSingle()
 
       if (cachedData && new Date(cachedData.expira_em) > new Date()) {
-        const timeTaken = Math.round(performance.now() - start)
-
+        const timeTaken = Math.round(performance.now() - start);
+        
         await supabaseAdmin.from('api_debug_logs').insert({
           cnae: cnaes.join(', ') || null,
-          uf: Array.isArray(uf) ? uf.join(', ') : uf || null,
-          municipio: Array.isArray(municipio) ? municipio.join(', ') : municipio || null,
+          uf: Array.isArray(uf) ? uf.join(', ') : (uf || null),
+          municipio: Array.isArray(municipio) ? municipio.join(', ') : (municipio || null),
           limite: limit,
           status_http: 200,
           sucesso: true,
           tempo_resposta_ms: timeTaken,
           total_resultados: cachedData.total_registros,
-          resposta_json: { cached: true, count: cachedData.total_registros },
-        })
+          resposta_json: { cached: true, count: cachedData.total_registros }
+        });
 
-        return new Response(
-          JSON.stringify({
-            cnpjs: cachedData.resultados,
-            page: page,
-            count: cachedData.total_registros,
-            pages: Math.ceil(cachedData.total_registros / limit) || 1,
-            cached: true,
-            status_http: 200,
-          }),
-          {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 200,
-          },
-        )
+        return new Response(JSON.stringify({ 
+          cnpjs: cachedData.resultados,
+          page: page,
+          count: cachedData.total_registros,
+          pages: Math.ceil(cachedData.total_registros / limit) || 1,
+          cached: true,
+          status_http: 200
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        })
       }
     }
 
     const casadosDadosPayload: any = {
       limite: limit || 10,
-      pagina: page || 1,
+      pagina: page || 1
     }
 
-    casadosDadosPayload.codigo_atividade_principal = cnaes
+    casadosDadosPayload.codigo_atividade_principal = cnaes;
 
     if (uf && uf !== 'Todos') {
       casadosDadosPayload.uf = Array.isArray(uf) ? uf : [uf]
@@ -130,183 +111,140 @@ Deno.serve(async (req: Request) => {
       casadosDadosPayload.municipio = Array.isArray(municipio) ? municipio : [municipio]
     }
     if (porte && porte.length > 0) {
-      casadosDadosPayload.porte = Array.isArray(porte)
-        ? porte.map((p: any) => String(p).toUpperCase())
-        : [String(porte).toUpperCase()]
+      casadosDadosPayload.porte = Array.isArray(porte) ? porte.map((p: any) => String(p).toUpperCase()) : [String(porte).toUpperCase()]
     }
 
     // Inclusion of status filtering in the search request
-    casadosDadosPayload.situacao_cadastral = situacao_cadastral
-      ? Array.isArray(situacao_cadastral)
-        ? situacao_cadastral
-        : [situacao_cadastral]
-      : ['ATIVA']
+    casadosDadosPayload.situacao_cadastral = situacao_cadastral 
+      ? (Array.isArray(situacao_cadastral) ? situacao_cadastral : [situacao_cadastral])
+      : ["ATIVA"];
 
-    let data
-    let externalStatus = 200
-    const fetchStart = performance.now()
-    let timeTakenApi = 0
+    let data;
+    let externalStatus = 200;
+    const fetchStart = performance.now();
+    let timeTakenApi = 0;
 
     if (apiKey) {
       try {
-        let tokenRaw = apiKey.replace(/^Bearer\s+/i, '').trim()
+        let tokenRaw = apiKey.replace(/^Bearer\s+/i, '').trim();
 
         // Include the query string parameter tipo_resultado=completo in the request URL
-        const response = await fetch(
-          'https://api.casadosdados.com.br/v5/cnpj/pesquisa?tipo_resultado=completo',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Accept: 'application/json',
-              'api-key': tokenRaw,
-            },
-            body: JSON.stringify(casadosDadosPayload),
+        const response = await fetch('https://api.casadosdados.com.br/v5/cnpj/pesquisa?tipo_resultado=completo', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'api-key': tokenRaw
           },
-        )
+          body: JSON.stringify(casadosDadosPayload)
+        })
 
-        timeTakenApi = Math.round(performance.now() - fetchStart)
-        externalStatus = response.status
+        timeTakenApi = Math.round(performance.now() - fetchStart);
+        externalStatus = response.status;
 
         if (!response.ok) {
-          let errorMsg = `Erro na API da Casa dos Dados (${response.status})`
+          let errorMsg = `Erro na API da Casa dos Dados (${response.status})`;
           if (response.status === 401 || response.status === 403) {
-            errorMsg =
-              'Erro ao buscar leads: Verifique sua chave de API nas Configurações Avançadas.'
+            errorMsg = 'Erro ao buscar leads: Verifique sua chave de API nas Configurações Avançadas.';
           } else if (response.status === 429) {
-            errorMsg = 'Erro ao buscar leads: Limite de Requisições Excedido.'
+            errorMsg = 'Erro ao buscar leads: Limite de Requisições Excedido.';
           } else if (response.status === 404) {
-            errorMsg = 'Erro ao buscar leads: Endpoint não encontrado.'
+            errorMsg = 'Erro ao buscar leads: Endpoint não encontrado.';
           } else if (response.status === 400) {
-            errorMsg =
-              'Erro ao buscar leads: Verifique o formato do CNAE e os demais filtros aplicados.'
+            errorMsg = 'Erro ao buscar leads: Verifique o formato do CNAE e os demais filtros aplicados.';
           }
-
-          let errorData = null
+          
+          let errorData = null;
           try {
-            errorData = await response.json()
-          } catch (e) {}
+             errorData = await response.json();
+          } catch(e) {}
 
-          const finalError = { error: errorMsg, details: errorData }
+          const finalError = { error: errorMsg, details: errorData };
 
           await supabaseAdmin.from('api_debug_logs').insert({
             cnae: cnaes.join(', ') || null,
-            uf: Array.isArray(uf) ? uf.join(', ') : uf || null,
-            municipio: Array.isArray(municipio) ? municipio.join(', ') : municipio || null,
+            uf: Array.isArray(uf) ? uf.join(', ') : (uf || null),
+            municipio: Array.isArray(municipio) ? municipio.join(', ') : (municipio || null),
             limite: limit,
             status_http: response.status,
             sucesso: false,
             tempo_resposta_ms: timeTakenApi,
             total_resultados: 0,
-            resposta_json: errorData || finalError,
-          })
+            resposta_json: errorData || finalError
+          });
 
-          return new Response(
-            JSON.stringify({
-              error: errorMsg,
-              cnpjs: [],
-              page,
-              count: 0,
-              pages: 0,
-              cached: false,
-              status_http: response.status,
-              raw_response: errorData,
-            }),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
-          )
+          return new Response(JSON.stringify({ 
+            error: errorMsg, 
+            cnpjs: [], page, count: 0, pages: 0, cached: false, status_http: response.status, raw_response: errorData
+          }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 })
         }
 
         data = await response.json()
       } catch (e: any) {
-        timeTakenApi = Math.round(performance.now() - fetchStart)
-        console.error('Fetch API error:', e)
-        const errObj = { error: 'Erro de conexão com a API Casa dos Dados.', details: e.message }
-
+        timeTakenApi = Math.round(performance.now() - fetchStart);
+        console.error("Fetch API error:", e)
+        const errObj = { error: "Erro de conexão com a API Casa dos Dados.", details: e.message };
+        
         await supabaseAdmin.from('api_debug_logs').insert({
           cnae: cnaes.join(', ') || null,
-          uf: Array.isArray(uf) ? uf.join(', ') : uf || null,
-          municipio: Array.isArray(municipio) ? municipio.join(', ') : municipio || null,
+          uf: Array.isArray(uf) ? uf.join(', ') : (uf || null),
+          municipio: Array.isArray(municipio) ? municipio.join(', ') : (municipio || null),
           limite: limit,
           status_http: 500,
           sucesso: false,
           tempo_resposta_ms: timeTakenApi,
           total_resultados: 0,
-          resposta_json: errObj,
-        })
+          resposta_json: errObj
+        });
 
-        return new Response(
-          JSON.stringify({
-            error: 'Erro de conexão com a API Casa dos Dados.',
-            cnpjs: [],
-            page,
-            count: 0,
-            pages: 0,
-            cached: false,
-            status_http: 500,
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
-        )
+        return new Response(JSON.stringify({ 
+          error: "Erro de conexão com a API Casa dos Dados.", 
+          cnpjs: [], page, count: 0, pages: 0, cached: false, status_http: 500
+        }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 })
       }
     } else {
-      const errObj = { error: 'Token da API Casa dos Dados não configurado.' }
-      await supabaseAdmin.from('api_debug_logs').insert({
-        cnae: cnaes.join(', ') || null,
-        uf: Array.isArray(uf) ? uf.join(', ') : uf || null,
-        municipio: Array.isArray(municipio) ? municipio.join(', ') : municipio || null,
-        limite: limit,
-        status_http: 401,
-        sucesso: false,
-        tempo_resposta_ms: 0,
-        total_resultados: 0,
-        resposta_json: errObj,
-      })
-
-      return new Response(
-        JSON.stringify({
-          error:
-            'Erro ao buscar leads: Token da API não configurado. Adicione nas Configurações Avançadas.',
-          cnpjs: [],
-          page,
-          count: 0,
-          pages: 0,
-          cached: false,
+        const errObj = { error: "Token da API Casa dos Dados não configurado." };
+        await supabaseAdmin.from('api_debug_logs').insert({
+          cnae: cnaes.join(', ') || null,
+          uf: Array.isArray(uf) ? uf.join(', ') : (uf || null),
+          municipio: Array.isArray(municipio) ? municipio.join(', ') : (municipio || null),
+          limite: limit,
           status_http: 401,
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
-      )
+          sucesso: false,
+          tempo_resposta_ms: 0,
+          total_resultados: 0,
+          resposta_json: errObj
+        });
+
+        return new Response(JSON.stringify({ 
+          error: "Erro ao buscar leads: Token da API não configurado. Adicione nas Configurações Avançadas.", 
+          cnpjs: [], page, count: 0, pages: 0, cached: false, status_http: 401
+        }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 })
     }
 
-    if (!data || data.error || data.success === false) {
-      const finalError = data?.error || data?.message || 'Formato de resposta inesperado da API.'
+    if (!data || data.error || (data.success === false)) {
+      const finalError = data?.error || data?.message || "Formato de resposta inesperado da API.";
       await supabaseAdmin.from('api_debug_logs').insert({
         cnae: cnaes.join(', ') || null,
-        uf: Array.isArray(uf) ? uf.join(', ') : uf || null,
-        municipio: Array.isArray(municipio) ? municipio.join(', ') : municipio || null,
+        uf: Array.isArray(uf) ? uf.join(', ') : (uf || null),
+        municipio: Array.isArray(municipio) ? municipio.join(', ') : (municipio || null),
         limite: limit,
         status_http: externalStatus || 500,
         sucesso: false,
         tempo_resposta_ms: timeTakenApi,
         total_resultados: 0,
-        resposta_json: data || { error: finalError },
-      })
+        resposta_json: data || { error: finalError }
+      });
 
-      return new Response(
-        JSON.stringify({
-          error: finalError,
-          cnpjs: [],
-          page,
-          count: 0,
-          pages: 0,
-          cached: false,
-          status_http: externalStatus || 500,
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
-      )
+      return new Response(JSON.stringify({ 
+        error: finalError, 
+        cnpjs: [], page, count: 0, pages: 0, cached: false, status_http: externalStatus || 500
+      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 })
     }
-
-    let rawResults = data?.cnpjs
+    
+    let rawResults = data?.cnpjs;
     if (!Array.isArray(rawResults)) {
-      rawResults = []
+      rawResults = [];
     }
 
     let totalCount = data?.count || rawResults.length
@@ -316,67 +254,61 @@ Deno.serve(async (req: Request) => {
     // Map the returned data, ensuring situacao_cadastral resolves to the proper string
     // and correctly extracting data from nested objects (e.g. endereco, contatos) for API v5
     const results = rawResults.slice(0, limit).map((empresa: any) => {
-      let situacao = empresa.situacao_cadastral
+      let situacao = empresa.situacao_cadastral;
       if (typeof situacao === 'object' && situacao !== null && situacao.situacao_atual) {
-        situacao = situacao.situacao_atual
+        situacao = situacao.situacao_atual;
       } else if (typeof situacao === 'string') {
-        situacao = situacao
+        situacao = situacao;
       }
 
       // Handle nested Endereco
-      const endereco = empresa.endereco || {}
-      let municipioRaw = empresa.municipio || endereco.municipio || ''
-      let ufRaw = empresa.uf || endereco.uf || ''
+      const endereco = empresa.endereco || {};
+      let municipioRaw = empresa.municipio || endereco.municipio || '';
+      let ufRaw = empresa.uf || endereco.uf || '';
 
       if (typeof municipioRaw === 'object' && municipioRaw !== null) {
-        municipioRaw = municipioRaw.nome || municipioRaw.descricao || municipioRaw.codigo || ''
+        municipioRaw = municipioRaw.nome || municipioRaw.descricao || municipioRaw.codigo || '';
       }
       if (typeof ufRaw === 'object' && ufRaw !== null) {
-        ufRaw = ufRaw.sigla || ufRaw.nome || ''
+        ufRaw = ufRaw.sigla || ufRaw.nome || '';
       }
 
       // Handle Telefone (could be array, object, string)
-      let telefoneFormatado = ''
-      const rawTel = empresa.telefone || empresa.telefones || empresa.contato_telefone
+      let telefoneFormatado = '';
+      const rawTel = empresa.telefone || empresa.telefones || empresa.contato_telefone;
       if (Array.isArray(rawTel)) {
-        telefoneFormatado = rawTel
-          .map((t: any) => {
-            if (typeof t === 'string') return t
-            if (t && typeof t === 'object') {
-              if (t.ddd && t.numero) return `(${t.ddd}) ${t.numero}`
-              if (t.telefone) return String(t.telefone)
-            }
-            return ''
-          })
-          .filter(Boolean)
-          .join(' / ')
+        telefoneFormatado = rawTel.map((t: any) => {
+          if (typeof t === 'string') return t;
+          if (t && typeof t === 'object') {
+            if (t.ddd && t.numero) return `(${t.ddd}) ${t.numero}`;
+            if (t.telefone) return String(t.telefone);
+          }
+          return '';
+        }).filter(Boolean).join(' / ');
       } else if (typeof rawTel === 'object' && rawTel !== null) {
-        if (rawTel.ddd && rawTel.numero) telefoneFormatado = `(${rawTel.ddd}) ${rawTel.numero}`
-        else if (rawTel.telefone) telefoneFormatado = String(rawTel.telefone)
+         if (rawTel.ddd && rawTel.numero) telefoneFormatado = `(${rawTel.ddd}) ${rawTel.numero}`;
+         else if (rawTel.telefone) telefoneFormatado = String(rawTel.telefone);
       } else if (typeof rawTel === 'string') {
-        telefoneFormatado = rawTel
+         telefoneFormatado = rawTel;
       } else if (empresa.ddd_telefone_1 || empresa.telefone_1) {
-        const ddd = empresa.ddd_telefone_1 ? `(${empresa.ddd_telefone_1}) ` : ''
-        const num = empresa.telefone_1 || ''
-        telefoneFormatado = `${ddd}${num}`.trim()
+         const ddd = empresa.ddd_telefone_1 ? `(${empresa.ddd_telefone_1}) ` : '';
+         const num = empresa.telefone_1 || '';
+         telefoneFormatado = `${ddd}${num}`.trim();
       }
 
       // Handle Email (could be array, object, string)
-      let emailFormatado = ''
-      const rawEmail = empresa.email || empresa.emails || empresa.contato_email
+      let emailFormatado = '';
+      const rawEmail = empresa.email || empresa.emails || empresa.contato_email;
       if (Array.isArray(rawEmail)) {
-        emailFormatado = rawEmail
-          .map((e: any) => {
-            if (typeof e === 'string') return e
-            if (e && typeof e === 'object' && e.email) return e.email
-            return ''
-          })
-          .filter(Boolean)
-          .join(' / ')
+        emailFormatado = rawEmail.map((e: any) => {
+          if (typeof e === 'string') return e;
+          if (e && typeof e === 'object' && e.email) return e.email;
+          return '';
+        }).filter(Boolean).join(' / ');
       } else if (typeof rawEmail === 'object' && rawEmail !== null) {
-        emailFormatado = rawEmail.email || ''
+        emailFormatado = rawEmail.email || '';
       } else if (typeof rawEmail === 'string') {
-        emailFormatado = rawEmail
+        emailFormatado = rawEmail;
       }
 
       return {
@@ -390,23 +322,20 @@ Deno.serve(async (req: Request) => {
         capital_social: empresa.capital_social || 0,
         email: emailFormatado,
         telefone: telefoneFormatado,
-        data_inicio_atividade: empresa.data_inicio_atividade || empresa.data_abertura || '',
-      }
+        data_inicio_atividade: empresa.data_inicio_atividade || empresa.data_abertura || ''
+      };
     })
 
     if (results && results.length > 0) {
       try {
         const expira_em = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
-        await supabase.from('cache_pesquisas').upsert(
-          {
-            chave_cache,
-            resultados: results,
-            total_registros: totalCount,
-            expira_em,
-            parametros: payloadToHash,
-          },
-          { onConflict: 'chave_cache' },
-        )
+        await supabase.from('cache_pesquisas').upsert({
+          chave_cache, 
+          resultados: results, 
+          total_registros: totalCount, 
+          expira_em,
+          parametros: payloadToHash
+        }, { onConflict: 'chave_cache' })
       } catch (err) {
         console.error('Error saving cache:', err)
       }
@@ -414,32 +343,22 @@ Deno.serve(async (req: Request) => {
 
     await supabaseAdmin.from('api_debug_logs').insert({
       cnae: cnaes.join(', ') || null,
-      uf: Array.isArray(uf) ? uf.join(', ') : uf || null,
-      municipio: Array.isArray(municipio) ? municipio.join(', ') : municipio || null,
+      uf: Array.isArray(uf) ? uf.join(', ') : (uf || null),
+      municipio: Array.isArray(municipio) ? municipio.join(', ') : (municipio || null),
       limite: limit,
       status_http: externalStatus || 200,
       sucesso: true,
       tempo_resposta_ms: timeTakenApi,
       total_resultados: totalCount,
-      resposta_json: data,
-    })
+      resposta_json: data
+    });
 
-    return new Response(
-      JSON.stringify({
-        cnpjs: results,
-        page: currentPage,
-        count: totalCount,
-        pages: totalPages,
-        cached: false,
-        status_http: externalStatus || 200,
-        raw_response: data,
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
-    )
+    return new Response(JSON.stringify({ 
+      cnpjs: results, page: currentPage, count: totalCount, pages: totalPages,
+      cached: false, status_http: externalStatus || 200, raw_response: data
+    }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 })
   } catch (error: any) {
-    return new Response(JSON.stringify({ error: error.message, cnpjs: [], status_http: 500 }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 200,
-    })
+    return new Response(JSON.stringify({ error: error.message, cnpjs: [], status_http: 500 }), 
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 })
   }
 })
