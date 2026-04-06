@@ -266,7 +266,11 @@ export default function InteligenciaZion() {
                             </td>
                             <td className="p-3 text-center">
                               <span
-                                onClick={() => navigate(`/cnae/${encodeURIComponent(group.cnae)}`)}
+                                onClick={() =>
+                                  navigate(
+                                    `/cnae-details?cnae_code=${encodeURIComponent(group.cnae)}`,
+                                  )
+                                }
                                 className="inline-flex items-center justify-center bg-primary/10 text-primary font-bold px-2 py-0.5 rounded-md min-w-[2rem] text-xs cursor-pointer hover:bg-primary/30 transition-colors shadow-sm hover:shadow"
                                 title="Ver Detalhes do CNAE"
                               >
@@ -279,7 +283,9 @@ export default function InteligenciaZion() {
                                   variant="ghost"
                                   size="icon"
                                   onClick={() =>
-                                    navigate(`/cnae/${encodeURIComponent(group.cnae)}`)
+                                    navigate(
+                                      `/cnae-details?cnae_code=${encodeURIComponent(group.cnae)}`,
+                                    )
                                   }
                                   title="Ver Detalhes"
                                   className="hover:text-primary hover:bg-primary/10 h-8 w-8 text-muted-foreground group-hover:text-primary"

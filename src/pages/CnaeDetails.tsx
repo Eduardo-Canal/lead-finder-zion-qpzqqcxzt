@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ArrowLeft, Eye, Filter, Building2, Loader2 } from 'lucide-react'
@@ -7,8 +7,9 @@ import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { supabase } from '@/lib/supabase/client'
 
-const getCurvaAbcLabel = (code: string | null) => {
-  switch (code) {
+const getCurvaAbcLabel = (code: string | number | null) => {
+  const strCode = String(code)
+  switch (strCode) {
     case '7592':
       return 'A+'
     case '7594':
@@ -38,7 +39,8 @@ const getBadgeColor = (curva: string) => {
 }
 
 export default function CnaeDetails() {
-  const { cnae_code } = useParams()
+  const [searchParams] = useSearchParams()
+  const cnae_code = searchParams.get('cnae_code')
   const navigate = useNavigate()
   const [filterAbc, setFilterAbc] = useState('Todos')
   const [companies, setCompanies] = useState<any[]>([])
@@ -48,7 +50,10 @@ export default function CnaeDetails() {
 
   useEffect(() => {
     const fetchCompanies = async () => {
-      if (!cnae_code) return
+      if (!cnae_code) {
+        setLoading(false)
+        return
+      }
       setLoading(true)
 
       const { data, error } = await supabase
