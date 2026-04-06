@@ -40,16 +40,15 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    const { data: analiseData } = await supabaseAdmin.from('analise_cnae').select('cnae, nome_cnae')
+    const { data: analiseData } = await supabaseAdmin
+      .from('analise_cnae')
+      .select('cnae, nome_cnae')
 
-    const descMap = new Map((analiseData || []).map((a) => [a.cnae, a.nome_cnae]))
+    const descMap = new Map((analiseData || []).map(a => [a.cnae, a.nome_cnae]))
 
-    const cnaeData: Record<
-      string,
-      { total: number; a_plus: number; a: number; b: number; c: number; nao_classificado: number }
-    > = {}
+    const cnaeData: Record<string, { total: number, a_plus: number, a: number, b: number, c: number, nao_classificado: number }> = {}
 
-    clients.forEach((c) => {
+    clients.forEach(c => {
       const cnae = c.cnae_principal?.trim() || ''
       if (!cnae || cnae === 'Não classificado') return
 
@@ -76,21 +75,21 @@ Deno.serve(async (req: Request) => {
 
       let potencial_mercado = 0
       let apiCalled = false
-
-      const payloadToHash = {
-        cnaes: [cleanCnae],
-        uf: null,
-        municipio: null,
-        situacao_cadastral: ['ATIVA'],
-        porte: null,
-        limit: 1,
-        page: 1,
+      
+      const payloadToHash = { 
+        cnaes: [cleanCnae], 
+        uf: null, 
+        municipio: null, 
+        situacao_cadastral: ["ATIVA"], 
+        porte: null, 
+        limit: 1, 
+        page: 1 
       }
-
+      
       const msgBuffer = new TextEncoder().encode(JSON.stringify(payloadToHash))
       const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer)
       const hashArray = Array.from(new Uint8Array(hashBuffer))
-      const chave_cache = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('')
+      const chave_cache = hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
 
       const { data: cachedData } = await supabaseAdmin
         .from('cache_pesquisas')
@@ -106,23 +105,20 @@ Deno.serve(async (req: Request) => {
             limite: 1,
             pagina: 1,
             codigo_atividade_principal: [cleanCnae],
-            situacao_cadastral: ['ATIVA'],
+            situacao_cadastral: ["ATIVA"]
           }
 
-          const tokenRaw = apiKey.replace(/^Bearer\s+/i, '').trim()
+          const tokenRaw = apiKey.replace(/^Bearer\s+/i, '').trim();
 
-          const response = await fetch(
-            'https://api.casadosdados.com.br/v5/cnpj/pesquisa?tipo_resultado=completo',
-            {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                Accept: 'application/json',
-                'api-key': tokenRaw,
-              },
-              body: JSON.stringify(casadosDadosPayload),
+          const response = await fetch('https://api.casadosdados.com.br/v5/cnpj/pesquisa?tipo_resultado=completo', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              'api-key': tokenRaw
             },
-          )
+            body: JSON.stringify(casadosDadosPayload)
+          })
 
           apiCalled = true
 
@@ -130,18 +126,15 @@ Deno.serve(async (req: Request) => {
             const data = await response.json()
             if (data.success !== false) {
               potencial_mercado = data.count || 0
-
+              
               const expira_em = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
-              await supabaseAdmin.from('cache_pesquisas').upsert(
-                {
-                  chave_cache,
-                  resultados: data.cnpjs?.slice(0, 1) || [],
-                  total_registros: potencial_mercado,
-                  expira_em,
-                  parametros: payloadToHash,
-                },
-                { onConflict: 'chave_cache' },
-              )
+              await supabaseAdmin.from('cache_pesquisas').upsert({
+                chave_cache,
+                resultados: data.cnpjs?.slice(0, 1) || [],
+                total_registros: potencial_mercado,
+                expira_em,
+                parametros: payloadToHash
+              }, { onConflict: 'chave_cache' })
             }
           }
         } catch (err) {
@@ -151,13 +144,12 @@ Deno.serve(async (req: Request) => {
 
       // Adiciona um pequeno delay se a API foi chamada para evitar limite de requisições rápidas
       if (apiCalled) {
-        await new Promise((resolve) => setTimeout(resolve, 600))
+        await new Promise(resolve => setTimeout(resolve, 600))
       }
 
       const total_clientes = cnaeData[cnae].total
-      const taxa_penetracao =
-        potencial_mercado > 0 ? Number(((total_clientes / potencial_mercado) * 100).toFixed(2)) : 0
-
+      const taxa_penetracao = potencial_mercado > 0 ? Number(((total_clientes / potencial_mercado) * 100).toFixed(2)) : 0
+      
       let tendencia = 'Estável'
       if (taxa_penetracao < 5 && potencial_mercado > 1000) tendencia = 'Crescimento Acelerado'
       else if (taxa_penetracao >= 5 && taxa_penetracao < 15) tendencia = 'Crescimento Moderado'
@@ -175,7 +167,7 @@ Deno.serve(async (req: Request) => {
         potencial_mercado,
         taxa_penetracao,
         tendencia,
-        data_atualizacao: new Date().toISOString(),
+        data_atualizacao: new Date().toISOString()
       })
     }
 
@@ -194,6 +186,7 @@ Deno.serve(async (req: Request) => {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
+
   } catch (error: any) {
     console.error('sync-cnae-market-data error:', error)
     return new Response(JSON.stringify({ success: false, error: error.message }), {

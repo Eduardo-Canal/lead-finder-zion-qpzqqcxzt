@@ -32,7 +32,7 @@ Deno.serve(async (req: Request) => {
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 200,
-        },
+        }
       )
     }
 
@@ -56,7 +56,7 @@ Deno.serve(async (req: Request) => {
 
     if (!rateLimiterRes.ok || !rateLimiterData.success) {
       throw new Error(
-        rateLimiterData.message || rateLimiterData.error || 'Erro ao buscar status do Bitrix24',
+        rateLimiterData.message || rateLimiterData.error || 'Erro ao buscar status do Bitrix24'
       )
     }
 
@@ -90,16 +90,18 @@ Deno.serve(async (req: Request) => {
 
     // 4. Salva no Cache para evitar repetidas chamadas nas próximas 24h
     const expira_em = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
-    await supabaseAdmin.from('cache_pesquisas').upsert(
-      {
-        chave_cache: cacheKey,
-        resultados: kanbans,
-        total_registros: kanbans.length,
-        expira_em: expira_em,
-        parametros: { source: 'bitrix_api_crm_status_list' },
-      },
-      { onConflict: 'chave_cache' },
-    )
+    await supabaseAdmin
+      .from('cache_pesquisas')
+      .upsert(
+        {
+          chave_cache: cacheKey,
+          resultados: kanbans,
+          total_registros: kanbans.length,
+          expira_em: expira_em,
+          parametros: { source: 'bitrix_api_crm_status_list' },
+        },
+        { onConflict: 'chave_cache' }
+      )
 
     // 5. Retorna o JSON estruturado para o frontend
     return new Response(
@@ -111,7 +113,7 @@ Deno.serve(async (req: Request) => {
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
-      },
+      }
     )
   } catch (error: any) {
     console.error('Edge function errored:', error)
@@ -123,7 +125,7 @@ Deno.serve(async (req: Request) => {
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      },
+      }
     )
   }
 })
