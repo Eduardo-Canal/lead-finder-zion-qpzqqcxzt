@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -18,6 +18,7 @@ import {
   Filter,
   BarChart3,
   Presentation,
+  Loader2,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -36,181 +37,10 @@ import {
 } from '@/components/ui/chart'
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Legend } from 'recharts'
 import { useToast } from '@/hooks/use-toast'
+import { supabase } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 
-// --- MOCK DATA GENERATION ---
-const ESTADOS = ['SP', 'RJ', 'MG', 'PR', 'RS', 'SC', 'BA', 'GO', 'MT', 'ES']
 const CURVAS = ['Todos', 'A+', 'A', 'B', 'C', 'Não Classificado']
-
-const CNAES_REF = [
-  {
-    codigo: '4930-2/02',
-    desc: 'Transporte rodoviário de carga, exceto produtos perigosos e mudanças, intermunicipal, interestadual e internacional',
-    weight: 100,
-  },
-  {
-    codigo: '4930-2/01',
-    desc: 'Transporte rodoviário de carga, exceto produtos perigosos e mudanças, municipal',
-    weight: 80,
-  },
-  { codigo: '4930-2/03', desc: 'Transporte rodoviário de produtos perigosos', weight: 60 },
-  {
-    codigo: '5229-0/99',
-    desc: 'Outras atividades auxiliares dos transportes terrestres não especificadas anteriormente',
-    weight: 50,
-  },
-  { codigo: '5212-5/00', desc: 'Carga e descarga', weight: 45 },
-  {
-    codigo: '5211-7/99',
-    desc: 'Depósitos de mercadorias para terceiros, exceto armazéns gerais e guarda-móveis',
-    weight: 40,
-  },
-  { codigo: '5250-8/04', desc: 'Organização logística do transporte de carga', weight: 40 },
-  { codigo: '4930-2/04', desc: 'Transporte rodoviário de mudanças', weight: 35 },
-  { codigo: '5320-2/02', desc: 'Serviços de entrega rápida', weight: 35 },
-  {
-    codigo: '5250-8/03',
-    desc: 'Agenciamento de cargas, exceto para o transporte marítimo',
-    weight: 30,
-  },
-  {
-    codigo: '7739-0/99',
-    desc: 'Aluguel de outras máquinas e equipamentos comerciais e industriais não especificados, sem operador',
-    weight: 25,
-  },
-  {
-    codigo: '4619-2/00',
-    desc: 'Representantes comerciais e agentes do comércio de mercadorias em geral não especializado',
-    weight: 25,
-  },
-  {
-    codigo: '4530-7/01',
-    desc: 'Comércio por atacado de peças e acessórios novos para veículos automotores',
-    weight: 20,
-  },
-  {
-    codigo: '4530-7/03',
-    desc: 'Comércio a varejo de peças e acessórios novos para veículos automotores',
-    weight: 20,
-  },
-  {
-    codigo: '4520-0/01',
-    desc: 'Serviços de manutenção e reparação mecânica de veículos automotores',
-    weight: 20,
-  },
-  {
-    codigo: '7490-1/04',
-    desc: 'Atividades de intermediação e agenciamento de serviços e negócios em geral',
-    weight: 15,
-  },
-  {
-    codigo: '4639-7/01',
-    desc: 'Comércio atacadista de produtos alimentícios em geral',
-    weight: 15,
-  },
-  {
-    codigo: '4789-0/99',
-    desc: 'Comércio varejista de outros produtos não especificados anteriormente',
-    weight: 15,
-  },
-  {
-    codigo: '4923-0/02',
-    desc: 'Serviço de transporte de passageiros - locação de automóveis com motorista',
-    weight: 15,
-  },
-  { codigo: '5223-1/00', desc: 'Estacionamento de veículos', weight: 10 },
-  {
-    codigo: '4649-4/99',
-    desc: 'Comércio atacadista de outros equipamentos e artigos de uso pessoal e doméstico',
-    weight: 10,
-  },
-  {
-    codigo: '8211-3/00',
-    desc: 'Serviços combinados de escritório e apoio administrativo',
-    weight: 10,
-  },
-  {
-    codigo: '8299-2/99',
-    desc: 'Outras atividades de serviços prestados principalmente às empresas',
-    weight: 10,
-  },
-  { codigo: '4681-8/05', desc: 'Comércio atacadista de lubrificantes', weight: 8 },
-  {
-    codigo: '4661-3/00',
-    desc: 'Comércio atacadista de defensivos agrícolas, adubos, fertilizantes e corretivos do solo',
-    weight: 8,
-  },
-  {
-    codigo: '4637-1/99',
-    desc: 'Comércio atacadista especializado em outros produtos alimentícios não especificados',
-    weight: 8,
-  },
-  { codigo: '4744-0/99', desc: 'Comércio varejista de ferragens e ferramentas', weight: 5 },
-  { codigo: '4672-9/00', desc: 'Comércio atacadista de ferragens e ferramentas', weight: 5 },
-  {
-    codigo: '4679-6/99',
-    desc: 'Comércio atacadista de materiais de construção em geral',
-    weight: 5,
-  },
-  {
-    codigo: '4663-0/00',
-    desc: 'Comércio atacadista de máquinas e equipamentos para uso industrial; partes e peças',
-    weight: 5,
-  },
-  {
-    codigo: '3314-7/10',
-    desc: 'Manutenção e reparação de máquinas e equipamentos para uso geral',
-    weight: 5,
-  },
-  {
-    codigo: '2599-3/99',
-    desc: 'Fabricação de outros produtos de metal não especificados anteriormente',
-    weight: 5,
-  },
-  { codigo: '7112-0/00', desc: 'Serviços de engenharia', weight: 5 },
-  {
-    codigo: '6201-5/01',
-    desc: 'Desenvolvimento de programas de computador sob encomenda',
-    weight: 5,
-  },
-]
-
-const MOCK_CLIENTS: any[] = []
-let idCounter = 1
-CNAES_REF.forEach((cnae) => {
-  const numClients = cnae.weight * 2 + (idCounter % 5)
-  for (let i = 0; i < numClients; i++) {
-    const r = (idCounter * 13) % 100
-    let curve = 'Não Classificado'
-    if (r < 5) curve = 'A+'
-    else if (r < 20) curve = 'A'
-    else if (r < 50) curve = 'B'
-    else if (r < 80) curve = 'C'
-
-    const s = (idCounter * 7) % ESTADOS.length
-
-    MOCK_CLIENTS.push({
-      id: String(idCounter++),
-      cnae: cnae.codigo,
-      curvaAbc: curve,
-      estado: ESTADOS[s],
-    })
-  }
-})
-
-const MOCK_STATS = CNAES_REF.reduce(
-  (acc, cnae, idx) => {
-    const pot = cnae.weight * 50 + ((idx * 137) % 500)
-    const trendDir = idx % 3 === 0 ? 'down' : idx % 5 === 0 ? 'neutral' : 'up'
-    const trendVal = ((idx * 1.3) % 15).toFixed(1)
-    acc[cnae.codigo] = {
-      potencial: pot,
-      tendencia: { dir: trendDir, val: Number(trendVal) },
-    }
-    return acc
-  },
-  {} as Record<string, any>,
-)
 
 // --- CHART CONFIG ---
 const chartConfig = {
@@ -226,41 +56,104 @@ export default function AnaliseCarteira() {
   const [filtroCurva, setFiltroCurva] = useState<string>('Todos')
   const [filtroEstado, setFiltroEstado] = useState<string>('Todos')
 
+  const [clients, setClients] = useState<any[]>([])
+  const [marketData, setMarketData] = useState<Record<string, any>>({})
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function fetchData() {
+      setLoading(true)
+      try {
+        const [clientsRes, marketRes] = await Promise.all([
+          supabase.from('bitrix_clients_zion').select('cnae_principal, curva_abc, state'),
+          supabase
+            .from('cnae_market_data')
+            .select('cnae_code, cnae_description, potencial_mercado, tendencia'),
+        ])
+
+        if (clientsRes.data) {
+          // Normalize curves
+          const normalizedClients = clientsRes.data.map((c) => {
+            const rawCurve = c.curva_abc?.trim().toUpperCase() || ''
+            return {
+              ...c,
+              normalizedCurve: ['A+', 'A', 'B', 'C'].includes(rawCurve)
+                ? rawCurve
+                : 'Não Classificado',
+            }
+          })
+          setClients(normalizedClients)
+        }
+
+        if (marketRes.data) {
+          const mData: Record<string, any> = {}
+          marketRes.data.forEach((item) => {
+            mData[item.cnae_code] = item
+          })
+          setMarketData(mData)
+        }
+      } catch (error) {
+        console.error('Error fetching data:', error)
+        toast({
+          title: 'Erro ao carregar dados',
+          description: 'Não foi possível carregar a análise de carteira.',
+          variant: 'destructive',
+        })
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchData()
+  }, [toast])
+
+  const ESTADOS = useMemo(() => {
+    const states = new Set(
+      clients.map((c) => c.state).filter((s) => s && s !== 'Não informado' && s !== 'ND'),
+    )
+    return Array.from(states).sort()
+  }, [clients])
+
   // Filter clients
   const filteredClients = useMemo(() => {
-    return MOCK_CLIENTS.filter((c) => {
-      if (filtroCurva !== 'Todos' && c.curvaAbc !== filtroCurva) return false
-      if (filtroEstado !== 'Todos' && c.estado !== filtroEstado) return false
+    return clients.filter((c) => {
+      if (filtroCurva !== 'Todos' && c.normalizedCurve !== filtroCurva) return false
+
+      const state = c.state || 'Não informado'
+      if (filtroEstado !== 'Todos' && state !== filtroEstado) return false
+
       return true
     })
-  }, [filtroCurva, filtroEstado])
+  }, [clients, filtroCurva, filtroEstado])
 
   // Aggregate by CNAE
   const cnaesData = useMemo(() => {
     const map = new Map<string, any>()
 
     filteredClients.forEach((c) => {
-      if (!map.has(c.cnae)) {
-        const ref = CNAES_REF.find((x) => x.codigo === c.cnae)
-        map.set(c.cnae, {
-          codigo: c.cnae,
-          descricao: ref?.desc || '',
+      const code = c.cnae_principal || 'N/D'
+      if (!map.has(code)) {
+        const market = marketData[code] || {}
+        map.set(code, {
+          codigo: code,
+          descricao: market.cnae_description || 'Setor não detalhado',
           total: 0,
           aPlus: 0,
           a: 0,
           b: 0,
           c: 0,
           nc: 0,
-          potencial: MOCK_STATS[c.cnae]?.potencial || 0,
-          tendencia: MOCK_STATS[c.cnae]?.tendencia || { dir: 'neutral', val: 0 },
+          potencial: market.potencial_mercado || 0,
+          tendencia: market.tendencia || 'Estável',
         })
       }
-      const data = map.get(c.cnae)
+
+      const data = map.get(code)
       data.total++
-      if (c.curvaAbc === 'A+') data.aPlus++
-      else if (c.curvaAbc === 'A') data.a++
-      else if (c.curvaAbc === 'B') data.b++
-      else if (c.curvaAbc === 'C') data.c++
+
+      if (c.normalizedCurve === 'A+') data.aPlus++
+      else if (c.normalizedCurve === 'A') data.a++
+      else if (c.normalizedCurve === 'B') data.b++
+      else if (c.normalizedCurve === 'C') data.c++
       else data.nc++
     })
 
@@ -271,7 +164,7 @@ export default function AnaliseCarteira() {
 
     arr.sort((x, y) => y.total - x.total)
     return arr
-  }, [filteredClients])
+  }, [filteredClients, marketData])
 
   const top10Data = useMemo(() => cnaesData.slice(0, 10), [cnaesData])
 
@@ -280,10 +173,10 @@ export default function AnaliseCarteira() {
     const s = { totalClientes: 0, totalCnaes: cnaesData.length, aPlus: 0, a: 0, b: 0, c: 0, nc: 0 }
     filteredClients.forEach((c) => {
       s.totalClientes++
-      if (c.curvaAbc === 'A+') s.aPlus++
-      else if (c.curvaAbc === 'A') s.a++
-      else if (c.curvaAbc === 'B') s.b++
-      else if (c.curvaAbc === 'C') s.c++
+      if (c.normalizedCurve === 'A+') s.aPlus++
+      else if (c.normalizedCurve === 'A') s.a++
+      else if (c.normalizedCurve === 'B') s.b++
+      else if (c.normalizedCurve === 'C') s.c++
       else s.nc++
     })
     return s
@@ -301,6 +194,17 @@ export default function AnaliseCarteira() {
       title: 'Alertas Inteligentes',
       description: 'Painel de configuração de alertas será aberto em uma nova janela.',
     })
+  }
+
+  if (loading) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center min-h-[80vh] gap-4">
+        <Loader2 className="w-10 h-10 animate-spin text-primary" />
+        <p className="text-muted-foreground font-medium animate-pulse">
+          Carregando inteligência de mercado...
+        </p>
+      </div>
+    )
   }
 
   return (
@@ -357,7 +261,7 @@ export default function AnaliseCarteira() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Todos">Todos os Estados</SelectItem>
-                  {ESTADOS.sort().map((uf) => (
+                  {ESTADOS.map((uf) => (
                     <SelectItem key={uf} value={uf}>
                       {uf}
                     </SelectItem>
@@ -376,7 +280,7 @@ export default function AnaliseCarteira() {
               Total Clientes
             </span>
             <span className="text-3xl font-extrabold text-slate-900 mt-1">
-              {summary.totalClientes.toLocaleString()}
+              {summary.totalClientes.toLocaleString('pt-BR')}
             </span>
           </CardContent>
         </Card>
@@ -386,7 +290,7 @@ export default function AnaliseCarteira() {
               Total CNAEs
             </span>
             <span className="text-3xl font-extrabold text-slate-900 mt-1">
-              {summary.totalCnaes.toLocaleString()}
+              {summary.totalCnaes.toLocaleString('pt-BR')}
             </span>
           </CardContent>
         </Card>
@@ -396,7 +300,7 @@ export default function AnaliseCarteira() {
               Curva A+
             </span>
             <span className="text-3xl font-extrabold text-[#064e3b] mt-1">
-              {summary.aPlus.toLocaleString()}
+              {summary.aPlus.toLocaleString('pt-BR')}
             </span>
           </CardContent>
         </Card>
@@ -406,7 +310,7 @@ export default function AnaliseCarteira() {
               Curva A
             </span>
             <span className="text-3xl font-extrabold text-[#10b981] mt-1">
-              {summary.a.toLocaleString()}
+              {summary.a.toLocaleString('pt-BR')}
             </span>
           </CardContent>
         </Card>
@@ -416,7 +320,7 @@ export default function AnaliseCarteira() {
               Curva B
             </span>
             <span className="text-3xl font-extrabold text-[#f59e0b] mt-1">
-              {summary.b.toLocaleString()}
+              {summary.b.toLocaleString('pt-BR')}
             </span>
           </CardContent>
         </Card>
@@ -426,7 +330,7 @@ export default function AnaliseCarteira() {
               Curva C
             </span>
             <span className="text-3xl font-extrabold text-[#ef4444] mt-1">
-              {summary.c.toLocaleString()}
+              {summary.c.toLocaleString('pt-BR')}
             </span>
           </CardContent>
         </Card>
@@ -436,7 +340,7 @@ export default function AnaliseCarteira() {
               Não Class.
             </span>
             <span className="text-3xl font-extrabold text-slate-600 mt-1">
-              {summary.nc.toLocaleString()}
+              {summary.nc.toLocaleString('pt-BR')}
             </span>
           </CardContent>
         </Card>
@@ -471,7 +375,7 @@ export default function AnaliseCarteira() {
                   type="category"
                   axisLine={false}
                   tickLine={false}
-                  width={80}
+                  width={90}
                   tick={{ fontSize: 12, fill: 'hsl(var(--foreground))', fontWeight: 500 }}
                 />
                 <ChartTooltip
@@ -530,7 +434,7 @@ export default function AnaliseCarteira() {
                       {row.descricao}
                     </TableCell>
                     <TableCell className="text-right font-extrabold text-slate-900">
-                      {row.total}
+                      {row.total.toLocaleString('pt-BR')}
                     </TableCell>
                     <TableCell className="text-center">
                       {row.aPlus > 0 ? (
@@ -594,18 +498,20 @@ export default function AnaliseCarteira() {
                       </div>
                     </TableCell>
                     <TableCell className="text-right pr-4">
-                      {row.tendencia.dir === 'up' ? (
+                      {row.tendencia?.includes('Crescimento') ? (
                         <div className="flex items-center justify-end text-emerald-600 text-sm font-bold bg-emerald-50 px-2 py-1 rounded-md ml-auto w-max">
-                          <TrendingUp className="w-4 h-4 mr-1" />+{row.tendencia.val}%
+                          <TrendingUp className="w-4 h-4 mr-1" />
+                          {row.tendencia}
                         </div>
-                      ) : row.tendencia.dir === 'down' ? (
+                      ) : row.tendencia === 'Saturação' ? (
                         <div className="flex items-center justify-end text-rose-600 text-sm font-bold bg-rose-50 px-2 py-1 rounded-md ml-auto w-max">
-                          <TrendingDown className="w-4 h-4 mr-1" />-{row.tendencia.val}%
+                          <TrendingDown className="w-4 h-4 mr-1" />
+                          {row.tendencia}
                         </div>
                       ) : (
                         <div className="flex items-center justify-end text-slate-500 text-sm font-bold bg-slate-100 px-2 py-1 rounded-md ml-auto w-max">
                           <Minus className="w-4 h-4 mr-1" />
-                          0.0%
+                          {row.tendencia}
                         </div>
                       )}
                     </TableCell>
