@@ -21,6 +21,6 @@
     "register-aspec-feature": 1,
     "get-clientes-por-cnae": 2,
     "sync-cnae-market-data": 1,
-    "sync-cnae-market-data-potencial": 2
+    "sync-cnae-market-data-potencial": 3
   }
 }
