@@ -35,13 +35,10 @@ Deno.serve(async (req: Request) => {
     }
 
     if (!apiKey) {
-      return new Response(
-        JSON.stringify({ error: 'Chave da OpenAI não configurada no sistema.' }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        },
-      )
+      return new Response(JSON.stringify({ error: 'Chave da OpenAI não configurada no sistema.' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
     // Prompt detalhado solicitando retorno em JSON
@@ -60,15 +57,15 @@ Retorne EXATAMENTE um objeto JSON com as seguintes chaves:
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         model: 'gpt-4-turbo',
         messages: [{ role: 'user', content: prompt }],
         response_format: { type: 'json_object' },
-        temperature: 0.7,
-      }),
+        temperature: 0.7
+      })
     })
 
     if (!response.ok) {
@@ -78,8 +75,8 @@ Retorne EXATAMENTE um objeto JSON com as seguintes chaves:
 
     const aiData = await response.json()
     const contentStr = aiData.choices?.[0]?.message?.content || '{}'
-
-    let generated
+    
+    let generated;
     try {
       generated = JSON.parse(contentStr)
     } catch (e) {
@@ -87,18 +84,20 @@ Retorne EXATAMENTE um objeto JSON com as seguintes chaves:
     }
 
     // Salvar na tabela lead_abordagens_comerciais
-    const { error: insertError } = await supabaseAdmin.from('lead_abordagens_comerciais').insert({
-      lead_id,
-      cnae: cnae || null,
-      porte_empresa: porte_empresa || null,
-      dores_principais: dores_principais || null,
-      abordagem_gerada: generated.abordagem_gerada || null,
-      personas_decisoras: generated.personas_decisoras || [],
-      argumentos_venda: generated.argumentos_venda || [],
-      proximos_passos: generated.proximos_passos || [],
-      criado_em: new Date().toISOString(),
-      atualizado_em: new Date().toISOString(),
-    })
+    const { error: insertError } = await supabaseAdmin
+      .from('lead_abordagens_comerciais')
+      .insert({
+        lead_id,
+        cnae: cnae || null,
+        porte_empresa: porte_empresa || null,
+        dores_principais: dores_principais || null,
+        abordagem_gerada: generated.abordagem_gerada || null,
+        personas_decisoras: generated.personas_decisoras || [],
+        argumentos_venda: generated.argumentos_venda || [],
+        proximos_passos: generated.proximos_passos || [],
+        criado_em: new Date().toISOString(),
+        atualizado_em: new Date().toISOString()
+      })
 
     if (insertError) {
       throw new Error(`Erro ao salvar abordagem no banco: ${insertError.message}`)
