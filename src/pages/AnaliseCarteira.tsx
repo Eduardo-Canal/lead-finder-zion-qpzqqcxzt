@@ -251,13 +251,14 @@ export default function AnaliseCarteira() {
   const handleSyncMarketData = async () => {
     setSyncing(true)
     toast({
-      title: 'Atualizando dados...',
-      description: 'Buscando informações atualizadas de mercado. Isso pode levar alguns segundos.',
+      title: 'Atualizando dados de potencial...',
+      description: 'Isso pode levar alguns segundos.',
     })
 
     try {
-      const { error } = await supabase.functions.invoke('sync-cnae-market-data-potencial')
+      const { data, error } = await supabase.functions.invoke('sync-cnae-market-data-potencial')
       if (error) throw error
+      if (data?.error) throw new Error(data.error)
 
       toast({
         title: 'Dados atualizados com sucesso',
@@ -268,8 +269,8 @@ export default function AnaliseCarteira() {
     } catch (error: any) {
       console.error('Error syncing:', error)
       toast({
-        title: 'Erro na atualização',
-        description: error.message || 'Não foi possível atualizar os dados de mercado.',
+        title: 'Erro ao atualizar. Tente novamente',
+        description: error.message || 'Detalhes do erro indisponíveis.',
         variant: 'destructive',
       })
     } finally {
