@@ -66,11 +66,14 @@ export default function AnaliseCarteira() {
     async (showLoading = true) => {
       if (showLoading) setLoading(true)
       try {
-        const [clientsRes, marketRes] = await Promise.all([
+        const [clientsRes, marketRes, potencialRes] = await Promise.all([
           supabase.from('bitrix_clients_zion').select('cnae_principal, curva_abc, state'),
           supabase
             .from('cnae_market_data')
             .select('cnae_code, cnae_description, potencial_mercado, tendencia'),
+          supabase
+            .from('cnae_market_data_potencial')
+            .select('cnae, potencial_mercado, tendencia'),
         ])
 
         if (clientsRes.data) {
@@ -92,11 +95,32 @@ export default function AnaliseCarteira() {
           setClients(normalizedClients)
         }
 
-        if (marketRes.data) {
+        if (marketRes.data || potencialRes.data) {
           const mData: Record<string, any> = {}
-          marketRes.data.forEach((item) => {
-            mData[item.cnae_code] = item
+          
+          marketRes.data?.forEach((item) => {
+            mData[item.cnae_code] = { ...item }
           })
+          
+          potencialRes.data?.forEach((item) => {
+            // Se o CNAE tem máscara (ex: 62.01-5-00), a função nova salva sem máscara (6201500)
+            // Vamos garantir que tentamos bater com a chave com e sem máscara
+            
+            // Busca a chave existente formatada que contenha os mesmos números
+            const existingKey = Object.keys(mData).find(k => k.replace(/\D/g, '') === item.cnae)
+            
+            if (existingKey) {
+              mData[existingKey].potencial_mercado = item.potencial_mercado
+              mData[existingKey].tendencia = item.tendencia
+            } else {
+              mData[item.cnae] = { 
+                cnae_code: item.cnae,
+                potencial_mercado: item.potencial_mercado,
+                tendencia: item.tendencia
+              }
+            }
+          })
+          
           setMarketData(mData)
         }
       } catch (error) {
@@ -143,11 +167,12 @@ export default function AnaliseCarteira() {
     filteredClients.forEach((c) => {
       const code = c.cnae_principal || 'N/D'
       if (!map.has(code)) {
-        const market = marketData[code] || {}
+        const cleanCode = code.replace(/\D/g, '')
+        // Try to find market data using exact code or clean code
+        const market = marketData[code] || marketData[cleanCode] || {}
         const shortCode = code.includes('-') ? code.split(' - ')[0].trim() : code
 
-        let desc = market.cnae_description
-        if (!desc || desc === 'Descrição não informada') {
+        let desc = market.cnae_description        if (!desc || desc === 'Descrição não informada') {
           const parts = code.split(' - ')
           if (parts.length > 1) {
             desc = parts.slice(1).join(' - ').trim()
@@ -228,7 +253,7 @@ export default function AnaliseCarteira() {
     })
 
     try {
-      const { error } = await supabase.functions.invoke('sync-cnae-market-data')
+      const { error } = await supabase.functions.invoke('sync-cnae-market-data-potencial')
       if (error) throw error
 
       toast({
