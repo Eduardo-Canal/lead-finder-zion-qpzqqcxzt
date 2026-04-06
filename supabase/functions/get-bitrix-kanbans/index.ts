@@ -37,17 +37,53 @@ Deno.serve(async (req: Request) => {
     }
 
     // 2. Busca na API do Bitrix24 através do Rate Limiter para segurança
-    const baseUrl = `https://zionlogtec.bitrix24.com.br/rest/5/eiyn7hzhaeu2lcm0/crm.status.list.json`
+    const baseUrlDeals = `https://zionlogtec.bitrix24.com.br/rest/5/eiyn7hzhaeu2lcm0/crm.status.list.json`
+    const baseUrlLeads = `https://zionlogtec.bitrix24.com.br/rest/5/eiyn7hzhaeu2lcm0/crm.status.list.json?filter[ENTITY_ID]=STATUS`
+
     const rateLimiterUrl = `${supabaseUrl}/functions/v1/bitrix-rate-limiter`
 
-    const rateLimiterRes = await fetch(rateLimiterUrl, {
+    // Buscar status de deals
+    const rateLimiterResDeals = await fetch(rateLimiterUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${serviceRoleKey}`,
       },
       body: JSON.stringify({
-        endpoint: baseUrl,
+        endpoint: baseUrlDeals,
+      }),
+    })
+
+    const rateLimiterDataDeals = await rateLimiterResDeals.json()
+
+    if (!rateLimiterResDeals.ok || !rateLimiterDataDeals.success) {
+      throw new Error(
+        rateLimiterDataDeals.message || rateLimiterDataDeals.error || 'Erro ao buscar status de deals do Bitrix24',
+      )
+    }
+
+    // Buscar status de leads
+    const rateLimiterResLeads = await fetch(rateLimiterUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${serviceRoleKey}`,
+      },
+      body: JSON.stringify({
+        endpoint: baseUrlLeads,
+      }),
+    })
+
+    const rateLimiterDataLeads = await rateLimiterResLeads.json()
+
+    if (!rateLimiterResLeads.ok || !rateLimiterDataLeads.success) {
+      throw new Error(
+        rateLimiterDataLeads.message || rateLimiterDataLeads.error || 'Erro ao buscar status de leads do Bitrix24',
+      )
+    }
+
+    const rawStatusesDeals = rateLimiterDataDeals.data?.result || []
+    const rawStatusesLeads = rateLimiterDataLeads.data?.result || []
         method: 'GET',
       }),
     })
@@ -60,33 +96,54 @@ Deno.serve(async (req: Request) => {
       )
     }
 
-    const rawStatuses = rateLimiterData.data?.result || []
+    const rawStatusesDeals = rateLimiterDataDeals.data?.result || []
+    const rawStatusesLeads = rateLimiterDataLeads.data?.result || []
 
     // 3. Filtra e formata os dados conforme especificado
-    const kanbans = rawStatuses
-      .filter((s: any) => s.ENTITY_ID && s.ENTITY_ID.includes('DEAL_STAGE'))
-      .map((s: any) => {
-        let categoryId = '0' // Pipeline padrão (geralmente DEAL_STAGE sem número)
-        if (s.ENTITY_ID !== 'DEAL_STAGE') {
-          // Extrai o ID da categoria/kanban (ex: DEAL_STAGE_1 -> 1)
-          categoryId = s.ENTITY_ID.replace('DEAL_STAGE_', '')
-        }
+    const processStatuses = (statuses: any[], entityType: string) => {
+      return statuses
+        .filter((s: any) => s.ENTITY_ID && (
+          (entityType === 'DEAL' && s.ENTITY_ID.includes('DEAL_STAGE')) ||
+          (entityType === 'LEAD' && s.ENTITY_ID === 'STATUS')
+        ))
+        .map((s: any) => {
+          let categoryId = '0' // Pipeline padrão
+          if (entityType === 'DEAL' && s.ENTITY_ID !== 'DEAL_STAGE') {
+            categoryId = s.ENTITY_ID.replace('DEAL_STAGE_', '')
+          } else if (entityType === 'LEAD') {
+            categoryId = 'LEAD' // Identificador especial para leads
+          }
 
-        return {
-          ID: s.ID,
-          NAME: s.NAME,
-          CATEGORY_ID: categoryId,
-          STATUS_ID: s.STATUS_ID,
-          SORT: s.SORT, // Útil para ordenação na interface
-        }
-      })
-      // Ordena por Kanban e depois por ordem do estágio
-      .sort((a: any, b: any) => {
-        if (a.CATEGORY_ID !== b.CATEGORY_ID) {
-          return parseInt(a.CATEGORY_ID) - parseInt(b.CATEGORY_ID)
-        }
-        return parseInt(a.SORT) - parseInt(b.SORT)
-      })
+          return {
+            ID: s.ID,
+            NAME: s.NAME,
+            CATEGORY_ID: categoryId,
+            STATUS_ID: s.STATUS_ID,
+            SORT: s.SORT,
+            ENTITY_TYPE: entityType, // DEAL ou LEAD
+          }
+        })
+    }
+
+    const kanbansDeals = processStatuses(rawStatusesDeals, 'DEAL')
+    const kanbansLeads = processStatuses(rawStatusesLeads, 'LEAD')
+    const kanbans = [...kanbansDeals, ...kanbansLeads]
+
+    // Ordena por tipo de entidade, depois por Kanban e ordem do estágio
+    .sort((a: any, b: any) => {
+      // Primeiro leads, depois deals
+      if (a.ENTITY_TYPE !== b.ENTITY_TYPE) {
+        return a.ENTITY_TYPE === 'LEAD' ? -1 : 1
+      }
+      // Depois por categoria
+      if (a.CATEGORY_ID !== b.CATEGORY_ID) {
+        if (a.CATEGORY_ID === 'LEAD') return -1
+        if (b.CATEGORY_ID === 'LEAD') return 1
+        return parseInt(a.CATEGORY_ID) - parseInt(b.CATEGORY_ID)
+      }
+      // Por último por ordem do estágio
+      return parseInt(a.SORT) - parseInt(b.SORT)
+    })
 
     // 4. Salva no Cache para evitar repetidas chamadas nas próximas 24h
     const expira_em = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()

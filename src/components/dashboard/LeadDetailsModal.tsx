@@ -28,6 +28,10 @@ import {
   Loader2,
   Send,
   MessageSquare,
+  ArrowRight,
+  MessageCircle,
+  RefreshCw,
+} from 'lucide-react'
   RefreshCw,
 } from 'lucide-react'
 import useLeadStore, { FilteredLead } from '@/stores/useLeadStore'
@@ -662,7 +666,9 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
                   </div>
 
                   {(approachData.argumentos_venda?.length > 0 ||
-                    approachData.personas_decisoras?.length > 0) && (
+                    approachData.personas_decisoras?.length > 0 ||
+                    approachData.proximos_passos?.length > 0 ||
+                    approachData.canais_recomendados?.length > 0) && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {approachData.personas_decisoras?.length > 0 && (
                         <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-sm">
@@ -691,6 +697,34 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
                               </li>
                             ))}
                           </ul>
+                        </div>
+                      )}
+                      {approachData.proximos_passos?.length > 0 && (
+                        <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-sm">
+                          <h5 className="font-bold text-slate-800 mb-3 text-sm flex items-center gap-2">
+                            <ArrowRight className="w-4 h-4 text-blue-500" /> Próximos Passos
+                          </h5>
+                          <ul className="space-y-2">
+                            {approachData.proximos_passos.map((p: string, i: number) => (
+                              <li key={i} className="text-sm text-slate-600 flex items-start gap-2">
+                                <span className="text-blue-500">{i + 1}.</span> {p}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      {approachData.canais_recomendados?.length > 0 && (
+                        <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-sm">
+                          <h5 className="font-bold text-slate-800 mb-3 text-sm flex items-center gap-2">
+                            <MessageCircle className="w-4 h-4 text-purple-500" /> Canais Recomendados
+                          </h5>
+                          <div className="flex flex-wrap gap-2">
+                            {approachData.canais_recomendados.map((c: string, i: number) => (
+                              <Badge key={i} variant="secondary" className="text-xs">
+                                {c}
+                              </Badge>
+                            ))}
+                          </div>
                         </div>
                       )}
                     </div>

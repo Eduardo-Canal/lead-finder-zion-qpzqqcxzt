@@ -24,6 +24,7 @@ export default function ConfiguracoesBitrix({ embedded = false }: { embedded?: b
   const [isConnected, setIsConnected] = useState<boolean | null>(null)
   const [allStages, setAllStages] = useState<BitrixKanbanStage[]>([])
 
+  const [selectedEntityType, setSelectedEntityType] = useState<string>('DEAL')
   const [selectedKanban, setSelectedKanban] = useState<string>('')
   const [selectedStage, setSelectedStage] = useState<string>('')
 
@@ -44,6 +45,7 @@ export default function ConfiguracoesBitrix({ embedded = false }: { embedded?: b
 
         if (settingsData?.value) {
           const val = settingsData.value as any
+          if (val.entity_type) setSelectedEntityType(val.entity_type)
           if (val.kanban_id) setSelectedKanban(val.kanban_id)
           if (val.stage_id) setSelectedStage(val.stage_id)
         }
@@ -68,41 +70,47 @@ export default function ConfiguracoesBitrix({ embedded = false }: { embedded?: b
   }, [isAdmin])
 
   const kanbanList = useMemo(() => {
-    const ids = new Set(allStages.map((s) => s.CATEGORY_ID))
+    const filteredStages = allStages.filter(s => s.ENTITY_TYPE === selectedEntityType)
+    const ids = new Set(filteredStages.map((s) => s.CATEGORY_ID))
     return Array.from(ids)
-      .sort((a, b) => Number(a) - Number(b))
+      .sort((a, b) => {
+        if (a === 'LEAD') return -1
+        if (b === 'LEAD') return 1
+        return Number(a) - Number(b)
+      })
       .map((id) => ({
         id,
-        name: id === '0' ? 'Geral (Padrão)' : `Funil ${id}`,
+        name: id === 'LEAD' ? 'Funil de Leads' : id === '0' ? 'Geral (Padrão)' : `Funil ${id}`,
       }))
-  }, [allStages])
+  }, [allStages, selectedEntityType])
 
   const stageList = useMemo(() => {
     if (!selectedKanban) return []
     return allStages
-      .filter((s) => s.CATEGORY_ID === selectedKanban)
+      .filter((s) => s.CATEGORY_ID === selectedKanban && s.ENTITY_TYPE === selectedEntityType)
       .sort((a, b) => Number(a.SORT) - Number(b.SORT))
-  }, [allStages, selectedKanban])
+  }, [allStages, selectedKanban, selectedEntityType])
 
-  // Auto-select first stage if kanban changes and current stage is not in the new list
+  // Auto-select first stage if kanban or entity type changes and current stage is not in the new list
   useEffect(() => {
-    if (selectedKanban && stageList.length > 0) {
+    if ((selectedKanban && stageList.length > 0) || selectedEntityType) {
       const exists = stageList.find((s) => s.STATUS_ID === selectedStage)
       if (!exists) {
-        setSelectedStage(stageList[0].STATUS_ID)
+        setSelectedStage(stageList[0]?.STATUS_ID || '')
       }
     }
-  }, [selectedKanban, stageList])
+  }, [selectedKanban, selectedEntityType, stageList])
 
   const handleSave = async () => {
-    if (!selectedKanban || !selectedStage) {
-      toast.warning('Selecione um Kanban e uma Fase.')
+    if (!selectedEntityType || !selectedKanban || !selectedStage) {
+      toast.warning('Selecione o tipo de entidade, Kanban e Fase.')
       return
     }
 
     setSaving(true)
     try {
       const payload = {
+        entity_type: selectedEntityType,
         kanban_id: selectedKanban,
         stage_id: selectedStage,
       }
@@ -216,16 +224,33 @@ export default function ConfiguracoesBitrix({ embedded = false }: { embedded?: b
             </div>
           ) : (
             <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="space-y-2">
-                  <Label>Kanban Padrão</Label>
+                  <Label>Tipo de Entidade</Label>
                   <Select
-                    value={selectedKanban}
-                    onValueChange={setSelectedKanban}
+                    value={selectedEntityType}
+                    onValueChange={setSelectedEntityType}
                     disabled={!isConnected}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Selecione o Kanban..." />
+                      <SelectValue placeholder="Selecione o tipo..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="LEAD">Leads</SelectItem>
+                      <SelectItem value="DEAL">Oportunidades (Deals)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Funil</Label>
+                  <Select
+                    value={selectedKanban}
+                    onValueChange={setSelectedKanban}
+                    disabled={!isConnected || !selectedEntityType}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o funil..." />
                     </SelectTrigger>
                     <SelectContent>
                       {kanbanList.map((k) => (
@@ -238,14 +263,14 @@ export default function ConfiguracoesBitrix({ embedded = false }: { embedded?: b
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Fase Padrão</Label>
+                  <Label>Estágio Inicial</Label>
                   <Select
                     value={selectedStage}
                     onValueChange={setSelectedStage}
                     disabled={!isConnected || !selectedKanban}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Selecione a fase inicial..." />
+                      <SelectValue placeholder="Selecione o estágio..." />
                     </SelectTrigger>
                     <SelectContent>
                       {stageList.map((s) => (

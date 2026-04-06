@@ -45,17 +45,25 @@ Deno.serve(async (req: Request) => {
     }
 
     // Prompt detalhado solicitando retorno em JSON
-    const prompt = `Atue como um especialista em vendas B2B. Gere uma estratégia e abordagem comercial detalhada para um lead com o seguinte perfil:
+    const prompt = `Atue como um especialista em vendas B2B para a empresa Zion Logística, especializada em soluções de WMS (Warehouse Management System).
 
+CONTEXTO DA ZION:
+- Somos especialistas em gestão de armazéns e logística
+- Nossas soluções incluem: controle de inventário, picking otimizado, integração com e-commerce, rastreamento em tempo real
+- Clientes atendidos: empresas de e-commerce, distribuidores, indústrias
+- Benefícios: redução de custos operacionais em até 40%, aumento da produtividade, eliminação de erros manuais
+
+PERFIL DO LEAD:
 CNAE / Setor: ${cnae || 'Não informado'}
 Porte da Empresa: ${porte_empresa || 'Não informado'}
 Dores Principais: ${dores_principais ? JSON.stringify(dores_principais) : 'Não informado'}
 
 Retorne EXATAMENTE um objeto JSON com as seguintes chaves:
-- "abordagem_gerada": (string) Um texto persuasivo para email ou mensagem de LinkedIn focada nas dores.
-- "personas_decisoras": (array de strings) 2 a 3 cargos na empresa que costumam decidir a compra neste cenário.
-- "argumentos_venda": (array de strings) 3 a 5 argumentos fortes que conectem as dores do lead com uma solução eficiente.
-- "proximos_passos": (array de strings) 2 a 3 ações recomendadas para o vendedor executar na sequência.`
+- "abordagem_gerada": (string) Um texto persuasivo para email focado nas dores específicas do lead, mencionando nossa expertise em WMS e cases de sucesso similares.
+- "personas_decisoras": (array de strings) 2 a 3 cargos na empresa que costumam decidir compras de sistemas logísticos/WMS.
+- "argumentos_venda": (array de strings) 3 a 5 argumentos fortes conectando as dores do lead com benefícios específicos do nosso WMS.
+- "proximos_passos": (array de strings) 2 a 3 ações recomendadas para o vendedor executar na sequência.
+- "canais_recomendados": (array de strings) Canais ideais para abordagem: email, whatsapp, linkedin, ligacao.`
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -96,6 +104,7 @@ Retorne EXATAMENTE um objeto JSON com as seguintes chaves:
       personas_decisoras: generated.personas_decisoras || [],
       argumentos_venda: generated.argumentos_venda || [],
       proximos_passos: generated.proximos_passos || [],
+      canais_recomendados: generated.canais_recomendados || [],
       criado_em: new Date().toISOString(),
       atualizado_em: new Date().toISOString(),
     })
