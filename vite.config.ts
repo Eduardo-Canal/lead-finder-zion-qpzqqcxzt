@@ -10,6 +10,7 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: '::',
     port: 8080,
+    allowedHosts: true,
   },
   build: {
     outDir: mode === 'development' ? 'dev-dist' : 'dist',

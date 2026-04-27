@@ -1,6 +1,7 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { corsHeaders } from '../_shared/cors.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
+import { createClient } from 'npm:@supabase/supabase-js@2.39.3'
+import { getBitrixWebhookUrl } from '../_shared/get-bitrix-url.ts'
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
@@ -29,6 +30,7 @@ Deno.serve(async (req: Request) => {
     const selectFields = [
       'ID',
       'TITLE',
+      'UF_CRM_6241B0B267ED3',
       'UF_CRM_1742992784',
       'UF_CRM_1771423651',
       'UF_CRM_F56E1FF4',
@@ -40,7 +42,8 @@ Deno.serve(async (req: Request) => {
       'ADDRESS_PROVINCE',
     ]
     const selectQuery = selectFields.map((f) => `select[]=${f}`).join('&')
-    const baseUrl = `https://zionlogtec.bitrix24.com.br/rest/5/eiyn7hzhaeu2lcm0/crm.company.list.json?filter[UF_CRM_1B70E8F8]=675&${selectQuery}`
+    const webhookBase = await getBitrixWebhookUrl(supabaseAdmin)
+    const baseUrl = `${webhookBase}crm.company.list.json?filter[UF_CRM_1B70E8F8]=675&${selectQuery}`
 
     const rateLimiterUrl = `${supabaseUrl}/functions/v1/bitrix-rate-limiter`
 
@@ -167,7 +170,7 @@ Deno.serve(async (req: Request) => {
         return {
           ID: parseInt(c.ID, 10) || 0,
           TITLE: c.TITLE || '',
-          UF_CRM_1742992784: getPrimaryValue(c.UF_CRM_1742992784) || '',
+          UF_CRM_1742992784: getPrimaryValue(c.UF_CRM_6241B0B267ED3) || getPrimaryValue(c.UF_CRM_1742992784) || '',
           UF_CRM_1771423651: getPrimaryValue(c.UF_CRM_1771423651) || 'Não informado',
           UF_CRM_F56E1FF4: getPrimaryValue(c.UF_CRM_F56E1FF4) || 'Não informado',
           UF_CRM_1738583536320: getPrimaryValue(c.UF_CRM_1738583536320) || 'Não classificado',
