@@ -109,24 +109,38 @@ export default function Index() {
 
       if (err2) throw err2
 
+      // Verificar sincronizacao via leads_bitrix_sync (por lead_id) e bitrix_clients_zion (por cnpj)
+      let syncedLeadIds = new Set<string>()
       let syncedCnpjs = new Set<string>()
       if (recentData && recentData.length > 0) {
-        const cnpjs = recentData.map((r) => r.cnpj).filter(Boolean)
+        const leadIds = recentData.map((r: any) => r.id).filter(Boolean)
+        if (leadIds.length > 0) {
+          const { data: syncData } = await supabase
+            .from('leads_bitrix_sync')
+            .select('lead_id')
+            .in('lead_id', leadIds)
+            .eq('status', 'SUCESSO')
+          syncData?.forEach((s: any) => {
+            if (s.lead_id) syncedLeadIds.add(s.lead_id)
+          })
+        }
+
+        const cnpjs = recentData.map((r: any) => r.cnpj).filter(Boolean)
         if (cnpjs.length > 0) {
           const { data: bxData } = await supabase
             .from('bitrix_clients_zion')
             .select('cnpj')
             .in('cnpj', cnpjs)
-          bxData?.forEach((b) => {
+          bxData?.forEach((b: any) => {
             if (b.cnpj) syncedCnpjs.add(b.cnpj)
           })
         }
       }
 
       const recentWithSync =
-        recentData?.map((r) => ({
+        recentData?.map((r: any) => ({
           ...r,
-          synced_bitrix: r.cnpj ? syncedCnpjs.has(r.cnpj) : false,
+          synced_bitrix: syncedLeadIds.has(r.id) || (r.cnpj ? syncedCnpjs.has(r.cnpj) : false),
         })) || []
 
       if (allData) {

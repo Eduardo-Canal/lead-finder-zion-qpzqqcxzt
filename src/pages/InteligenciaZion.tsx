@@ -77,8 +77,11 @@ export default function InteligenciaZion() {
   }
 
   const handleBuscarClonesCnae = (cnae: string) => {
+    console.log('handleBuscarClonesCnae - CNAE selecionado:', cnae)
     clearFilters()
+    console.log('handleBuscarClonesCnae - Após clearFilters')
     addCnae(cnae)
+    console.log('handleBuscarClonesCnae - Após addCnae, filters:', { clearFilters, addCnae })
     toast.success(`Buscando empresas para o CNAE ${cnae}.`)
     navigate('/prospeccao')
   }

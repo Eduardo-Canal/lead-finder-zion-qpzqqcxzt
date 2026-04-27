@@ -32,8 +32,6 @@ import {
   MessageCircle,
   RefreshCw,
 } from 'lucide-react'
-  RefreshCw,
-} from 'lucide-react'
 import useLeadStore, { FilteredLead } from '@/stores/useLeadStore'
 import useMyLeadsStore from '@/stores/useMyLeadsStore'
 import { supabase } from '@/lib/supabase/client'
@@ -43,6 +41,8 @@ import { cn } from '@/lib/utils'
 type LeadDetailsModalProps = {
   lead: FilteredLead
   onClose: () => void
+  initialTab?: string
+  forceIsSaved?: boolean
 }
 
 const formatCurrency = (val: number | undefined) => {
@@ -50,10 +50,10 @@ const formatCurrency = (val: number | undefined) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val)
 }
 
-export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
+export function LeadDetailsModal({ lead, onClose, initialTab, forceIsSaved }: LeadDetailsModalProps) {
   const { updateContactStatus } = useLeadStore()
   const { myLeads } = useMyLeadsStore()
-  const [activeTab, setActiveTab] = useState('resumo')
+  const [activeTab, setActiveTab] = useState(initialTab || 'resumo')
   const [saving, setSaving] = useState(false)
   const [enriching, setEnriching] = useState(false)
   const [enrichedData, setEnrichedData] = useState<any>(null)
@@ -67,10 +67,11 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
   const [loadingApproach, setLoadingApproach] = useState(false)
   const [isGeneratingApproach, setIsGeneratingApproach] = useState(false)
   const [syncLogs, setSyncLogs] = useState<any[]>([])
+  const [doresInput, setDoresInput] = useState('')
 
   const isSaved = useMemo(() => {
-    return myLeads.some((l) => l.cnpj === lead.cnpj)
-  }, [myLeads, lead.cnpj])
+    return forceIsSaved || myLeads.some((l) => l.cnpj === lead.cnpj)
+  }, [myLeads, lead.cnpj, forceIsSaved])
 
   const displayData = enrichedData || lead
   const isEnriched = !!enrichedData || displayData.faturamento_anual !== undefined
@@ -91,12 +92,13 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
 
       // Check Approach Data
       const savedLead = myLeads.find((l) => l.cnpj === lead.cnpj)
-      if (savedLead?.id) {
+      const resolvedLeadId = savedLead?.id || (forceIsSaved ? lead.id : null)
+      if (resolvedLeadId) {
         setLoadingApproach(true)
         const { data: appData } = await supabase
           .from('lead_abordagens_comerciais')
           .select('*')
-          .eq('lead_id', savedLead.id)
+          .eq('lead_id', resolvedLeadId)
           .order('criado_em', { ascending: false })
           .limit(1)
           .maybeSingle()
@@ -109,7 +111,7 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
         const { data: logsData } = await supabase
           .from('leads_bitrix_sync')
           .select('*')
-          .eq('lead_id', savedLead.id)
+          .eq('lead_id', resolvedLeadId)
           .order('created_at', { ascending: false })
 
         if (isMounted && logsData) {
@@ -144,10 +146,11 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
       if (!profile) throw new Error('Perfil não encontrado')
 
       const leadData = enrichedData || lead
+      console.log('[SaveLead] CNPJ:', leadData.cnpj, 'lead.cnpj:', lead.cnpj, 'type:', typeof leadData.cnpj)
 
       const newLead = {
         razao_social: leadData.razao_social,
-        cnpj: leadData.cnpj,
+        cnpj: leadData.cnpj || lead.cnpj || null,
         cnae_principal: leadData.cnae_principal || leadData.cnae_fiscal_principal,
         municipio: leadData.municipio,
         uf: leadData.uf,
@@ -200,31 +203,51 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
 
   const handleGenerateApproach = async () => {
     const savedLead = myLeads.find((l) => l.cnpj === lead.cnpj)
-    if (!savedLead?.id) {
+    const leadId = savedLead?.id || (forceIsSaved ? lead.id : null)
+
+    if (!leadId) {
       toast.error('Salve o lead primeiro para gerar uma abordagem.')
       return
     }
 
     setIsGeneratingApproach(true)
+    const requestBody = {
+      lead_id: leadId,
+      cnae: displayData.cnae_principal || displayData.cnae_fiscal_principal,
+      porte_empresa: displayData.porte,
+      dores_principais: doresInput.trim() || null,
+    }
+    console.log('[Abordagem] Enviando:', requestBody)
     try {
-      const { data, error } = await supabase.functions.invoke('generate-commercial-approach', {
-        body: {
-          lead_id: savedLead.id,
-          cnae: displayData.cnae_principal || displayData.cnae_fiscal_principal,
-          porte_empresa: displayData.porte,
-          dores_principais: null, // Pode ser evoluído no futuro para capturar inputs do usuário
+      // Chamar diretamente via fetch para capturar o body de erro
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
+      const session = (await supabase.auth.getSession()).data.session
+
+      const rawResponse = await fetch(`${supabaseUrl}/functions/v1/generate-commercial-approach`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${session?.access_token || supabaseKey}`,
         },
+        body: JSON.stringify(requestBody),
       })
 
-      if (error) throw error
-      if (!data.success) throw new Error(data.error)
+      const data = await rawResponse.json().catch(() => null)
+      console.log('[Abordagem] Status:', rawResponse.status, 'Resposta:', data)
+
+      if (!rawResponse.ok) {
+        throw new Error(data?.error || `Erro HTTP ${rawResponse.status}`)
+      }
+      if (!data?.success) throw new Error(data?.error || 'Erro na geracao')
 
       toast.success('Abordagem gerada com sucesso!')
 
       const { data: newData } = await supabase
         .from('lead_abordagens_comerciais')
         .select('*')
-        .eq('lead_id', savedLead.id)
+        .eq('lead_id', leadId)
         .order('criado_em', { ascending: false })
         .limit(1)
         .maybeSingle()
@@ -241,6 +264,7 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
   const handleSendBitrix = async () => {
     setSendingBitrix(true)
     const savedLead = myLeads.find((l) => l.cnpj === lead.cnpj)
+    const resolvedLeadId = savedLead?.id || (forceIsSaved ? lead.id : null)
     try {
       const { data: settingsData, error: settingsError } = await supabase
         .from('settings')
@@ -260,8 +284,10 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
         throw new Error('Kanban ou Fase padrão não configurados.')
       }
 
-      const lead_id = savedLead?.id || lead.id
+      const lead_id = resolvedLeadId || lead.id
       const company_id = savedLead?.bitrix_id || null
+
+      console.log('[Bitrix] Enviando deal:', { lead_id, company_id, kanban_id, stage_id })
 
       const { data, error } = await supabase.functions.invoke('create-deal-bitrix', {
         body: {
@@ -273,6 +299,7 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
         },
       })
 
+      console.log('[Bitrix] Resposta:', { error: error?.message, data })
       if (error) throw error
       if (data?.error) throw new Error(data.error)
 
@@ -285,11 +312,11 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
         window.dispatchEvent(event)
       }
 
-      if (savedLead?.id) {
+      if (resolvedLeadId) {
         const { data: logsData } = await supabase
           .from('leads_bitrix_sync')
           .select('*')
-          .eq('lead_id', savedLead.id)
+          .eq('lead_id', resolvedLeadId)
           .order('created_at', { ascending: false })
         if (logsData) {
           setSyncLogs(logsData)
@@ -298,11 +325,11 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
     } catch (err: any) {
       console.error(err)
       toast.error(err.message || 'Erro ao enviar para Bitrix24.')
-      if (savedLead?.id) {
+      if (resolvedLeadId) {
         const { data: logsData } = await supabase
           .from('leads_bitrix_sync')
           .select('*')
-          .eq('lead_id', savedLead.id)
+          .eq('lead_id', resolvedLeadId)
           .order('created_at', { ascending: false })
         if (logsData) {
           setSyncLogs(logsData)
@@ -778,10 +805,23 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
                     Gere uma abordagem comercial personalizada com Inteligência Artificial para este
                     lead.
                   </p>
+                  {isSaved && (
+                    <div className="mt-4 max-w-md mx-auto text-left">
+                      <label className="text-xs font-medium text-slate-600 mb-1 block">
+                        Dores / desafios observados neste lead (opcional)
+                      </label>
+                      <textarea
+                        value={doresInput}
+                        onChange={(e) => setDoresInput(e.target.value)}
+                        placeholder="Ex: Processos manuais, erros de inventário, atrasos na separação..."
+                        className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary min-h-[60px] resize-none"
+                      />
+                    </div>
+                  )}
                   <Button
                     onClick={handleGenerateApproach}
                     disabled={isGeneratingApproach || !isSaved}
-                    className="mt-6 gap-2"
+                    className="mt-4 gap-2"
                   >
                     {isGeneratingApproach ? (
                       <Loader2 className="w-4 h-4 animate-spin" />

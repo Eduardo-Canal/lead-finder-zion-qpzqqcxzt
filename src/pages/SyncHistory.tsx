@@ -9,6 +9,15 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+} from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -19,7 +28,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
-import { RefreshCw, Search, CheckCircle2, XCircle } from 'lucide-react'
+import { RefreshCw, Search, CheckCircle2, XCircle, Send, Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
 
 export default function SyncHistory() {
   const [data, setData] = useState<any[]>([])
@@ -28,6 +38,9 @@ export default function SyncHistory() {
   const [statusFilter, setStatusFilter] = useState('ALL')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
+
+  const [retryItem, setRetryItem] = useState<any>(null)
+  const [retrying, setRetrying] = useState(false)
 
   const fetchData = useCallback(async () => {
     setLoading(true)
@@ -82,11 +95,58 @@ export default function SyncHistory() {
     fetchData()
   }, [fetchData])
 
+  const handleRetry = async () => {
+    if (!retryItem) return
+    setRetrying(true)
+    try {
+      // Buscar settings do Bitrix
+      const { data: settingsData } = await supabase
+        .from('settings')
+        .select('value')
+        .eq('key', 'bitrix24_defaults')
+        .single()
+
+      const { kanban_id, stage_id } = (settingsData?.value as any) || {}
+
+      if (!kanban_id || !stage_id) {
+        throw new Error('Configuracoes do Bitrix24 nao encontradas.')
+      }
+
+      // Buscar dados do lead
+      const { data: leadData } = await supabase
+        .from('leads_salvos')
+        .select('*')
+        .eq('id', retryItem.lead_id)
+        .single()
+
+      const { data, error } = await supabase.functions.invoke('create-deal-bitrix', {
+        body: {
+          lead_id: retryItem.lead_id,
+          company_id: retryItem.company_id,
+          kanban_id,
+          stage_id,
+          lead_data: leadData,
+        },
+      })
+
+      if (error) throw error
+      if (data?.error) throw new Error(data.error)
+
+      toast.success('Lead reenviado com sucesso para o Bitrix24!')
+      setRetryItem(null)
+      fetchData()
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao reenviar.')
+    } finally {
+      setRetrying(false)
+    }
+  }
+
   return (
     <div className="max-w-7xl mx-auto space-y-6 animate-fade-in pb-12">
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-semibold tracking-tight">Histórico de Sincronizações</h2>
+          <h2 className="text-2xl font-semibold tracking-tight">Historico de Sincronizacoes</h2>
           <p className="text-muted-foreground mt-1">Acompanhe o envio de leads para o Bitrix24.</p>
         </div>
         <Button onClick={fetchData} variant="outline" size="sm">
@@ -161,11 +221,15 @@ export default function SyncHistory() {
               ) : (
                 data.map((item) => {
                   const isSuccess = item.status === 'success' || item.status === 'SUCESSO'
+                  const isError = !isSuccess
                   const razaoSocial = item.leads_salvos?.razao_social || 'Desconhecido'
-                  const errorMsg = item.error_message || item.error_log
 
                   return (
-                    <TableRow key={item.id}>
+                    <TableRow
+                      key={item.id}
+                      className={isError ? 'cursor-pointer hover:bg-red-50/50 transition-colors' : ''}
+                      onClick={() => isError && setRetryItem(item)}
+                    >
                       <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
                         {new Date(item.created_at).toLocaleString('pt-BR')}
                       </TableCell>
@@ -183,7 +247,7 @@ export default function SyncHistory() {
                             <CheckCircle2 className="w-3 h-3 mr-1" /> Sucesso
                           </Badge>
                         ) : (
-                          <Badge variant="destructive">
+                          <Badge variant="destructive" className="cursor-pointer">
                             <XCircle className="w-3 h-3 mr-1" /> Erro
                           </Badge>
                         )}
@@ -197,15 +261,20 @@ export default function SyncHistory() {
                           <span className="text-muted-foreground">-</span>
                         )}
                       </TableCell>
-                      <TableCell className="max-w-[300px] truncate text-sm" title={errorMsg}>
+                      <TableCell className="text-sm max-w-[400px]">
                         {isSuccess ? (
                           <span className="text-emerald-600 font-medium">
                             Deal criado com sucesso
                           </span>
                         ) : (
-                          <span className="text-destructive">
-                            {errorMsg || 'Erro desconhecido'}
-                          </span>
+                          <div className="space-y-1">
+                            <span className="text-destructive font-medium block">
+                              {item.error_message || 'Erro desconhecido'}
+                            </span>
+                            <span className="text-xs text-blue-600 hover:underline">
+                              Clique para reenviar
+                            </span>
+                          </div>
                         )}
                       </TableCell>
                     </TableRow>
@@ -216,6 +285,33 @@ export default function SyncHistory() {
           </Table>
         </CardContent>
       </Card>
+
+      <AlertDialog open={!!retryItem} onOpenChange={(open) => !open && setRetryItem(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reenviar para Bitrix24?</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <span className="block">
+                Deseja reenviar o lead <strong>{retryItem?.leads_salvos?.razao_social}</strong> para o Bitrix24?
+              </span>
+              <span className="block text-xs text-muted-foreground bg-slate-50 p-2 rounded border">
+                Erro anterior: {retryItem?.error_message}
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={retrying}>Cancelar</AlertDialogCancel>
+            <Button onClick={handleRetry} disabled={retrying}>
+              {retrying ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Send className="w-4 h-4 mr-2" />
+              )}
+              {retrying ? 'Reenviando...' : 'Reenviar'}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

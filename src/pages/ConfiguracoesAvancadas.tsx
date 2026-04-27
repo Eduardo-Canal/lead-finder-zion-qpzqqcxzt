@@ -6,9 +6,10 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 import useAuthStore from '@/stores/useAuthStore'
-import { Loader2, Settings, Database, Trash2, AlertCircle } from 'lucide-react'
+import { Loader2, Settings, Database, Trash2, AlertCircle, BrainCircuit, ArrowRight } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { cn } from '@/lib/utils'
+import { Link } from 'react-router-dom'
 
 export default function ConfiguracoesAvancadas({ embedded = false }: { embedded?: boolean }) {
   const { user } = useAuthStore()
@@ -19,6 +20,7 @@ export default function ConfiguracoesAvancadas({ embedded = false }: { embedded?
   const [cnaeCache, setCnaeCache] = useState('')
   const [clearingCache, setClearingCache] = useState(false)
   const [clearingAll, setClearingAll] = useState(false)
+
 
   const isAdmin = user?.perfis_acesso?.nome === 'Administrador'
 
@@ -64,9 +66,9 @@ export default function ConfiguracoesAvancadas({ embedded = false }: { embedded?
 
       if (error) throw error
 
-      toast.success('Configurações salvas com sucesso!')
+      toast.success('Token da API salvo com sucesso!')
     } catch (err: any) {
-      toast.error('Erro ao salvar configurações. Verifique suas permissões.')
+      toast.error('Erro ao salvar token da API. Verifique suas permissões.')
       console.error(err)
     } finally {
       setSaving(false)
@@ -168,6 +170,28 @@ export default function ConfiguracoesAvancadas({ embedded = false }: { embedded?
               </Button>
             </form>
           )}
+        </CardContent>
+      </Card>
+
+      <Card className="border-blue-200/50 dark:border-blue-900/50">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-blue-600 dark:text-blue-500">
+            <BrainCircuit className="h-5 w-5" />
+            Contexto IA para Abordagem Comercial
+          </CardTitle>
+          <CardDescription>
+            A configuracao do contexto da IA foi migrada para uma pagina dedicada com formularios
+            estruturados para empresa, produto, personas e regras de geracao.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Link to="/configuracoes/contexto-ia">
+            <Button variant="outline" className="gap-2">
+              <BrainCircuit className="w-4 h-4" />
+              Acessar Configuracoes de Contexto IA
+              <ArrowRight className="w-4 h-4" />
+            </Button>
+          </Link>
         </CardContent>
       </Card>
 

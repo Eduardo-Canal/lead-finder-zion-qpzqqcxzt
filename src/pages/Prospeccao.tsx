@@ -6,6 +6,10 @@ import { designTokens } from '@/constants/designTokens'
 export default function Prospeccao() {
   const { filters } = useLeadStore()
 
+  console.log('Prospeccao - Filters:', filters)
+  console.log('Prospeccao - CNAEs:', filters.cnaes)
+  console.log('Prospeccao - isSearchDisabled:', filters.cnaes.length === 0)
+
   const isSearchDisabled = filters.cnaes.length === 0
 
   return (

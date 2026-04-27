@@ -12,6 +12,7 @@ import {
   History,
   UserCircle,
   BookOpen,
+  BrainCircuit,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -100,6 +101,16 @@ export function AppSidebar() {
                         >
                           <Link to="/inteligencia-zion">
                             <span>Inteligência Zion</span>
+                          </Link>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton
+                          asChild
+                          isActive={location.pathname === '/curva-abc'}
+                        >
+                          <Link to="/curva-abc">
+                            <span>Curva ABC Financeira</span>
                           </Link>
                         </SidebarMenuSubButton>
                       </SidebarMenuSubItem>
@@ -265,6 +276,17 @@ export function AppSidebar() {
                           <SidebarMenuSubItem>
                             <SidebarMenuSubButton
                               asChild
+                              isActive={location.pathname === '/configuracoes/contexto-ia'}
+                            >
+                              <Link to="/configuracoes/contexto-ia">
+                                <BrainCircuit className="w-4 h-4 mr-1" />
+                                <span>Contexto IA</span>
+                              </Link>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                          <SidebarMenuSubItem>
+                            <SidebarMenuSubButton
+                              asChild
                               isActive={
                                 location.pathname === '/configuracoes/especificacoes-tecnicas'
                               }
@@ -291,46 +313,6 @@ export function AppSidebar() {
                             >
                               <Link to="/configuracoes/empresas-duplicadas">
                                 <span>Empresas Duplicadas</span>
-                              </Link>
-                            </SidebarMenuSubButton>
-                          </SidebarMenuSubItem>
-                          <SidebarMenuSubItem>
-                            <SidebarMenuSubButton
-                              asChild
-                              isActive={location.pathname === '/admin/debug-api'}
-                            >
-                              <Link to="/admin/debug-api">
-                                <span>Debug API Casa dos Dados</span>
-                              </Link>
-                            </SidebarMenuSubButton>
-                          </SidebarMenuSubItem>
-                          <SidebarMenuSubItem>
-                            <SidebarMenuSubButton
-                              asChild
-                              isActive={location.pathname === '/admin/debug-bitrix'}
-                            >
-                              <Link to="/admin/debug-bitrix">
-                                <span>Debug API Bitrix24</span>
-                              </Link>
-                            </SidebarMenuSubButton>
-                          </SidebarMenuSubItem>
-                          <SidebarMenuSubItem>
-                            <SidebarMenuSubButton
-                              asChild
-                              isActive={location.pathname === '/admin/monitoramento-bitrix'}
-                            >
-                              <Link to="/admin/monitoramento-bitrix">
-                                <span>Monitoramento Bitrix</span>
-                              </Link>
-                            </SidebarMenuSubButton>
-                          </SidebarMenuSubItem>
-                          <SidebarMenuSubItem>
-                            <SidebarMenuSubButton
-                              asChild
-                              isActive={location.pathname === '/admin/testes-validacao'}
-                            >
-                              <Link to="/admin/testes-validacao">
-                                <span>Testes e Validação (QA)</span>
                               </Link>
                             </SidebarMenuSubButton>
                           </SidebarMenuSubItem>

@@ -42,13 +42,10 @@ const ConfiguracoesAvancadas = lazyWithRetry(() => import('@/pages/Configuracoes
 const RemindersConfig = lazyWithRetry(() => import('@/pages/RemindersConfig'))
 const AuditLogs = lazyWithRetry(() => import('@/pages/AuditLogs'))
 const Reports = lazyWithRetry(() => import('@/pages/Reports'))
-const DebugAPI = lazyWithRetry(() => import('@/pages/DebugAPI'))
-const DebugBitrix = lazyWithRetry(() => import('@/pages/DebugBitrix'))
-const MonitoramentoBitrix = lazyWithRetry(() => import('@/pages/MonitoramentoBitrix'))
-const TestesValidacao = lazyWithRetry(() => import('@/pages/TestesValidacao'))
 const EmpresasDuplicadas = lazyWithRetry(() => import('@/pages/EmpresasDuplicadas'))
 const InteligenciaZion = lazyWithRetry(() => import('@/pages/InteligenciaZion'))
 const AnaliseCarteira = lazyWithRetry(() => import('@/pages/AnaliseCarteira'))
+const CurvaAbc = lazyWithRetry(() => import('@/pages/CurvaAbc'))
 const CnaeDetails = lazyWithRetry(() => import('@/pages/CnaeDetails'))
 const NotFound = lazyWithRetry(() => import('@/pages/NotFound'))
 const UpdatePassword = lazyWithRetry(() => import('@/pages/UpdatePassword'))
@@ -56,7 +53,9 @@ const ChangePassword = lazyWithRetry(() => import('@/pages/ChangePassword'))
 const ConfiguracoesBitrix = lazyWithRetry(() => import('@/pages/ConfiguracoesBitrix'))
 const SyncHistory = lazyWithRetry(() => import('@/pages/SyncHistory'))
 const Integracoes = lazyWithRetry(() => import('@/pages/Integracoes'))
+const ConfiguracoesIA = lazyWithRetry(() => import('@/pages/ConfiguracoesIA'))
 const Documentation = lazyWithRetry(() => import('@/pages/Documentation'))
+const ContaAzulCallback = lazyWithRetry(() => import('@/pages/ContaAzulCallback'))
 const TechnicalSpecs = lazyWithRetry(() => import('@/pages/TechnicalSpecs'))
 
 const GlobalLoading = () => (
@@ -123,6 +122,7 @@ const App = () => (
                   >
                     <Route path="/" element={<Index />} />
                     <Route path="/inteligencia-zion" element={<InteligenciaZion />} />
+                    <Route path="/curva-abc" element={<CurvaAbc />} />
                     <Route path="/cnae-details" element={<CnaeDetails />} />
                     <Route path="/analise-carteira" element={<AnaliseCarteira />} />
                     <Route path="/prospeccao" element={<Prospeccao />} />
@@ -141,6 +141,7 @@ const App = () => (
                     <Route path="/configuracoes/avancado" element={<ConfiguracoesAvancadas />} />
                     <Route path="/configuracoes/bitrix24" element={<ConfiguracoesBitrix />} />
                     <Route path="/configuracoes/integracoes" element={<Integracoes />} />
+                    <Route path="/configuracoes/contexto-ia" element={<ConfiguracoesIA />} />
                     <Route
                       path="/configuracoes/especificacoes-tecnicas"
                       element={<TechnicalSpecs />}
@@ -149,11 +150,8 @@ const App = () => (
                       path="/configuracoes/empresas-duplicadas"
                       element={<EmpresasDuplicadas />}
                     />
-                    <Route path="/admin/debug-api" element={<DebugAPI />} />
-                    <Route path="/admin/debug-bitrix" element={<DebugBitrix />} />
-                    <Route path="/admin/monitoramento-bitrix" element={<MonitoramentoBitrix />} />
-                    <Route path="/admin/testes-validacao" element={<TestesValidacao />} />
                   </Route>
+                  <Route path="/oauth/conta-azul/callback" element={<ContaAzulCallback />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </Suspense>

@@ -1,6 +1,7 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { corsHeaders } from '../_shared/cors.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
+import { createClient } from 'npm:@supabase/supabase-js@2.39.3'
+import { getBitrixWebhookUrl } from '../_shared/get-bitrix-url.ts'
 
 // Utility function to remove accents for better comparison
 function removeAccents(str: string) {
@@ -95,7 +96,7 @@ Deno.serve(async (req: Request) => {
     const cleanCnpj = lead.cnpj ? lead.cnpj.replace(/\D/g, '') : ''
     const razaoSocial = lead.razao_social ? lead.razao_social.trim() : ''
 
-    const baseUrl = `https://zionlogtec.bitrix24.com.br/rest/5/eiyn7hzhaeu2lcm0/`
+    const baseUrl = await getBitrixWebhookUrl(supabaseAdmin)
     const rateLimiterUrl = `${supabaseUrl}/functions/v1/bitrix-rate-limiter`
 
     async function callBitrix(endpoint: string, method: string = 'GET', body?: any) {
@@ -132,8 +133,8 @@ Deno.serve(async (req: Request) => {
               const match = errMsg.match(/em (\d+) segundos/)
               if (match && match[1]) {
                 const waitSecs = parseInt(match[1], 10)
-                if (waitSecs <= 5) {
-                  delay = waitSecs * 1000 // ajusta o delay para o tempo exato pedido
+                if (waitSecs <= 60) {
+                  delay = waitSecs * 1000 // aguarda o tempo exato pedido pelo limitador
                 } else {
                   throw new Error(
                     `Rate limit excessivo (${waitSecs}s). Cancelando retentativas para evitar timeout da Edge Function.`,

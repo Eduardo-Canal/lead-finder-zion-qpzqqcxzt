@@ -1,6 +1,6 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { corsHeaders } from '../_shared/cors.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
+import { createClient } from 'npm:@supabase/supabase-js@2.39.3'
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
@@ -127,21 +127,41 @@ Deno.serve(async (req: Request) => {
           apiCalled = true
 
           if (response.ok) {
-            const data = await response.json()
-            if (data.success !== false) {
-              potencial_mercado = data.count || 0
+            try {
+              const data = await response.json()
+              if (data.success !== false) {
+                potencial_mercado = data.count || 0
 
-              const expira_em = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
-              await supabaseAdmin.from('cache_pesquisas').upsert(
-                {
-                  chave_cache,
-                  resultados: data.cnpjs?.slice(0, 1) || [],
-                  total_registros: potencial_mercado,
-                  expira_em,
-                  parametros: payloadToHash,
-                },
-                { onConflict: 'chave_cache' },
-              )
+                const expira_em = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+                await supabaseAdmin.from('cache_pesquisas').upsert(
+                  {
+                    chave_cache,
+                    resultados: data.cnpjs?.slice(0, 1) || [],
+                    total_registros: potencial_mercado,
+                    expira_em,
+                    parametros: payloadToHash,
+                  },
+                  { onConflict: 'chave_cache' },
+                )
+              }
+            } catch (jsonError) {
+              console.error(`Erro ao fazer parse JSON para CNAE ${cnae}:`, jsonError)
+              // Tentar ler como texto para debug
+              try {
+                const responseText = await response.text()
+                console.error('Resposta bruta:', responseText)
+              } catch (textError) {
+                console.error('Erro ao ler resposta como texto:', textError)
+              }
+            }
+          } else {
+            console.error(`Erro HTTP ${response.status} para CNAE ${cnae}`)
+            // Tentar ler resposta de erro
+            try {
+              const errorText = await response.text()
+              console.error('Resposta de erro:', errorText)
+            } catch (errorReadError) {
+              console.error('Erro ao ler resposta de erro:', errorReadError)
             }
           }
         } catch (err) {

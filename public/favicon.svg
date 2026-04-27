@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Arco dourado -->
+  <path d="M32 4C18.5 4 8 14.5 8 28" stroke="#E8A817" stroke-width="5.5" fill="none" stroke-linecap="round"/>
+  <path d="M56 28C56 14.5 45.5 4 32 4" stroke="#E8A817" stroke-width="5.5" fill="none" stroke-linecap="round"/>
+
+  <!-- Meia lua dourada inferior -->
+  <path d="M18 38 Q32 46 46 38" stroke="#E8A817" stroke-width="4" fill="none" stroke-linecap="round"/>
+
+  <!-- Flor-de-lis cinza - petala central -->
+  <path d="M32 14 L28 30 L32 34 L36 30 Z" fill="#5A5A5A"/>
+
+  <!-- Petala esquerda -->
+  <path d="M26 22 Q20 28 22 36 L28 30 Z" fill="#5A5A5A"/>
+
+  <!-- Petala direita -->
+  <path d="M38 22 Q44 28 42 36 L36 30 Z" fill="#5A5A5A"/>
+
+  <!-- Ponta superior -->
+  <path d="M29 16 L32 8 L35 16 Z" fill="#5A5A5A"/>
+
+  <!-- Raizes inferiores -->
+  <path d="M28 42 L24 50 M32 44 L32 52 M36 42 L40 50" stroke="#5A5A5A" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+</svg>

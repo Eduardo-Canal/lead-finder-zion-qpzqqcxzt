@@ -27,11 +27,13 @@ import {
   Wand2,
   MessageSquare,
   Sparkles,
+  Building2,
 } from 'lucide-react'
 import useAuthStore from '@/stores/useAuthStore'
 import { useActivityLogger } from '@/hooks/use-activity-logger'
 import ConfiguracoesBitrix from './ConfiguracoesBitrix'
 import ConfiguracoesAvancadas from './ConfiguracoesAvancadas'
+import ConfiguracoesContaAzul from './ConfiguracoesContaAzul'
 
 export default function Integracoes() {
   const { user, hasPermission } = useAuthStore()
@@ -194,12 +196,15 @@ export default function Integracoes() {
       </div>
 
       <Tabs defaultValue="openai" className="space-y-6">
-        <TabsList className="grid grid-cols-3 w-full max-w-md">
+        <TabsList className="grid grid-cols-2 sm:grid-cols-4 w-full">
           <TabsTrigger value="openai" className="flex items-center justify-center gap-2">
             <Bot className="w-4 h-4 hidden sm:block" /> OpenAI
           </TabsTrigger>
           <TabsTrigger value="bitrix" className="flex items-center justify-center gap-2">
             <Workflow className="w-4 h-4 hidden sm:block" /> Bitrix24
+          </TabsTrigger>
+          <TabsTrigger value="contaazul" className="flex items-center justify-center gap-2">
+            <Building2 className="w-4 h-4 hidden sm:block" /> Conta Azul
           </TabsTrigger>
           <TabsTrigger value="casadosdados" className="flex items-center justify-center gap-2">
             <Database className="w-4 h-4 hidden sm:block" /> Casa dos Dados
@@ -376,6 +381,18 @@ export default function Integracoes() {
               </p>
             </div>
             <ConfiguracoesBitrix embedded />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="contaazul" className="animate-in fade-in-50 duration-500">
+          <div className="bg-card rounded-xl border shadow-sm p-6">
+            <div className="mb-6">
+              <h3 className="text-lg font-medium">Integração Conta Azul</h3>
+              <p className="text-sm text-muted-foreground">
+                Configure a sincronização automática de MRR e cálculo da Curva ABC.
+              </p>
+            </div>
+            <ConfiguracoesContaAzul embedded />
           </div>
         </TabsContent>
 

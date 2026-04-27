@@ -1,6 +1,7 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { corsHeaders } from '../_shared/cors.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
+import { createClient } from 'npm:@supabase/supabase-js@2.39.3'
+import { buildAiPrompt, fetchAiConfigs } from '../_shared/build-ai-prompt.ts'
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
@@ -22,7 +23,7 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    // Buscar API Key do OpenAI nas configurações (Supabase Secrets/Settings)
+    // ─── Buscar API Key ────────────────────────────────────
     const { data: configData } = await supabaseAdmin
       .from('settings')
       .select('value')
@@ -37,34 +38,40 @@ Deno.serve(async (req: Request) => {
     if (!apiKey) {
       return new Response(
         JSON.stringify({ error: 'Chave da OpenAI não configurada no sistema.' }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        },
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       )
     }
 
-    // Prompt detalhado solicitando retorno em JSON
-    const prompt = `Atue como um especialista em vendas B2B para a empresa Zion Logística, especializada em soluções de WMS (Warehouse Management System).
+    // ─── Montar System Prompt (contexto estruturado) ───────
+    const aiConfigs = await fetchAiConfigs(supabaseAdmin)
+    let systemPrompt = buildAiPrompt(aiConfigs)
 
-CONTEXTO DA ZION:
-- Somos especialistas em gestão de armazéns e logística
-- Nossas soluções incluem: controle de inventário, picking otimizado, integração com e-commerce, rastreamento em tempo real
-- Clientes atendidos: empresas de e-commerce, distribuidores, indústrias
-- Benefícios: redução de custos operacionais em até 40%, aumento da produtividade, eliminação de erros manuais
+    // Fallback: se nenhuma configuração nova existe, usar o campo antigo
+    if (!systemPrompt.trim()) {
+      const { data: legacyContext } = await supabaseAdmin
+        .from('configuracoes_sistema')
+        .select('contexto_empresa_ia')
+        .eq('id', 1)
+        .maybeSingle()
 
-PERFIL DO LEAD:
+      systemPrompt =
+        legacyContext?.contexto_empresa_ia || 'Atue como um especialista em vendas B2B.'
+    }
+
+    // ─── User Prompt (dados do lead) ───────────────────────
+    const userPrompt = `PERFIL DO LEAD:
 CNAE / Setor: ${cnae || 'Não informado'}
 Porte da Empresa: ${porte_empresa || 'Não informado'}
-Dores Principais: ${dores_principais ? JSON.stringify(dores_principais) : 'Não informado'}
+Dores Principais: ${dores_principais ? (typeof dores_principais === 'string' ? dores_principais : JSON.stringify(dores_principais)) : 'Não informado'}
 
 Retorne EXATAMENTE um objeto JSON com as seguintes chaves:
-- "abordagem_gerada": (string) Um texto persuasivo para email focado nas dores específicas do lead, mencionando nossa expertise em WMS e cases de sucesso similares.
-- "personas_decisoras": (array de strings) 2 a 3 cargos na empresa que costumam decidir compras de sistemas logísticos/WMS.
-- "argumentos_venda": (array de strings) 3 a 5 argumentos fortes conectando as dores do lead com benefícios específicos do nosso WMS.
+- "abordagem_gerada": (string) Um texto persuasivo para email focado nas dores específicas do lead, conectando com as funcionalidades e benefícios do nosso produto.
+- "personas_decisoras": (array de strings) 2 a 3 cargos na empresa que costumam decidir este tipo de compra.
+- "argumentos_venda": (array de strings) 3 a 5 argumentos fortes conectando as dores do lead com benefícios específicos do nosso produto.
 - "proximos_passos": (array de strings) 2 a 3 ações recomendadas para o vendedor executar na sequência.
 - "canais_recomendados": (array de strings) Canais ideais para abordagem: email, whatsapp, linkedin, ligacao.`
 
+    // ─── Chamar OpenAI ─────────────────────────────────────
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -72,10 +79,14 @@ Retorne EXATAMENTE um objeto JSON com as seguintes chaves:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4-turbo',
-        messages: [{ role: 'user', content: prompt }],
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
         response_format: { type: 'json_object' },
         temperature: 0.7,
+        max_tokens: 1500,
       }),
     })
 
@@ -90,11 +101,11 @@ Retorne EXATAMENTE um objeto JSON com as seguintes chaves:
     let generated
     try {
       generated = JSON.parse(contentStr)
-    } catch (e) {
+    } catch (_e) {
       throw new Error('A resposta da OpenAI não retornou um JSON válido.')
     }
 
-    // Salvar na tabela lead_abordagens_comerciais
+    // ─── Salvar no banco ───────────────────────────────────
     const { error: insertError } = await supabaseAdmin.from('lead_abordagens_comerciais').insert({
       lead_id,
       cnae: cnae || null,

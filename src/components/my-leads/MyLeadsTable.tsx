@@ -26,8 +26,11 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
-import { MessageSquare, Calendar, User, DollarSign } from 'lucide-react'
+import { MessageSquare, Calendar, User, DollarSign, Sparkles } from 'lucide-react'
+import { Dialog as ModalDialog, DialogContent as ModalDialogContent, DialogTitle as ModalDialogTitle } from '@/components/ui/dialog'
 import useMyLeadsStore, { LeadSalvo } from '@/stores/useMyLeadsStore'
+import { FilteredLead } from '@/stores/useLeadStore'
+import { LeadDetailsModal } from '@/components/dashboard/LeadDetailsModal'
 import useAuthStore from '@/stores/useAuthStore'
 import { cn, isValidCNPJ } from '@/lib/utils'
 import { toast } from 'sonner'
@@ -52,7 +55,29 @@ export function MyLeadsTable() {
   const [editingInteractionsLead, setEditingInteractionsLead] = useState<LeadSalvo | null>(null)
   const [editingDecisor, setEditingDecisor] = useState<LeadSalvo | null>(null)
   const [oppModalLead, setOppModalLead] = useState<LeadSalvo | null>(null)
+  const [approachLead, setApproachLead] = useState<FilteredLead | null>(null)
   const [decisorForm, setDecisorForm] = useState({ nome: '', telefone: '', email: '' })
+
+  const openApproachModal = (lead: LeadSalvo) => {
+    const asFiltered: FilteredLead = {
+      id: lead.id,
+      razao_social: lead.razao_social,
+      cnpj: lead.cnpj || '',
+      cnae_principal: lead.cnae_principal || '',
+      cnaes_secundarios: lead.cnaes_secundarios || [],
+      municipio: lead.municipio || '',
+      uf: lead.uf || '',
+      porte: '',
+      situacao: lead.situacao_cadastral || '',
+      capital_social: lead.capital_social || 0,
+      data_abertura: lead.data_abertura || '',
+      email: lead.email || '',
+      telefone: lead.telefone || '',
+      socios: lead.socios ? (typeof lead.socios === 'string' ? JSON.parse(lead.socios) : lead.socios) : [],
+      contatado: true,
+    }
+    setApproachLead(asFiltered)
+  }
 
   const openDecisorModal = (lead: LeadSalvo) => {
     setEditingDecisor(lead)
@@ -86,6 +111,7 @@ export function MyLeadsTable() {
         <Table className="min-w-[1200px]">
           <TableHeader>
             <TableRow className="bg-muted/50">
+              <TableHead className="text-center w-[160px] sticky left-0 z-10 bg-muted/50 shadow-[4px_0_6px_-4px_rgba(0,0,0,0.08)]">Ações</TableHead>
               <TableHead className="min-w-[200px]">Razão Social</TableHead>
               <TableHead>CNPJ</TableHead>
               <TableHead>Município/UF</TableHead>
@@ -95,7 +121,6 @@ export function MyLeadsTable() {
               <TableHead>Nome do Decisor</TableHead>
               <TableHead>Telefone do Decisor</TableHead>
               <TableHead>E-mail do Decisor</TableHead>
-              <TableHead className="text-center w-[120px]">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -125,6 +150,63 @@ export function MyLeadsTable() {
                     key={lead.id}
                     className="animate-fade-in group transition-colors hover:bg-slate-50/50"
                   >
+                    <TableCell className="text-center sticky left-0 z-10 bg-white group-hover:bg-slate-50/50 shadow-[4px_0_6px_-4px_rgba(0,0,0,0.08)]">
+                      <div className="flex items-center justify-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => openApproachModal(lead)}
+                          className="h-8 w-8 hover:scale-105 transition-transform text-violet-600 bg-violet-50 hover:bg-violet-100"
+                          title="Abordagem com IA"
+                          aria-label="Abordagem com IA"
+                        >
+                          <Sparkles className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setOppModalLead(lead)}
+                          className={cn(
+                            'h-8 w-8 hover:scale-105 transition-transform',
+                            hasOpp ? 'text-emerald-600 bg-emerald-50' : 'text-muted-foreground',
+                          )}
+                          title={hasOpp ? 'Editar Oportunidade' : 'Criar Oportunidade'}
+                          aria-label={hasOpp ? 'Editar Oportunidade' : 'Criar Oportunidade'}
+                        >
+                          <DollarSign className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => openDecisorModal(lead)}
+                          className={cn(
+                            'h-8 w-8 hover:scale-105 transition-transform',
+                            lead.decisor_nome || lead.decisor_telefone || lead.decisor_email
+                              ? 'text-primary bg-primary/10'
+                              : 'text-muted-foreground',
+                          )}
+                          title="Editar Decisor"
+                          aria-label="Editar Decisor"
+                        >
+                          <User className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setEditingInteractionsLead(lead)}
+                          className={cn(
+                            'h-8 w-8 hover:scale-105 transition-transform',
+                            lead.historico_interacoes && lead.historico_interacoes.length > 0
+                              ? 'text-accent bg-accent/10'
+                              : 'text-muted-foreground',
+                          )}
+                          title="Histórico de Atividades"
+                          aria-label="Histórico de Atividades"
+                        >
+                          <MessageSquare className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
                     <TableCell className="font-medium">
                       {lead.razao_social}
                       <div className="text-xs text-muted-foreground font-normal mt-0.5">
@@ -192,53 +274,6 @@ export function MyLeadsTable() {
                     >
                       {lead.decisor_email || '-'}
                     </TableCell>
-                    <TableCell className="text-center">
-                      <div className="flex items-center justify-center gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setOppModalLead(lead)}
-                          className={cn(
-                            'h-8 w-8 hover:scale-105 transition-transform',
-                            hasOpp ? 'text-emerald-600 bg-emerald-50' : 'text-muted-foreground',
-                          )}
-                          title={hasOpp ? 'Editar Oportunidade' : 'Criar Oportunidade'}
-                          aria-label={hasOpp ? 'Editar Oportunidade' : 'Criar Oportunidade'}
-                        >
-                          <DollarSign className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => openDecisorModal(lead)}
-                          className={cn(
-                            'h-8 w-8 hover:scale-105 transition-transform',
-                            lead.decisor_nome || lead.decisor_telefone || lead.decisor_email
-                              ? 'text-primary bg-primary/10'
-                              : 'text-muted-foreground',
-                          )}
-                          title="Editar Decisor"
-                          aria-label="Editar Decisor"
-                        >
-                          <User className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setEditingInteractionsLead(lead)}
-                          className={cn(
-                            'h-8 w-8 hover:scale-105 transition-transform',
-                            lead.historico_interacoes && lead.historico_interacoes.length > 0
-                              ? 'text-accent bg-accent/10'
-                              : 'text-muted-foreground',
-                          )}
-                          title="Histórico de Atividades"
-                          aria-label="Histórico de Atividades"
-                        >
-                          <MessageSquare className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
                   </TableRow>
                 )
               })
@@ -261,6 +296,15 @@ export function MyLeadsTable() {
           onClose={() => setOppModalLead(null)}
         />
       )}
+
+      <ModalDialog open={!!approachLead} onOpenChange={(open) => !open && setApproachLead(null)}>
+        <ModalDialogContent className="max-w-4xl p-0 overflow-hidden flex flex-col border-none shadow-2xl bg-transparent max-h-[95vh] md:max-h-[90vh]">
+          <ModalDialogTitle className="sr-only">Abordagem Comercial</ModalDialogTitle>
+          {approachLead && (
+            <LeadDetailsModal lead={approachLead} onClose={() => setApproachLead(null)} initialTab="abordagem" forceIsSaved />
+          )}
+        </ModalDialogContent>
+      </ModalDialog>
 
       <Dialog open={!!editingDecisor} onOpenChange={(open) => !open && setEditingDecisor(null)}>
         <DialogContent className="sm:max-w-[400px]">

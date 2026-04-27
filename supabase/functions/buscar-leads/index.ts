@@ -1,6 +1,6 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { corsHeaders } from '../_shared/cors.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
+import { createClient } from 'npm:@supabase/supabase-js@2.39.3'
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
@@ -184,8 +184,17 @@ Deno.serve(async (req: Request) => {
 
           let errorData = null
           try {
-            errorData = await response.json()
-          } catch (e) {}
+            // Tentar ler a resposta como texto primeiro para evitar erro de JSON malformado
+            const responseText = await response.text()
+            if (responseText && responseText.trim()) {
+              errorData = JSON.parse(responseText)
+            } else {
+              errorData = { message: 'Resposta vazia da API' }
+            }
+          } catch (parseError) {
+            // Se não conseguir fazer parse do JSON, usar o texto bruto
+            errorData = { message: 'Resposta não-JSON da API', raw: await response.text() }
+          }
 
           const finalError = { error: errorMsg, details: errorData }
 
@@ -216,7 +225,26 @@ Deno.serve(async (req: Request) => {
           )
         }
 
-        data = await response.json()
+        // Tentar fazer parse da resposta JSON com tratamento de erro
+        try {
+          data = await response.json()
+        } catch (jsonError) {
+          console.error('Erro ao fazer parse da resposta JSON:', jsonError)
+          const responseText = await response.text()
+          return new Response(
+            JSON.stringify({
+              error: 'Erro ao processar resposta da API Casa dos Dados: resposta JSON malformada',
+              cnpjs: [],
+              page,
+              count: 0,
+              pages: 0,
+              cached: false,
+              status_http: response.status,
+              raw_response: responseText,
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
+          )
+        }
       } catch (e: any) {
         timeTakenApi = Math.round(performance.now() - fetchStart)
         console.error('Fetch API error:', e)
