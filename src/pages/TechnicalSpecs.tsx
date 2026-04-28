@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
 import { Skeleton } from '@/components/ui/skeleton'
 import { supabase } from '@/lib/supabase/client'
-import { Layers, Activity, Search, ShieldCheck, PieChart, Info, Server } from 'lucide-react'
+import { Layers, Activity, Search, ShieldCheck, PieChart, Info, Server, TrendingUp, LineChart } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 
 interface TechnicalSpec {
@@ -24,6 +24,8 @@ const MODULES = [
   { id: 'Governance', label: 'Governance', icon: ShieldCheck },
   { id: 'Lead Management', label: 'Lead Management', icon: Layers },
   { id: 'Inteligência Zion', label: 'Inteligência Zion', icon: PieChart },
+  { id: 'Curva ABC Financeira', label: 'Curva ABC Financeira', icon: TrendingUp },
+  { id: 'Análise de Carteira', label: 'Análise de Carteira', icon: LineChart },
   { id: 'Performance Dashboard', label: 'Performance Dashboard', icon: Activity },
 ]
 
