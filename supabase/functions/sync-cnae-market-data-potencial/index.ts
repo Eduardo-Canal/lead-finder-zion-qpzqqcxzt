@@ -131,46 +131,24 @@ Deno.serve(async (req: Request) => {
           apiCalled = true
 
           if (response.ok) {
+            let firstCnpj: any = null
             try {
               const data = await response.json()
               potencial_mercado = data.count || data.total || 0
 
-              let firstCnpj = null
               if (data.cnpjs && Array.isArray(data.cnpjs) && data.cnpjs.length > 0) {
                 firstCnpj = data.cnpjs[0]
                 if (firstCnpj.atividade_principal && firstCnpj.atividade_principal.descricao) {
                   cnae_description = firstCnpj.atividade_principal.descricao
                 } else if (firstCnpj.cnae_fiscal_principal) {
                   const parts = firstCnpj.cnae_fiscal_principal.split(' - ')
-                  if (parts.length > 1) {
-                    cnae_description = parts.slice(1).join(' - ').trim()
-                  } else {
-                    cnae_description = firstCnpj.cnae_fiscal_principal
-                  }
+                  cnae_description = parts.length > 1 ? parts.slice(1).join(' - ').trim() : firstCnpj.cnae_fiscal_principal
                 }
               }
             } catch (jsonError) {
               console.error(`Erro ao fazer parse JSON para CNAE ${cnae}:`, jsonError)
-              // Tentar ler como texto para debug
-              try {
-                const responseText = await response.text()
-                console.error('Resposta bruta:', responseText)
-              } catch (textError) {
-                console.error('Erro ao ler resposta como texto:', textError)
-              }
               potencial_mercado = 0
             }
-          } else {
-            console.error(`Erro HTTP ${response.status} para CNAE ${cnae}`)
-            // Tentar ler resposta de erro
-            try {
-              const errorText = await response.text()
-              console.error('Resposta de erro:', errorText)
-            } catch (errorReadError) {
-              console.error('Erro ao ler resposta de erro:', errorReadError)
-            }
-            potencial_mercado = 0
-          }
 
             const expira_em = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
             await supabaseAdmin.from('cache_pesquisas').upsert(
@@ -184,14 +162,8 @@ Deno.serve(async (req: Request) => {
               { onConflict: 'chave_cache' },
             )
           } else {
-            // 9. Log error
-            await supabaseAdmin.from('api_debug_logs').insert({
-              cnae: cnae,
-              status_http: response.status,
-              sucesso: false,
-              tempo_resposta_ms: 0,
-              resposta_json: { error: await response.text() },
-            })
+            console.error(`Erro HTTP ${response.status} para CNAE ${cnae}`)
+            potencial_mercado = 0
           }
         } catch (err: any) {
           await supabaseAdmin.from('api_debug_logs').insert({
