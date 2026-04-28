@@ -24,10 +24,12 @@ type DocumentationRecord = {
 }
 
 const MODULE_LABELS: Record<string, string> = {
-  prospecting: 'Prospecting',
-  governance: 'Governance',
-  'lead-management': 'Lead Management',
+  prospecting: 'Prospecção',
+  governance: 'Governança',
+  'lead-management': 'Gestão de Leads',
   'inteligencia-zion': 'Inteligência Zion',
+  'curva-abc-financeira': 'Curva ABC Financeira',
+  'analise-carteira': 'Análise de Carteira',
   'performance-dashboard': 'Performance Dashboard',
 }
 
@@ -36,6 +38,8 @@ const MODULE_ORDER = [
   'governance',
   'lead-management',
   'inteligencia-zion',
+  'curva-abc-financeira',
+  'analise-carteira',
   'performance-dashboard',
 ]
 
