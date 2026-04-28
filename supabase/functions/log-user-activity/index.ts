@@ -62,24 +62,40 @@ Deno.serve(async (req: Request) => {
         device_info,
         login_time: timestamp,
       })
+
+      await supabaseAdmin.from('audit_logs').insert({
+        user_id,
+        action: 'LOGIN',
+        entity_type: 'auth',
+        changes: { device_info },
+        ip_address,
+        user_agent,
+      })
     } else if (event_type === 'logout') {
       await supabaseAdmin
         .from('user_sessions')
         .update({ logout_time: timestamp })
         .eq('session_token', session_token)
         .is('logout_time', null)
+
+      await supabaseAdmin.from('audit_logs').insert({
+        user_id,
+        action: 'LOGOUT',
+        entity_type: 'auth',
+        changes: null,
+        ip_address,
+        user_agent,
+      })
     } else if (event_type === 'action') {
       const { acao, tabela_acessada, dados_acessados } = action_details || {}
 
       await supabaseAdmin.from('audit_logs').insert({
         user_id,
-        acao: acao || 'view',
-        tabela_acessada: tabela_acessada || 'unknown',
-        dados_acessados,
+        action: acao || 'VIEW',
+        entity_type: tabela_acessada || 'page',
+        changes: dados_acessados ?? null,
         ip_address,
         user_agent,
-        timestamp,
-        status: 'success',
       })
 
       // Sensitive access out of hours check

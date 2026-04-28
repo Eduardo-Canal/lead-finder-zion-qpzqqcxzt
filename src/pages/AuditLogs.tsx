@@ -74,7 +74,7 @@ export default function AuditLogs() {
       .order('created_at', { ascending: false })
       .limit(50)
     if (filters.user !== 'Todos') query = query.eq('user_id', filters.user)
-    if (filters.action !== 'Todas') query = query.eq('acao', filters.action)
+    if (filters.action !== 'Todas') query = query.eq('action', filters.action)
     if (filters.date) {
       const start = new Date(filters.date)
       start.setHours(0, 0, 0, 0)
@@ -250,6 +250,8 @@ export default function AuditLogs() {
             <SelectContent>
               <SelectItem value="Todas">Todas as Ações</SelectItem>
               <SelectItem value="LOGIN">LOGIN</SelectItem>
+              <SelectItem value="LOGOUT">LOGOUT</SelectItem>
+              <SelectItem value="VIEW">VIEW</SelectItem>
               <SelectItem value="CREATE">CREATE</SelectItem>
               <SelectItem value="UPDATE">UPDATE</SelectItem>
               <SelectItem value="DELETE">DELETE</SelectItem>
@@ -321,22 +323,24 @@ export default function AuditLogs() {
                         variant="outline"
                         className={cn(
                           'text-[10px] uppercase',
-                          log.acao === 'DELETE' && 'border-red-200 text-red-700',
-                          log.acao === 'CREATE' && 'border-emerald-200 text-emerald-700',
+                          log.action === 'DELETE' && 'border-red-200 text-red-700',
+                          log.action === 'CREATE' && 'border-emerald-200 text-emerald-700',
+                          log.action === 'LOGIN' && 'border-blue-200 text-blue-700',
+                          log.action === 'LOGOUT' && 'border-slate-200 text-slate-600',
                         )}
                       >
-                        {log.acao}
+                        {log.action}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-xs text-slate-600">
-                      {log.tabela_acessada || '-'}
+                      {log.entity_type || '-'}
                     </TableCell>
                     <TableCell className="max-w-[250px]">
                       <div
                         className="text-[10px] font-mono truncate bg-slate-100 p-1.5 rounded text-slate-600"
-                        title={JSON.stringify(log.dados_acessados || {})}
+                        title={JSON.stringify(log.changes || {})}
                       >
-                        {JSON.stringify(log.dados_acessados || {})}
+                        {JSON.stringify(log.changes || {})}
                       </div>
                     </TableCell>
                   </TableRow>
