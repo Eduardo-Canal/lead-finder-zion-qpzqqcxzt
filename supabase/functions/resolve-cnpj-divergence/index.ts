@@ -81,29 +81,62 @@ Deno.serve(async (req: Request) => {
       )
     }
 
-    // 2. Atualiza o Bitrix CRM
+    // 2. Verifica CNAE do novo CNPJ e atualiza localmente se mudou
+    let cnaeUpdate: { anterior: string | null; novo: string | null; alterado: boolean } = {
+      anterior: null, novo: null, alterado: false,
+    }
+    try {
+      const cnpjLimpo = novoCnpj.replace(/\D/g, '')
+      const rfbRes = await fetch(`https://publica.cnpj.ws/cnpj/${cnpjLimpo}`)
+      if (rfbRes.ok) {
+        const rfbData = await rfbRes.json().catch(() => ({}))
+        const atv = rfbData?.estabelecimento?.atividade_principal
+        const cnaeNovo = atv ? `${atv.id} - ${atv.descricao}` : null
+
+        if (cnaeNovo) {
+          const { data: clienteAtual } = await supabase
+            .from('bitrix_clients_zion')
+            .select('cnae_principal')
+            .eq('bitrix_id', div.bitrix_id)
+            .maybeSingle()
+
+          cnaeUpdate.anterior = clienteAtual?.cnae_principal ?? null
+          cnaeUpdate.novo = cnaeNovo
+
+          if (cnaeNovo !== cnaeUpdate.anterior) {
+            cnaeUpdate.alterado = true
+            await supabase
+              .from('bitrix_clients_zion')
+              .update({ cnae_principal: cnaeNovo })
+              .eq('bitrix_id', div.bitrix_id)
+          }
+        }
+      }
+    } catch { /* não bloqueia aprovação */ }
+
+    // 3. Atualiza o Bitrix CRM (CNPJ + CNAE se alterado, em uma única chamada)
     let bitrixUpdateResult: any = null
     try {
       const webhookUrl = await getBitrixWebhookUrl(supabase)
-      const payload = {
-        id: div.bitrix_id,
-        fields: {
-          UF_CRM_6241B0B267ED3: novoCnpjFormatado,
-          UF_CRM_1742992784: novoCnpjFormatado,
-        },
+      const fields: Record<string, string> = {
+        UF_CRM_6241B0B267ED3: novoCnpjFormatado,
+        UF_CRM_1742992784: novoCnpjFormatado,
+      }
+      if (cnaeUpdate.alterado && cnaeUpdate.novo) {
+        fields['UF_CRM_1771423651'] = cnaeUpdate.novo
       }
       const res = await fetch(`${webhookUrl}crm.company.update.json`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ id: div.bitrix_id, fields }),
       })
       bitrixUpdateResult = await res.json().catch(() => ({}))
     } catch (bitrixErr: any) {
-      // Não bloqueia — CNPJ local já foi atualizado
-      bitrixUpdateResult = { error: bitrixErr.message }
+      // Não bloqueia — atualizações locais já foram salvas
+      bitrixUpdateResult = { error: (bitrixErr as Error).message }
     }
 
-    // 3. Move os dados de contaazul_cache do CNPJ antigo para o novo
+    // 4. Move os dados de contaazul_cache do CNPJ antigo para o novo
     const cnpjAntigo = div.cnpj_bitrix
     if (cnpjAntigo && cnpjAntigo !== novoCnpj) {
       const { data: cacheAntigo } = await supabase
@@ -120,7 +153,7 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    // 4. Salva cache com o novo CNPJ caso ainda não exista
+    // 5. Salva cache com o novo CNPJ caso ainda não exista
     const { data: cacheNovo } = await supabase
       .from('contaazul_cache')
       .select('id')
@@ -151,13 +184,13 @@ Deno.serve(async (req: Request) => {
         .eq('id', cacheNovo.id)
     }
 
-    // 5. Atualiza MRR na bitrix_clients_zion
+    // 6. Atualiza MRR na bitrix_clients_zion
     await supabase
       .from('bitrix_clients_zion')
       .update({ mrr: div.mrr, cnpj: novoCnpjFormatado })
       .eq('bitrix_id', div.bitrix_id)
 
-    // 6. Marca divergência como aprovada
+    // 7. Marca divergência como aprovada
     await supabase
       .from('cnpj_divergencias')
       .update({ status: 'aprovado', resolvido_em: agora, resolvido_por: user_name || user_id || 'sistema' })
@@ -167,6 +200,7 @@ Deno.serve(async (req: Request) => {
       JSON.stringify({
         success: true,
         message: `CNPJ atualizado de ${div.cnpj_bitrix} para ${novoCnpj}`,
+        cnae_update: cnaeUpdate,
         bitrix_update: bitrixUpdateResult,
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },

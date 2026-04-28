@@ -7,8 +7,9 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { toast } from 'sonner'
-import { Settings2, RefreshCw, Clock3, History, ExternalLink, Building2, Clock, AlertTriangle, CheckCircle, XCircle } from 'lucide-react'
+import { Settings2, RefreshCw, Clock3, History, ExternalLink, Building2, Clock, AlertTriangle, CheckCircle, XCircle, Pencil } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts'
 import useAuthStore from '@/stores/useAuthStore'
 import {
@@ -37,6 +38,16 @@ const defaultOracleTiers = [
 
 const pieColors = ['#0f766e', '#16a34a', '#f59e0b', '#ef4444']
 
+const getCurvaAbcLabel = (code: string | null | undefined): string => {
+  switch (String(code ?? '').trim()) {
+    case '7592': case 'A+': return 'A+'
+    case '7594': case 'A':  return 'A'
+    case '7596': case 'B':  return 'B'
+    case '7598': case 'C':  return 'C'
+    default: return 'Não classificado'
+  }
+}
+
 export default function CurvaAbc() {
   const { user, hasPermission } = useAuthStore()
   const isAdmin = user?.perfis_acesso?.nome === 'Administrador' || hasPermission('Acessar Admin')
@@ -53,6 +64,10 @@ export default function CurvaAbc() {
   const [clientList, setClientList] = useState<any[]>([])
   const [clientListLoading, setClientListLoading] = useState(false)
   const [clientSearch, setClientSearch] = useState('')
+  const [showFontesDialog, setShowFontesDialog] = useState(false)
+  const [editCnpjClient, setEditCnpjClient] = useState<any>(null)
+  const [cnpjInput, setCnpjInput] = useState('')
+  const [savingCnpj, setSavingCnpj] = useState(false)
   const [selectedClient, setSelectedClient] = useState<any>(null)
   const [drawerSource, setDrawerSource] = useState<'contaazul' | 'oracle' | null>(null)
   const [drawerData, setDrawerData] = useState<any>(null)
@@ -167,6 +182,32 @@ export default function CurvaAbc() {
       toast.error(err.message || 'Erro ao resolver divergência.')
     } finally {
       setResolvingId(null)
+    }
+  }
+
+  const handleSetCnpj = async () => {
+    if (!editCnpjClient || !cnpjInput.trim()) return
+    setSavingCnpj(true)
+    try {
+      const response = await supabase.functions.invoke('set-client-cnpj', {
+        body: {
+          bitrix_id: editCnpjClient.bitrix_id,
+          cnpj: cnpjInput.trim(),
+          user_id: user?.id,
+          user_name: user?.nome || user?.email,
+        },
+      })
+      if (response.error || !response.data?.success) {
+        throw new Error(response.error?.message || response.data?.message || 'Falha ao definir CNPJ')
+      }
+      toast.success(response.data.message)
+      setEditCnpjClient(null)
+      setCnpjInput('')
+      loadClientList()
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao definir CNPJ.')
+    } finally {
+      setSavingCnpj(false)
     }
   }
 
@@ -363,6 +404,10 @@ export default function CurvaAbc() {
                   <Button variant="secondary" onClick={handleConfirmUpdate} disabled={updating || diffRows.length === 0}>
                     {updating ? 'Confirmando...' : 'Confirmar atualização'}
                   </Button>
+                  <Button variant="outline" onClick={() => setShowFontesDialog(true)}>
+                    <Building2 className="w-4 h-4 mr-2" />
+                    Fontes de Dados
+                  </Button>
                 </div>
               </div>
 
@@ -390,7 +435,7 @@ export default function CurvaAbc() {
                           <td className="px-4 py-3">{Number(item.mrr ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
                           <td className="px-4 py-3">{Number(item.custo_infra ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
                           <td className="px-4 py-3">{Number(item.margem_liquida ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
-                          <td className="px-4 py-3">{item.curva_abc || 'Não classificado'}</td>
+                          <td className="px-4 py-3">{getCurvaAbcLabel(item.curva_abc)}</td>
                           <td className="px-4 py-3">{item.curva_abc_calculada || 'N/A'}</td>
                           <td className="px-4 py-3">
                             <Badge variant={item.mudanca === 'subiu' ? 'success' : item.mudanca === 'desceu' ? 'destructive' : 'secondary'}>
@@ -487,117 +532,168 @@ export default function CurvaAbc() {
             </Card>
           )}
 
-          {/* Tabela de clientes com links de validação */}
-          <Card>
-            <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-              <div>
-                <CardTitle className="flex items-center gap-2">
-                  <Building2 className="w-5 h-5 text-primary" /> Clientes e Fontes de Dados
-                </CardTitle>
-                <CardDescription>
-                  Clique em "Conta Azul" para visualizar os dados sincronizados de cada cliente.
-                </CardDescription>
+          {/* Dialog definir CNPJ */}
+          <Dialog open={!!editCnpjClient} onOpenChange={(open) => { if (!open) { setEditCnpjClient(null); setCnpjInput('') } }}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Pencil className="w-4 h-4 text-amber-500" /> Definir CNPJ
+                </DialogTitle>
+                <DialogDescription>
+                  {editCnpjClient?.company_name} — informe o CNPJ que será gravado localmente e enviado ao Bitrix.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="mt-2 space-y-4">
+                <div>
+                  <Label htmlFor="cnpj-input" className="text-sm font-medium">CNPJ</Label>
+                  <Input
+                    id="cnpj-input"
+                    placeholder="00.000.000/0000-00"
+                    value={cnpjInput}
+                    onChange={e => setCnpjInput(e.target.value)}
+                    className="mt-1 font-mono"
+                    onKeyDown={e => { if (e.key === 'Enter') handleSetCnpj() }}
+                  />
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => { setEditCnpjClient(null); setCnpjInput('') }}>
+                    Cancelar
+                  </Button>
+                  <Button
+                    onClick={handleSetCnpj}
+                    disabled={savingCnpj || !cnpjInput.trim()}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                  >
+                    {savingCnpj ? 'Salvando...' : 'Salvar e enviar ao Bitrix'}
+                  </Button>
+                </div>
               </div>
-              <Button variant="outline" size="sm" onClick={loadClientList} disabled={clientListLoading}>
-                <RefreshCw className={`w-4 h-4 mr-2 ${clientListLoading ? 'animate-spin' : ''}`} />
-                Atualizar lista
-              </Button>
-            </CardHeader>
-            <CardContent>
-              {clientListLoading ? (
-                <div className="flex items-center gap-2 text-muted-foreground py-6">
-                  <Clock3 className="h-4 w-4 animate-spin" /> Carregando clientes...
+            </DialogContent>
+          </Dialog>
+
+          {/* Dialog Fontes de Dados */}
+          <Dialog open={showFontesDialog} onOpenChange={(open) => { setShowFontesDialog(open); if (!open) setClientSearch('') }}>
+            <DialogContent className="max-w-4xl w-full max-h-[85vh] flex flex-col">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Building2 className="w-5 h-5 text-primary" /> Clientes e Fontes de Dados
+                </DialogTitle>
+                <DialogDescription>
+                  Clique em "Conta Azul" para visualizar os dados sincronizados de cada cliente.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex items-center justify-between gap-2 pt-1">
+                <div className="flex items-center gap-2 flex-1">
+                  <input
+                    type="text"
+                    placeholder="Buscar por nome ou CNPJ..."
+                    value={clientSearch}
+                    onChange={e => setClientSearch(e.target.value)}
+                    className="w-full max-w-sm rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm shadow-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  />
+                  {clientSearch && (
+                    <button
+                      onClick={() => setClientSearch('')}
+                      className="text-xs text-slate-400 hover:text-slate-700"
+                    >
+                      Limpar
+                    </button>
+                  )}
+                  <span className="text-xs text-slate-400 ml-auto whitespace-nowrap">
+                    {clientList.filter(c =>
+                      !clientSearch ||
+                      c.company_name?.toLowerCase().includes(clientSearch.toLowerCase()) ||
+                      (c.cnpj?.replace(/\D/g, '') || '').includes(clientSearch.replace(/\D/g, ''))
+                    ).length} de {clientList.length} clientes
+                  </span>
                 </div>
-              ) : clientList.length === 0 ? (
-                <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-600">
-                  Nenhum cliente com CNPJ encontrado. Sincronize o Bitrix24 primeiro.
-                </div>
-              ) : (
-                <>
-                  <div className="mb-3 flex items-center gap-2">
-                    <input
-                      type="text"
-                      placeholder="Buscar por nome ou CNPJ..."
-                      value={clientSearch}
-                      onChange={e => setClientSearch(e.target.value)}
-                      className="w-full max-w-sm rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm shadow-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/40"
-                    />
-                    {clientSearch && (
-                      <button
-                        onClick={() => setClientSearch('')}
-                        className="text-xs text-slate-400 hover:text-slate-700"
-                      >
-                        Limpar
-                      </button>
-                    )}
-                    <span className="text-xs text-slate-400 ml-auto">
-                      {clientList.filter(c =>
-                        !clientSearch ||
-                        c.company_name?.toLowerCase().includes(clientSearch.toLowerCase()) ||
-                        (c.cnpj?.replace(/\D/g, '') || '').includes(clientSearch.replace(/\D/g, ''))
-                      ).length} de {clientList.length} clientes
-                    </span>
+                <Button variant="outline" size="sm" onClick={loadClientList} disabled={clientListLoading}>
+                  <RefreshCw className={`w-4 h-4 mr-2 ${clientListLoading ? 'animate-spin' : ''}`} />
+                  Atualizar
+                </Button>
+              </div>
+              <div className="flex-1 overflow-y-auto mt-2">
+                {clientListLoading ? (
+                  <div className="flex items-center gap-2 text-muted-foreground py-6">
+                    <Clock3 className="h-4 w-4 animate-spin" /> Carregando clientes...
                   </div>
-                <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm">
-                  <table className="min-w-full divide-y divide-slate-200 text-sm">
-                    <thead className="bg-slate-50 text-left text-xs uppercase tracking-wider text-slate-500">
-                      <tr>
-                        <th className="px-4 py-3">Cliente</th>
-                        <th className="px-4 py-3">CNPJ</th>
-                        <th className="px-4 py-3">MRR</th>
-                        <th className="px-4 py-3">Curva ABC</th>
-                        <th className="px-4 py-3">Conta Azul</th>
-                        <th className="px-4 py-3">Oracle</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-200">
-                      {clientList.filter(c =>
-                        !clientSearch ||
-                        c.company_name?.toLowerCase().includes(clientSearch.toLowerCase()) ||
-                        (c.cnpj?.replace(/\D/g, '') || '').includes(clientSearch.replace(/\D/g, ''))
-                      ).map((client) => (
-                        <tr key={client.id} className="hover:bg-slate-50 transition-colors">
-                          <td className="px-4 py-3 font-medium">{client.company_name || '—'}</td>
-                          <td className="px-4 py-3 font-mono text-xs text-slate-500">{client.cnpj}</td>
-                          <td className="px-4 py-3">
-                            {client.mrr != null
-                              ? Number(client.mrr).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-                              : <span className="text-slate-400 text-xs">Não sincronizado</span>}
-                          </td>
-                          <td className="px-4 py-3">
-                            {client.curva_abc_calculada
-                              ? <Badge variant="outline">{client.curva_abc_calculada}</Badge>
-                              : <span className="text-slate-400 text-xs">—</span>}
-                          </td>
-                          <td className="px-4 py-3">
-                            <button
-                              onClick={() => handleOpenDrawer(client, 'contaazul')}
-                              className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800 hover:underline"
-                            >
-                              <ExternalLink className="w-3 h-3" />
-                              {client.temContaAzul ? 'Ver dados' : 'Sem dados'}
-                            </button>
-                            {client.ultimoSync && (
-                              <div className="flex items-center gap-1 text-xs text-slate-400 mt-0.5">
-                                <Clock className="w-3 h-3" />
-                                {new Date(client.ultimoSync).toLocaleString('pt-BR')}
-                              </div>
-                            )}
-                          </td>
-                          <td className="px-4 py-3">
-                            <Badge variant="outline" className="text-xs text-slate-400 border-slate-200">
-                              Em breve
-                            </Badge>
-                          </td>
+                ) : clientList.length === 0 ? (
+                  <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-600">
+                    Nenhum cliente com CNPJ encontrado. Sincronize o Bitrix24 primeiro.
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm">
+                    <table className="min-w-full divide-y divide-slate-200 text-sm">
+                      <thead className="bg-slate-50 text-left text-xs uppercase tracking-wider text-slate-500">
+                        <tr>
+                          <th className="px-4 py-3">Cliente</th>
+                          <th className="px-4 py-3">CNPJ</th>
+                          <th className="px-4 py-3">MRR</th>
+                          <th className="px-4 py-3">Curva ABC</th>
+                          <th className="px-4 py-3">Conta Azul</th>
+                          <th className="px-4 py-3">Oracle</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
+                      </thead>
+                      <tbody className="divide-y divide-slate-200">
+                        {clientList.filter(c =>
+                          !clientSearch ||
+                          c.company_name?.toLowerCase().includes(clientSearch.toLowerCase()) ||
+                          (c.cnpj?.replace(/\D/g, '') || '').includes(clientSearch.replace(/\D/g, ''))
+                        ).map((client) => (
+                          <tr key={client.id} className="hover:bg-slate-50 transition-colors">
+                            <td className="px-4 py-3 font-medium">{client.company_name || '—'}</td>
+                            <td className="px-4 py-3 font-mono text-xs text-slate-500">
+                              {client.cnpj ? (
+                                client.cnpj
+                              ) : (
+                                <button
+                                  onClick={() => { setEditCnpjClient(client); setCnpjInput('') }}
+                                  className="inline-flex items-center gap-1 text-xs font-medium text-amber-600 hover:text-amber-800 hover:underline"
+                                >
+                                  <Pencil className="w-3 h-3" />
+                                  Definir CNPJ
+                                </button>
+                              )}
+                            </td>
+                            <td className="px-4 py-3">
+                              {client.mrr != null
+                                ? Number(client.mrr).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+                                : <span className="text-slate-400 text-xs">Não sincronizado</span>}
+                            </td>
+                            <td className="px-4 py-3">
+                              {client.curva_abc_calculada
+                                ? <Badge variant="outline">{client.curva_abc_calculada}</Badge>
+                                : <span className="text-slate-400 text-xs">—</span>}
+                            </td>
+                            <td className="px-4 py-3">
+                              <button
+                                onClick={() => { setShowFontesDialog(false); handleOpenDrawer(client, 'contaazul') }}
+                                className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800 hover:underline"
+                              >
+                                <ExternalLink className="w-3 h-3" />
+                                {client.temContaAzul ? 'Ver dados' : 'Sem dados'}
+                              </button>
+                              {client.ultimoSync && (
+                                <div className="flex items-center gap-1 text-xs text-slate-400 mt-0.5">
+                                  <Clock className="w-3 h-3" />
+                                  {new Date(client.ultimoSync).toLocaleString('pt-BR')}
+                                </div>
+                              )}
+                            </td>
+                            <td className="px-4 py-3">
+                              <Badge variant="outline" className="text-xs text-slate-400 border-slate-200">
+                                Em breve
+                              </Badge>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
 
           {/* Drawer de detalhes Conta Azul */}
           <Sheet open={drawerSource === 'contaazul' && selectedClient !== null} onOpenChange={(open) => { if (!open) { setSelectedClient(null); setDrawerSource(null) } }}>
@@ -628,10 +724,11 @@ export default function CurvaAbc() {
                         <p className="font-medium">{drawerData.nome_cliente || '—'}</p>
                       </div>
                       <div className="rounded-lg border bg-slate-50 p-3">
-                        <p className="text-xs text-slate-500 mb-1">MRR Total</p>
+                        <p className="text-xs text-slate-500 mb-1">MRR (Prazo Indeterminado)</p>
                         <p className="font-semibold text-emerald-700">
                           {Number(drawerData.mrr ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                         </p>
+                        <p className="text-xs text-slate-400 mt-0.5">Contratos com periodicidade NUNCA</p>
                       </div>
                       <div className="rounded-lg border bg-slate-50 p-3 col-span-2">
                         <p className="text-xs text-slate-500 mb-1">Última sincronização</p>
@@ -664,9 +761,14 @@ export default function CurvaAbc() {
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-200">
-                              {drawerData.contratos.map((c: any, i: number) => (
-                                <tr key={c.id || i} className="hover:bg-slate-50">
-                                  <td className="px-3 py-2">{c.descricao || '—'}</td>
+                              {drawerData.contratos.map((c: any, i: number) => {
+                                const contaMrr = c.ativo && c.periodicidade === 'NUNCA'
+                                return (
+                                <tr key={c.id || i} className={contaMrr ? 'bg-emerald-50 hover:bg-emerald-100' : 'hover:bg-slate-50 opacity-60'}>
+                                  <td className="px-3 py-2">
+                                    <span>{c.descricao || '—'}</span>
+                                    {contaMrr && <span className="ml-2 text-xs font-medium text-emerald-600">MRR</span>}
+                                  </td>
                                   <td className="px-3 py-2 font-medium text-emerald-700">
                                     {Number(c.valor ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                                   </td>
@@ -677,7 +779,8 @@ export default function CurvaAbc() {
                                   </td>
                                   <td className="px-3 py-2 text-slate-500">{c.periodicidade || '—'}</td>
                                 </tr>
-                              ))}
+                                )
+                              })}
                             </tbody>
                           </table>
                         </div>

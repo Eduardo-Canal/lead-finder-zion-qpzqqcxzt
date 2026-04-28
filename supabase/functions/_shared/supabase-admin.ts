@@ -100,6 +100,16 @@ class QueryBuilder {
     return { data: await res.json().catch(() => null), error: null }
   }
 
+  async delete(): Promise<{ data: any; error: any }> {
+    const url = `${this._url}/rest/v1/${this._table}${this._qs()}`
+    const res = await fetch(url, {
+      method: 'DELETE',
+      headers: baseHeaders(this._key, { Prefer: 'return=representation' }),
+    })
+    if (!res.ok) return { data: null, error: await res.json().catch(() => ({})) }
+    return { data: await res.json().catch(() => null), error: null }
+  }
+
   async upsert(body: object, opts: { onConflict?: string } = {}): Promise<{ data: any; error: any }> {
     const prefer = opts.onConflict
       ? `resolution=merge-duplicates,return=representation`
