@@ -61,6 +61,7 @@ export function CampaignFormModal({ open, onClose, campaign, initialCnaes }: Pro
   const [dataInicio, setDataInicio] = useState(today())
   const [dataFim, setDataFim] = useState('')
   const [notifGroupId, setNotifGroupId] = useState('')
+  const [cronExpressao, setCronExpressao] = useState('0 2 * * *')
   const [ativo, setAtivo] = useState(true)
   const [saving, setSaving] = useState(false)
 
@@ -77,6 +78,7 @@ export function CampaignFormModal({ open, onClose, campaign, initialCnaes }: Pro
       setDataInicio(campaign.data_inicio || today())
       setDataFim(campaign.data_fim || '')
       setNotifGroupId(campaign.bitrix_notification_group_id || '')
+      setCronExpressao(campaign.cron_expressao || '0 2 * * *')
       setAtivo(campaign.ativo)
     } else {
       setNome('')
@@ -90,6 +92,7 @@ export function CampaignFormModal({ open, onClose, campaign, initialCnaes }: Pro
       setDataInicio(today())
       setDataFim('')
       setNotifGroupId('')
+      setCronExpressao('0 2 * * *')
       setAtivo(true)
     }
   }, [campaign, open, initialCnaes])
@@ -121,7 +124,7 @@ export function CampaignFormModal({ open, onClose, campaign, initialCnaes }: Pro
       bitrix_pipeline_id: null,
       bitrix_stage_id: null,
       bitrix_notification_group_id: notifGroupId.trim() || null,
-      cron_expressao: '0 2 * * *',
+      cron_expressao: cronExpressao,
       data_inicio: dataInicio || null,
       data_fim: tipo === 'campanha' && dataFim ? dataFim : null,
       ativo,
@@ -219,6 +222,45 @@ export function CampaignFormModal({ open, onClose, campaign, initialCnaes }: Pro
                     min={dataInicio}
                   />
                 </div>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Agendamento */}
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                  Horário de Execução
+                </h3>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Defina quando a automação será executada automaticamente.
+                </p>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="cron">Horário diário</Label>
+                <Select value={cronExpressao} onValueChange={setCronExpressao}>
+                  <SelectTrigger id="cron">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0 1 * * *">01:00 — Madrugada (1h)</SelectItem>
+                    <SelectItem value="0 2 * * *">02:00 — Madrugada (2h) — padrão</SelectItem>
+                    <SelectItem value="0 3 * * *">03:00 — Madrugada (3h)</SelectItem>
+                    <SelectItem value="0 4 * * *">04:00 — Madrugada (4h)</SelectItem>
+                    <SelectItem value="0 6 * * *">06:00 — Manhã (6h)</SelectItem>
+                    <SelectItem value="0 8 * * *">08:00 — Início do expediente (8h)</SelectItem>
+                    <SelectItem value="0 12 * * *">12:00 — Meio-dia (12h)</SelectItem>
+                    <SelectItem value="0 18 * * *">18:00 — Fim do expediente (18h)</SelectItem>
+                    <SelectItem value="0 22 * * *">22:00 — Noite (22h)</SelectItem>
+                    <SelectItem value="0 */6 * * *">A cada 6 horas</SelectItem>
+                    <SelectItem value="0 */12 * * *">A cada 12 horas</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Horário de Brasília (UTC-3). A automação buscará os leads e os enviará ao Bitrix24
+                  automaticamente no horário selecionado.
+                </p>
               </div>
             </div>
 

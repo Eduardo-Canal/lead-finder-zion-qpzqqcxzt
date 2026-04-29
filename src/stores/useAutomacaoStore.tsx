@@ -59,10 +59,16 @@ export type LeadAutomacao = {
 
 export type CampanhaFormData = Omit<AutomacaoConfig, 'id' | 'criado_em' | 'atualizado_em'>
 
+export type SchedulerConfig = {
+  api_url: string
+  secret_key: string
+}
+
 type AutomacaoStoreType = {
   campanhas: AutomacaoConfig[]
   execucoes: ExecucaoAutomacao[]
   leads: LeadAutomacao[]
+  schedulerConfig: SchedulerConfig | null
   loadingCampanhas: boolean
   loadingExecucoes: boolean
   loadingLeads: boolean
@@ -73,6 +79,9 @@ type AutomacaoStoreType = {
   updateCampanha: (id: string, data: Partial<CampanhaFormData>) => Promise<boolean>
   deleteCampanha: (id: string) => Promise<boolean>
   toggleAtivo: (id: string, ativo: boolean) => Promise<void>
+  fetchSchedulerConfig: () => Promise<void>
+  saveSchedulerConfig: (config: SchedulerConfig) => Promise<boolean>
+  syncCronJobs: () => Promise<number | null>
 }
 
 const AutomacaoContext = createContext<AutomacaoStoreType | null>(null)
@@ -81,6 +90,7 @@ export function AutomacaoStoreProvider({ children }: { children: ReactNode }) {
   const [campanhas, setCampanhas] = useState<AutomacaoConfig[]>([])
   const [execucoes, setExecucoes] = useState<ExecucaoAutomacao[]>([])
   const [leads, setLeads] = useState<LeadAutomacao[]>([])
+  const [schedulerConfig, setSchedulerConfig] = useState<SchedulerConfig | null>(null)
   const [loadingCampanhas, setLoadingCampanhas] = useState(false)
   const [loadingExecucoes, setLoadingExecucoes] = useState(false)
   const [loadingLeads, setLoadingLeads] = useState(false)
@@ -204,12 +214,53 @@ export function AutomacaoStoreProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  const fetchSchedulerConfig = useCallback(async () => {
+    try {
+      const { data } = await supabase
+        .from('settings')
+        .select('value')
+        .eq('key', 'automation_scheduler_config')
+        .maybeSingle()
+      setSchedulerConfig((data?.value as SchedulerConfig) || null)
+    } catch {
+      // silencioso — config pode não existir ainda
+    }
+  }, [])
+
+  const saveSchedulerConfig = useCallback(async (config: SchedulerConfig): Promise<boolean> => {
+    try {
+      const { error } = await supabase
+        .from('settings')
+        .upsert({ key: 'automation_scheduler_config', value: config }, { onConflict: 'key' })
+      if (error) throw error
+      setSchedulerConfig(config)
+      toast.success('Configuração do agendador salva!')
+      return true
+    } catch (e: any) {
+      toast.error(`Erro ao salvar configuração: ${e.message}`)
+      return false
+    }
+  }, [])
+
+  const syncCronJobs = useCallback(async (): Promise<number | null> => {
+    try {
+      const { data, error } = await supabase.rpc('sync_all_automacao_cron_jobs')
+      if (error) throw error
+      toast.success(`Agendamentos sincronizados! ${data} campanha(s) processada(s).`)
+      return data as number
+    } catch (e: any) {
+      toast.error(`Erro ao sincronizar: ${e.message}`)
+      return null
+    }
+  }, [])
+
   return (
     <AutomacaoContext.Provider
       value={{
         campanhas,
         execucoes,
         leads,
+        schedulerConfig,
         loadingCampanhas,
         loadingExecucoes,
         loadingLeads,
@@ -220,6 +271,9 @@ export function AutomacaoStoreProvider({ children }: { children: ReactNode }) {
         updateCampanha,
         deleteCampanha,
         toggleAtivo,
+        fetchSchedulerConfig,
+        saveSchedulerConfig,
+        syncCronJobs,
       }}
     >
       {children}

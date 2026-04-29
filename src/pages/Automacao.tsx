@@ -49,6 +49,10 @@ import {
   XCircle,
   Clock,
   AlertCircle,
+  Settings2,
+  RotateCw,
+  Eye,
+  EyeOff,
 } from 'lucide-react'
 
 // ─── helpers ────────────────────────────────────────────────────────────────
@@ -648,6 +652,127 @@ function HistoricoTab() {
   )
 }
 
+// ─── scheduler panel ─────────────────────────────────────────────────────────
+
+function AgendadorPanel() {
+  const { schedulerConfig, fetchSchedulerConfig, saveSchedulerConfig, syncCronJobs, campanhas } =
+    useAutomacaoStore()
+  const [apiUrl, setApiUrl] = useState('')
+  const [secretKey, setSecretKey] = useState('')
+  const [showKey, setShowKey] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [syncing, setSyncing] = useState(false)
+
+  useEffect(() => {
+    fetchSchedulerConfig()
+  }, [fetchSchedulerConfig])
+
+  useEffect(() => {
+    if (schedulerConfig) {
+      setApiUrl(schedulerConfig.api_url || '')
+      setSecretKey(schedulerConfig.secret_key || '')
+    }
+  }, [schedulerConfig])
+
+  const handleSave = async () => {
+    if (!apiUrl.trim() || !secretKey.trim()) return
+    setSaving(true)
+    await saveSchedulerConfig({ api_url: apiUrl.trim(), secret_key: secretKey.trim() })
+    setSaving(false)
+  }
+
+  const handleSync = async () => {
+    setSyncing(true)
+    await syncCronJobs()
+    setSyncing(false)
+  }
+
+  const ativasCount = campanhas.filter((c) => c.ativo).length
+
+  return (
+    <div className="bg-card rounded-lg border shadow-sm p-5 space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Settings2 className="w-4 h-4 text-primary" />
+          <h3 className="text-sm font-semibold text-foreground">Configurações do Agendador</h3>
+        </div>
+        <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+          {ativasCount} campanha{ativasCount !== 1 ? 's' : ''} ativa{ativasCount !== 1 ? 's' : ''}
+        </span>
+      </div>
+
+      <p className="text-xs text-muted-foreground leading-relaxed">
+        O agendador usa <strong>pg_cron</strong> para disparar as campanhas automaticamente no
+        horário configurado em cada uma, sem precisar de serviços externos. A URL abaixo deve ser
+        acessível a partir do container do PostgreSQL.
+      </p>
+
+      <div className="grid grid-cols-1 gap-3">
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-muted-foreground">URL da API</label>
+          <Input
+            value={apiUrl}
+            onChange={(e) => setApiUrl(e.target.value)}
+            placeholder="http://host.docker.internal:54321/functions/v1/run-automation-search"
+            className="font-mono text-xs"
+          />
+          <p className="text-[11px] text-muted-foreground">
+            <strong>Local (Windows/Mac):</strong> http://host.docker.internal:54321/functions/v1/run-automation-search
+            <br />
+            <strong>Produção (Oracle Cloud):</strong> https://seu-dominio.com/functions/v1/run-automation-search
+          </p>
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-muted-foreground">Chave secreta (AUTOMATION_SECRET_KEY)</label>
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Input
+                type={showKey ? 'text' : 'password'}
+                value={secretKey}
+                onChange={(e) => setSecretKey(e.target.value)}
+                placeholder="zion-automacao-local-2026"
+                className="font-mono text-xs pr-9"
+              />
+              <button
+                type="button"
+                onClick={() => setShowKey((v) => !v)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                {showKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+              </button>
+            </div>
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            Deve ser igual ao valor de <code className="bg-muted px-1 rounded">AUTOMATION_SECRET_KEY</code> nas variáveis de ambiente da edge function.
+          </p>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2 pt-1">
+        <Button size="sm" onClick={handleSave} disabled={saving || !apiUrl || !secretKey}>
+          {saving && <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />}
+          Salvar configuração
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={handleSync}
+          disabled={syncing}
+          title="Recria todos os jobs no pg_cron com base nas campanhas ativas"
+        >
+          {syncing ? (
+            <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+          ) : (
+            <RotateCw className="w-3.5 h-3.5 mr-1.5" />
+          )}
+          Sincronizar jobs
+        </Button>
+      </div>
+    </div>
+  )
+}
+
 // ─── main page ────────────────────────────────────────────────────────────────
 
 export default function Automacao() {
@@ -735,6 +860,9 @@ export default function Automacao() {
           color="purple-500"
         />
       </div>
+
+      {/* Scheduler config */}
+      <AgendadorPanel />
 
       {/* Tabs */}
       <Tabs defaultValue="campanhas" className="w-full">
