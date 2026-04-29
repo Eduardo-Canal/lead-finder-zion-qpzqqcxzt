@@ -13,6 +13,7 @@ import {
   UserCircle,
   BookOpen,
   BrainCircuit,
+  Zap,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -138,6 +139,18 @@ export function AppSidebar() {
                   <Link to="/prospeccao">
                     <Target />
                     <span>Painel de Prospecção</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={location.pathname === '/automacao'}
+                  tooltip="Automação"
+                >
+                  <Link to="/automacao">
+                    <Zap />
+                    <span>Automação</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

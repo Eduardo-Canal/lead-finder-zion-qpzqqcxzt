@@ -9,6 +9,7 @@ import useAuthStore, { AuthProvider } from '@/stores/useAuthStore'
 import { LeadStoreProvider } from '@/stores/useLeadStore'
 import { UserManagementStoreProvider } from '@/stores/useUserManagementStore'
 import { NotificationStoreProvider } from '@/stores/useNotificationStore'
+import { AutomacaoStoreProvider } from '@/stores/useAutomacaoStore'
 import { ActivityMonitor } from '@/hooks/use-activity-logger'
 
 // Helper for auto-reloading when a chunk fails to load (e.g. after a new deploy)
@@ -57,6 +58,7 @@ const ConfiguracoesIA = lazyWithRetry(() => import('@/pages/ConfiguracoesIA'))
 const Documentation = lazyWithRetry(() => import('@/pages/Documentation'))
 const ContaAzulCallback = lazyWithRetry(() => import('@/pages/ContaAzulCallback'))
 const TechnicalSpecs = lazyWithRetry(() => import('@/pages/TechnicalSpecs'))
+const Automacao = lazyWithRetry(() => import('@/pages/Automacao'))
 
 const GlobalLoading = () => (
   <div className="flex min-h-screen w-full items-center justify-center bg-background/50 backdrop-blur-sm">
@@ -97,6 +99,7 @@ const App = () => (
     <NotificationStoreProvider>
       <LeadStoreProvider>
         <UserManagementStoreProvider>
+          <AutomacaoStoreProvider>
           <BrowserRouter future={{ v7_startTransition: false, v7_relativeSplatPath: false }}>
             <ActivityMonitor />
             <TooltipProvider>
@@ -125,6 +128,7 @@ const App = () => (
                     <Route path="/curva-abc" element={<CurvaAbc />} />
                     <Route path="/cnae-details" element={<CnaeDetails />} />
                     <Route path="/analise-carteira" element={<AnaliseCarteira />} />
+                    <Route path="/automacao" element={<Automacao />} />
                     <Route path="/prospeccao" element={<Prospeccao />} />
                     <Route path="/meus-leads" element={<MyLeads />} />
                     <Route path="/meu-historico" element={<SearchHistory />} />
@@ -157,6 +161,7 @@ const App = () => (
               </Suspense>
             </TooltipProvider>
           </BrowserRouter>
+          </AutomacaoStoreProvider>
         </UserManagementStoreProvider>
       </LeadStoreProvider>
     </NotificationStoreProvider>

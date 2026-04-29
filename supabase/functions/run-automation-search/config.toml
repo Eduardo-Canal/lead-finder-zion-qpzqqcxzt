@@ -1,0 +1,2 @@
+[functions.run-automation-search]
+verify_jwt = false

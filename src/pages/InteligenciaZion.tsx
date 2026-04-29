@@ -11,6 +11,7 @@ import {
   Users,
   PieChart as PieChartIcon,
   Eye,
+  Zap,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts'
@@ -148,10 +149,16 @@ export default function InteligenciaZion() {
             Descubra perfis ideais e explore a composição da sua carteira.
           </p>
         </div>
-        <Button onClick={handleSync} disabled={syncing}>
-          <RefreshCw className={syncing ? 'animate-spin mr-2' : 'mr-2'} />
-          Sincronizar CRM
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => navigate('/automacao')}>
+            <Zap className="w-4 h-4 mr-2" />
+            Automação
+          </Button>
+          <Button onClick={handleSync} disabled={syncing}>
+            <RefreshCw className={syncing ? 'animate-spin mr-2' : 'mr-2'} />
+            Sincronizar CRM
+          </Button>
+        </div>
       </div>
 
       <div className="w-full space-y-6 mt-4">
@@ -303,6 +310,17 @@ export default function InteligenciaZion() {
                                   className="hover:text-primary hover:bg-primary/10 h-8 w-8 text-muted-foreground group-hover:text-primary"
                                 >
                                   <Hexagon className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() =>
+                                    navigate(`/automacao?cnae=${encodeURIComponent(group.cnae)}`)
+                                  }
+                                  title="Criar automação para este CNAE"
+                                  className="hover:text-amber-500 hover:bg-amber-50 h-8 w-8 text-muted-foreground"
+                                >
+                                  <Zap className="w-4 h-4" />
                                 </Button>
                               </div>
                             </td>
