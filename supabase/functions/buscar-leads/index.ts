@@ -363,15 +363,19 @@ Deno.serve(async (req: Request) => {
         ufRaw = ufRaw.sigla || ufRaw.nome || ''
       }
 
-      // Handle Telefone (could be array, object, string)
+      // Handle Telefone — API v5 usa contato_telefonico (array com {ddd, numero, tipo})
       let telefoneFormatado = ''
-      const rawTel = empresa.telefone || empresa.telefones || empresa.contato_telefone
+      const rawTel = empresa.contato_telefonico || empresa.telefone || empresa.telefones
       if (Array.isArray(rawTel)) {
         telefoneFormatado = rawTel
           .map((t: any) => {
             if (typeof t === 'string') return t
             if (t && typeof t === 'object') {
-              if (t.ddd && t.numero) return `(${t.ddd}) ${t.numero}`
+              if (t.ddd && t.numero) {
+                const num = `(${t.ddd}) ${t.numero}`
+                return t.tipo === 'celular' ? `${num} [cel]` : num
+              }
+              if (t.completo) return t.completo
               if (t.telefone) return String(t.telefone)
             }
             return ''

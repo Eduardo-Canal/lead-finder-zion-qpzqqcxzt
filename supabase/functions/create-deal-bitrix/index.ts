@@ -3,6 +3,18 @@ import { corsHeaders } from '../_shared/cors.ts'
 import { createClient } from 'npm:@supabase/supabase-js@2.39.3'
 import { getBitrixWebhookUrl } from '../_shared/get-bitrix-url.ts'
 
+// Detecta celular pelo dígito após o DDD (padrão brasileiro)
+// Ex: (27) 95244949 → digits=2795244949 → digits[2]='9' → celular
+function isCelular(phone: string): boolean {
+  const digits = phone.replace(/\D/g, '')
+  if (digits.length >= 10) return digits[2] === '9'
+  return digits[0] === '9'
+}
+
+function phoneType(phone: string): string {
+  return isCelular(phone) ? 'MOBILE' : 'WORK'
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
@@ -106,16 +118,19 @@ Deno.serve(async (req: Request) => {
     }
 
     // Montar socios do lead
+    const sociosArray: any[] = []
     let sociosText = ''
     if (leadData.socios) {
       try {
         const socios = typeof leadData.socios === 'string' ? JSON.parse(leadData.socios) : leadData.socios
         if (Array.isArray(socios) && socios.length > 0) {
+          socios.forEach((s: any) => sociosArray.push(s))
           sociosText = socios.map((s: any) => {
             const nome = s.nome || s.name || 'N/A'
             const qual = s.qualificacao || s.qual || ''
+            const faixa = s.faixa_etaria || ''
             const entrada = s.data_entrada || ''
-            return `${nome}${qual ? ' (' + qual + ')' : ''}${entrada ? ' - Entrada: ' + entrada : ''}`
+            return `${nome}${qual ? ' (' + qual + ')' : ''}${faixa ? ' — ' + faixa : ''}${entrada ? ' — Entrada: ' + entrada : ''}`
           }).join('\n- ')
         }
       } catch { /* ignore */ }
@@ -262,35 +277,70 @@ ${approach.abordagem_gerada || 'N/A'}
 
         const cnpjFormatado = cleanCnpj ? formatCnpj(cleanCnpj) : ''
 
+        // Montar todos os telefones (celular → MOBILE, fixo → WORK)
+        const phonesForBitrix: any[] = []
+        if (Array.isArray(leadData.telefones_detalhados) && leadData.telefones_detalhados.length > 0) {
+          for (const t of leadData.telefones_detalhados) {
+            phonesForBitrix.push({ VALUE: t.numero, VALUE_TYPE: phoneType(t.numero) })
+          }
+        } else if (leadData.telefone) {
+          for (const num of leadData.telefone.split(' / ')) {
+            const n = num.replace(' [cel]', '').trim()
+            if (n) phonesForBitrix.push({ VALUE: n, VALUE_TYPE: phoneType(n) })
+          }
+        }
+
+        // Montar todos os emails
+        const emailsForBitrix: any[] = []
+        if (Array.isArray(leadData.emails_detalhados) && leadData.emails_detalhados.length > 0) {
+          for (const e of leadData.emails_detalhados) {
+            emailsForBitrix.push({ VALUE: e.email, VALUE_TYPE: 'WORK' })
+          }
+        } else if (leadData.email) {
+          for (const em of leadData.email.split(' / ')) {
+            if (em.trim()) emailsForBitrix.push({ VALUE: em.trim(), VALUE_TYPE: 'WORK' })
+          }
+        }
+
         const companyFields: any = {
           TITLE: razaoSocial,
           ADDRESS_CITY: leadData.municipio || '',
           ADDRESS_PROVINCE: leadData.uf || '',
         }
 
-        // CNPJ — campo correto: UF_CRM_6241B0B267ED3 (CNPJ da empresa API, formato com mascara)
+        if (leadData.cep) companyFields.ADDRESS_POSTAL_CODE = leadData.cep
+
+        // CNPJ
         if (cnpjFormatado) {
           companyFields.UF_CRM_6241B0B267ED3 = cnpjFormatado
-          companyFields.UF_CRM_1742992784 = cnpjFormatado // Tambem preenche o outro campo CNPJ
+          companyFields.UF_CRM_1742992784 = cnpjFormatado
         }
 
-        // Contatos
-        if (leadData.email) companyFields.EMAIL = [{ VALUE: leadData.email, VALUE_TYPE: 'WORK' }]
-        if (leadData.telefone) companyFields.PHONE = [{ VALUE: leadData.telefone, VALUE_TYPE: 'WORK' }]
+        if (phonesForBitrix.length > 0) companyFields.PHONE = phonesForBitrix
+        if (emailsForBitrix.length > 0) companyFields.EMAIL = emailsForBitrix
 
-        // CNAE / Atividade Principal — campo usado pela Inteligencia Zion
+        // CNAE
         const cnae = leadData.cnae_principal || leadData.cnae_fiscal_principal || ''
         if (cnae) companyFields.UF_CRM_1771423651 = cnae
 
         // Nome Fantasia
         if (leadData.nome_fantasia) companyFields.UF_CRM_1742990673 = leadData.nome_fantasia
 
-        // Situacao cadastral
+        // Situação cadastral
         const situacao = leadData.situacao || leadData.situacao_cadastral || ''
         if (situacao) {
           companyFields.UF_CRM_1742990227 = situacao
           companyFields.UF_CRM_1742990271 = situacao
         }
+
+        // Porte
+        if (leadData.porte) companyFields.UF_CRM_1742990347 = leadData.porte
+
+        // Capital Social
+        if (leadData.capital_social) companyFields.REVENUE = leadData.capital_social
+
+        // Data de Abertura
+        if (leadData.data_abertura) companyFields.UF_CRM_1742990450 = leadData.data_abertura
 
         console.log('Creating company with fields:', JSON.stringify(companyFields).slice(0, 500))
         const createRes = await callBitrix(`crm.company.add.json`, 'POST', { fields: companyFields })
@@ -308,6 +358,62 @@ ${approach.abordagem_gerada || 'N/A'}
           .from('leads_salvos')
           .update({ bitrix_id: finalCompanyId.toString() })
           .eq('id', lead_id)
+      }
+    }
+
+    // ── Criar contatos para os sócios (Pessoa Física) e vincular à empresa ──
+    const contactIds: number[] = []
+    if (finalCompanyId && sociosArray.length > 0) {
+      for (const socio of sociosArray) {
+        if (socio.tipo && socio.tipo !== 'Pessoa Física') continue
+        const nomeCompleto: string = socio.nome || ''
+        if (!nomeCompleto) continue
+
+        const partes = nomeCompleto.trim().split(/\s+/)
+        const firstName = partes[0] || nomeCompleto
+        const lastName = partes.slice(1).join(' ') || ''
+
+        const contactFields: any = {
+          NAME: firstName,
+          LAST_NAME: lastName,
+          POST: socio.qualificacao || 'Sócio',
+          COMPANY_ID: finalCompanyId,
+          SOURCE_ID: 'B24_APPLICATION',
+          OPENED: 'Y',
+        }
+
+        // Sócios não têm telefone/email individual da API — usa os da empresa como fallback
+        if (leadData.telefones_detalhados?.[0]) {
+          const t = leadData.telefones_detalhados[0]
+          contactFields.PHONE = [{ VALUE: t.numero, VALUE_TYPE: phoneType(t.numero) }]
+        } else if (leadData.telefone) {
+          const n = leadData.telefone.split(' / ')[0].replace(' [cel]', '').trim()
+          if (n) contactFields.PHONE = [{ VALUE: n, VALUE_TYPE: phoneType(n) }]
+        }
+
+        if (leadData.emails_detalhados?.[0]) {
+          contactFields.EMAIL = [{ VALUE: leadData.emails_detalhados[0].email, VALUE_TYPE: 'WORK' }]
+        } else if (leadData.email) {
+          contactFields.EMAIL = [{ VALUE: leadData.email.split(' / ')[0].trim(), VALUE_TYPE: 'WORK' }]
+        }
+
+        // Campo customizado: faixa etária
+        if (socio.faixa_etaria) contactFields.UF_CRM_CONTACT_FAIXA_ETARIA = socio.faixa_etaria
+
+        try {
+          const contactRes = await callBitrix('crm.contact.add.json', 'POST', { fields: contactFields })
+          const contactId = contactRes?.result ? parseInt(contactRes.result) : null
+          if (contactId) {
+            contactIds.push(contactId)
+            // Vincular contato à empresa
+            await callBitrix('crm.company.contact.add.json', 'POST', {
+              id: finalCompanyId,
+              fields: { CONTACT_ID: contactId, IS_PRIMARY: contactIds.length === 1 ? 'Y' : 'N' },
+            })
+          }
+        } catch (contactErr: any) {
+          console.warn(`Falha ao criar contato para sócio ${nomeCompleto}:`, contactErr.message)
+        }
       }
     }
 
@@ -379,6 +485,22 @@ ${approach.abordagem_gerada || 'N/A'}
       dealRes = await callBitrix(bitrixEndpoint, 'POST', entityBody)
 
       const returnedDealId = dealRes?.result ? parseInt(dealRes.result) : null
+
+      // Vincular contatos dos sócios ao Deal/Lead
+      if (returnedDealId && contactIds.length > 0) {
+        const linkEndpoint = isLeadEntity ? 'crm.lead.contact.add.json' : 'crm.deal.contact.add.json'
+        const entityKey = isLeadEntity ? 'id' : 'id'
+        for (const contactId of contactIds) {
+          try {
+            await callBitrix(linkEndpoint, 'POST', {
+              [entityKey]: returnedDealId,
+              fields: { CONTACT_ID: contactId },
+            })
+          } catch (linkErr: any) {
+            console.warn(`Falha ao vincular contato ${contactId} ao deal ${returnedDealId}:`, linkErr.message)
+          }
+        }
+      }
 
       // Adicionar abordagem como COMENTÁRIO no Lead/Deal criado
       if (returnedDealId && fullContext) {

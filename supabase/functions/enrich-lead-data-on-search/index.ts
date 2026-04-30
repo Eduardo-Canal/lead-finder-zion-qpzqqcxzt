@@ -77,18 +77,26 @@ Deno.serve(async (req: Request) => {
         }
 
         const rawData = await res.json()
+        // API v5 usa quadro_societario (não socios), sem email/telefone por sócio
+        const rawSocios = rawData.quadro_societario || rawData.socios || []
+        const contatosPrincipais = rawSocios
+          .filter((s: any) => s.identificador_socio === 'Pessoa Física' || !s.identificador_socio)
+          .map((s: any) => ({
+            nome: s.nome || s.razao_social || '',
+            cargo:
+              (typeof s.qualificacao_socio === 'string'
+                ? s.qualificacao_socio
+                : s.qualificacao_socio?.descricao) || 'Sócio',
+            faixa_etaria: s.faixa_etaria_descricao || s.faixa_etaria || '',
+            email: null,
+            telefone: null,
+          }))
         return {
           cnpj,
           faturamento_anual: rawData.faturamento_estimado || rawData.capital_social || null,
           numero_funcionarios:
             rawData.quantidade_funcionarios || rawData.faixa_funcionarios || null,
-          contatos_principais:
-            rawData.socios?.map((s: any) => ({
-              nome: s.nome,
-              email: s.email || rawData.email || null,
-              telefone: s.telefone || rawData.telefone || null,
-              cargo: s.qualificacao_socio?.descricao || 'Sócio',
-            })) || [],
+          contatos_principais: contatosPrincipais,
           score_credito: rawData.score_credito || rawData.score || null,
           dados_incompletos: false,
         }

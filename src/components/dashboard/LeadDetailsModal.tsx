@@ -611,19 +611,39 @@ export function LeadDetailsModal({ lead, onClose, initialTab, forceIsSaved }: Le
                   <h4 className="font-bold flex items-center gap-2 text-slate-800 border-b border-slate-100 pb-3">
                     <Phone className="w-5 h-5 text-primary" /> Contatos
                   </h4>
-                  <div className="space-y-4">
-                    <div className="flex items-start gap-3 text-sm p-3 rounded-lg bg-slate-50 border border-slate-100">
-                      <Mail className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-                      <span className="break-all font-medium text-slate-700">
-                        {displayData.email || 'Não informado'}
-                      </span>
-                    </div>
-                    <div className="flex items-start gap-3 text-sm p-3 rounded-lg bg-slate-50 border border-slate-100">
-                      <Phone className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-                      <span className="font-medium text-slate-700 font-mono">
-                        {displayData.telefone || 'Não informado'}
-                      </span>
-                    </div>
+                  <div className="space-y-3">
+                    {/* Emails */}
+                    {displayData.emails_detalhados && displayData.emails_detalhados.length > 0 ? (
+                      displayData.emails_detalhados.map((e: any, i: number) => (
+                        <div key={i} className="flex items-start gap-3 text-sm p-3 rounded-lg bg-slate-50 border border-slate-100">
+                          <Mail className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                          <span className="break-all font-medium text-slate-700">{e.email}</span>
+                          {!e.valido && <span className="text-xs text-red-400 ml-auto font-semibold">inválido</span>}
+                        </div>
+                      ))
+                    ) : (
+                      <div className="flex items-start gap-3 text-sm p-3 rounded-lg bg-slate-50 border border-slate-100">
+                        <Mail className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                        <span className="break-all font-medium text-slate-700">{displayData.email || 'Não informado'}</span>
+                      </div>
+                    )}
+                    {/* Telefones */}
+                    {displayData.telefones_detalhados && displayData.telefones_detalhados.length > 0 ? (
+                      displayData.telefones_detalhados.map((t: any, i: number) => (
+                        <div key={i} className="flex items-center gap-3 text-sm p-3 rounded-lg bg-slate-50 border border-slate-100">
+                          <Phone className="w-4 h-4 text-primary shrink-0" />
+                          <span className="font-medium text-slate-700 font-mono">{t.numero}</span>
+                          <span className={`ml-auto text-xs font-semibold px-2 py-0.5 rounded-full ${t.tipo === 'celular' ? 'bg-green-100 text-green-700' : 'bg-slate-200 text-slate-600'}`}>
+                            {t.tipo === 'celular' ? '📱 WhatsApp' : '☎ Fixo'}
+                          </span>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="flex items-start gap-3 text-sm p-3 rounded-lg bg-slate-50 border border-slate-100">
+                        <Phone className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                        <span className="font-medium text-slate-700 font-mono">{displayData.telefone || 'Não informado'}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -659,16 +679,38 @@ export function LeadDetailsModal({ lead, onClose, initialTab, forceIsSaved }: Le
                           <p className="text-sm font-semibold text-slate-500 uppercase tracking-wider mt-1">
                             {socio.qualificacao ? socio.qualificacao : 'Sócio'}
                           </p>
+                          {socio.faixa_etaria && (
+                            <p className="text-xs text-indigo-600 font-medium mt-1">
+                              Faixa etária: {socio.faixa_etaria}
+                            </p>
+                          )}
+                          {socio.email && (
+                            <p className="text-xs text-slate-500 flex items-center gap-1 mt-1">
+                              <Mail className="w-3 h-3" /> {socio.email}
+                            </p>
+                          )}
+                          {socio.telefone && (
+                            <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
+                              <Phone className="w-3 h-3" /> {socio.telefone}
+                            </p>
+                          )}
                         </div>
                       </div>
-                      {socio.data_entrada && (
-                        <Badge
-                          variant="secondary"
-                          className="w-fit font-medium bg-slate-100 text-slate-600"
-                        >
-                          Entrada: {socio.data_entrada}
-                        </Badge>
-                      )}
+                      <div className="flex flex-col items-end gap-2">
+                        {socio.tipo && (
+                          <Badge variant="outline" className="text-xs font-medium">
+                            {socio.tipo}
+                          </Badge>
+                        )}
+                        {socio.data_entrada && (
+                          <Badge
+                            variant="secondary"
+                            className="w-fit font-medium bg-slate-100 text-slate-600"
+                          >
+                            Entrada: {socio.data_entrada}
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>

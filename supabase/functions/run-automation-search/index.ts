@@ -3,6 +3,16 @@ import { createClient } from 'npm:@supabase/supabase-js@2.39.3'
 import { corsHeaders } from '../_shared/cors.ts'
 import { getBitrixWebhookUrl } from '../_shared/get-bitrix-url.ts'
 
+// ─── Phone type helpers ───────────────────────────────────────────────────────
+function isCelular(phone: string): boolean {
+  const digits = phone.replace(/\D/g, '')
+  if (digits.length >= 10) return digits[2] === '9'
+  return digits[0] === '9'
+}
+function phoneType(phone: string): string {
+  return isCelular(phone) ? 'MOBILE' : 'WORK'
+}
+
 // ─── Auth ────────────────────────────────────────────────────────────────────
 function isAuthorized(req: Request): boolean {
   const expected = Deno.env.get('AUTOMATION_SECRET_KEY') || ''
@@ -58,35 +68,42 @@ function mapEmpresa(empresa: any) {
   let uf = empresa.uf || endereco.uf || ''
   if (typeof uf === 'object') uf = uf?.sigla || ''
 
-  let telefone = ''
-  const rawTel = empresa.telefone || empresa.telefones
-  if (Array.isArray(rawTel)) {
-    telefone = rawTel
-      .map((t: any) => {
-        if (typeof t === 'string') return t
-        if (t?.ddd && t?.numero) return `(${t.ddd}) ${t.numero}`
-        return ''
-      })
-      .filter(Boolean)
-      .join(' / ')
-  } else if (rawTel?.ddd && rawTel?.numero) {
-    telefone = `(${rawTel.ddd}) ${rawTel.numero}`
-  } else if (typeof rawTel === 'string') {
-    telefone = rawTel
+  // Telefones — API v5 usa contato_telefonico: [{ddd, numero, tipo}]
+  const telefonesDetalhados: Array<{ numero: string; tipo: string }> = []
+  const rawTelContato = empresa.contato_telefonico || empresa.telefone || empresa.telefones
+  if (Array.isArray(rawTelContato)) {
+    for (const t of rawTelContato) {
+      if (typeof t === 'string') {
+        telefonesDetalhados.push({ numero: t, tipo: 'fixo' })
+      } else if (t?.ddd && t?.numero) {
+        telefonesDetalhados.push({ numero: `(${t.ddd}) ${t.numero}`, tipo: t.tipo || 'fixo' })
+      } else if (t?.completo) {
+        telefonesDetalhados.push({ numero: t.completo, tipo: t.tipo || 'fixo' })
+      }
+    }
+  } else if (rawTelContato?.ddd && rawTelContato?.numero) {
+    telefonesDetalhados.push({ numero: `(${rawTelContato.ddd}) ${rawTelContato.numero}`, tipo: 'fixo' })
+  } else if (typeof rawTelContato === 'string' && rawTelContato) {
+    telefonesDetalhados.push({ numero: rawTelContato, tipo: 'fixo' })
   }
+  const telefone = telefonesDetalhados
+    .map((t) => (t.tipo === 'celular' ? `${t.numero} [cel]` : t.numero))
+    .join(' / ')
 
-  let email = ''
-  const rawEmail = empresa.email || empresa.emails
+  // Emails — API v5 usa contato_email: [{email, valido}]
+  const emailsDetalhados: Array<{ email: string; valido: boolean }> = []
+  const rawEmail = empresa.contato_email || empresa.email || empresa.emails
   if (Array.isArray(rawEmail)) {
-    email = rawEmail
-      .map((e: any) => (typeof e === 'string' ? e : e?.email || ''))
-      .filter(Boolean)
-      .join(' / ')
-  } else if (typeof rawEmail === 'string') {
-    email = rawEmail
+    for (const e of rawEmail) {
+      if (typeof e === 'string' && e) emailsDetalhados.push({ email: e, valido: true })
+      else if (e?.email) emailsDetalhados.push({ email: e.email, valido: e.valido !== false })
+    }
+  } else if (typeof rawEmail === 'string' && rawEmail) {
+    emailsDetalhados.push({ email: rawEmail, valido: true })
   }
+  const email = emailsDetalhados.map((e) => e.email).join(' / ')
 
-  // cnae_principal: API v5 pode retornar objeto {"codigo":"...","descricao":"..."}
+  // CNAE
   const rawCnae = empresa.cnae_fiscal_principal || empresa.atividade_principal
   let cnaePrincipal = ''
   if (rawCnae) {
@@ -99,26 +116,51 @@ function mapEmpresa(empresa: any) {
     }
   }
 
-  // porte: API v5 pode retornar objeto {"codigo":"01","descricao":"Micro Empresa"}
+  // Porte
   const rawPorte = empresa.porte_empresa || empresa.porte
   let porte = ''
   if (rawPorte) {
-    if (typeof rawPorte === 'string') {
-      porte = rawPorte
-    } else if (typeof rawPorte === 'object') {
-      porte = rawPorte.descricao || rawPorte.description || rawPorte.codigo || ''
-    }
+    if (typeof rawPorte === 'string') porte = rawPorte
+    else if (typeof rawPorte === 'object') porte = rawPorte.descricao || rawPorte.description || rawPorte.codigo || ''
   }
+
+  // Situação cadastral
+  const rawSit = empresa.situacao_cadastral
+  const situacaoCadastral = typeof rawSit === 'object' && rawSit !== null
+    ? rawSit.situacao_atual || ''
+    : typeof rawSit === 'string' ? rawSit : ''
+
+  // Sócios — API v5 usa quadro_societario
+  const rawSocios = empresa.quadro_societario || empresa.socios || []
+  const socios = rawSocios.map((s: any) => ({
+    nome: s.nome || s.razao_social || '',
+    qualificacao: typeof s.qualificacao_socio === 'string'
+      ? s.qualificacao_socio
+      : s.qualificacao_socio?.descricao || s.qualificacao || '',
+    data_entrada: s.data_entrada_sociedade || s.data_entrada || '',
+    faixa_etaria: s.faixa_etaria_descricao || s.faixa_etaria || '',
+    tipo: s.identificador_socio || '',
+    email: null,
+    telefone: null,
+  }))
 
   return {
     cnpj: empresa.cnpj || '',
     razao_social: empresa.razao_social || empresa.nome_fantasia || '',
+    nome_fantasia: empresa.nome_fantasia || '',
     cnae_principal: cnaePrincipal,
     municipio: String(municipio),
     uf: String(uf),
     porte,
+    situacao_cadastral: situacaoCadastral,
+    capital_social: empresa.capital_social ? Number(empresa.capital_social) : 0,
+    data_abertura: empresa.data_abertura || empresa.data_inicio_atividade || '',
+    cep: endereco.cep || empresa.cep || '',
     email,
     telefone,
+    telefones_detalhados: telefonesDetalhados,
+    emails_detalhados: emailsDetalhados,
+    socios,
     dados_completos: empresa,
   }
 }
@@ -239,29 +281,121 @@ async function findOrCreateBitrixCompany(
 
   // Não encontrou — criar empresa
   const cnpjFormatado = cleanCnpj ? formatCnpj(cleanCnpj) : ''
+
+  const phonesForBitrix: any[] = []
+  if (lead.telefones_detalhados && lead.telefones_detalhados.length > 0) {
+    for (const t of lead.telefones_detalhados) {
+      phonesForBitrix.push({ VALUE: t.numero, VALUE_TYPE: phoneType(t.numero) })
+    }
+  } else if (lead.telefone) {
+    for (const num of lead.telefone.split(' / ')) {
+      const n = num.replace(' [cel]', '').trim()
+      if (n) phonesForBitrix.push({ VALUE: n, VALUE_TYPE: phoneType(n) })
+    }
+  }
+
+  const emailsForBitrix: any[] = []
+  if (lead.emails_detalhados && lead.emails_detalhados.length > 0) {
+    for (const e of lead.emails_detalhados) {
+      emailsForBitrix.push({ VALUE: e.email, VALUE_TYPE: 'WORK' })
+    }
+  } else if (lead.email) {
+    for (const em of lead.email.split(' / ')) {
+      if (em.trim()) emailsForBitrix.push({ VALUE: em.trim(), VALUE_TYPE: 'WORK' })
+    }
+  }
+
   const companyFields: any = {
     TITLE: lead.razao_social || 'Empresa Sem Nome',
     ADDRESS_CITY: lead.municipio || '',
     ADDRESS_PROVINCE: lead.uf || '',
   }
 
+  if (lead.cep) companyFields.ADDRESS_POSTAL_CODE = lead.cep
   if (cnpjFormatado) {
     companyFields.UF_CRM_6241B0B267ED3 = cnpjFormatado
     companyFields.UF_CRM_1742992784 = cnpjFormatado
   }
-
-  if (lead.email) companyFields.EMAIL = [{ VALUE: lead.email, VALUE_TYPE: 'WORK' }]
-  if (lead.telefone) companyFields.PHONE = [{ VALUE: lead.telefone, VALUE_TYPE: 'WORK' }]
+  if (phonesForBitrix.length > 0) companyFields.PHONE = phonesForBitrix
+  if (emailsForBitrix.length > 0) companyFields.EMAIL = emailsForBitrix
   if (lead.cnae_principal) companyFields.UF_CRM_1771423651 = lead.cnae_principal
+  if (lead.nome_fantasia) companyFields.UF_CRM_1742990673 = lead.nome_fantasia
+  if (lead.situacao_cadastral) {
+    companyFields.UF_CRM_1742990227 = lead.situacao_cadastral
+    companyFields.UF_CRM_1742990271 = lead.situacao_cadastral
+  }
+  if (lead.porte) companyFields.UF_CRM_1742990347 = lead.porte
+  if (lead.capital_social) companyFields.REVENUE = lead.capital_social
+  if (lead.data_abertura) companyFields.UF_CRM_1742990450 = lead.data_abertura
 
   const createRes = await callBitrix('crm.company.add.json', 'POST', { fields: companyFields })
   return createRes?.result ? parseInt(createRes.result) : null
+}
+
+// ─── Criar contatos dos sócios e vincular à empresa ──────────────────────────
+async function createSocioContacts(
+  lead: ReturnType<typeof mapEmpresa>,
+  companyId: number,
+  callBitrix: (endpoint: string, method?: string, body?: any) => Promise<any>,
+): Promise<number[]> {
+  const contactIds: number[] = []
+  for (const socio of lead.socios || []) {
+    if (socio.tipo && socio.tipo !== 'Pessoa Física') continue
+    const nomeCompleto: string = socio.nome || ''
+    if (!nomeCompleto) continue
+
+    const partes = nomeCompleto.trim().split(/\s+/)
+    const firstName = partes[0] || nomeCompleto
+    const lastName = partes.slice(1).join(' ') || ''
+
+    const contactFields: any = {
+      NAME: firstName,
+      LAST_NAME: lastName,
+      POST: socio.qualificacao || 'Sócio',
+      COMPANY_ID: companyId,
+      SOURCE_ID: 'B24_APPLICATION',
+      OPENED: 'Y',
+    }
+
+    // Sem contato individual da API — usa o da empresa como referência
+    if (lead.telefones_detalhados?.[0]) {
+      const t = lead.telefones_detalhados[0]
+      contactFields.PHONE = [{ VALUE: t.numero, VALUE_TYPE: phoneType(t.numero) }]
+    } else if (lead.telefone) {
+      const n = lead.telefone.split(' / ')[0].replace(' [cel]', '').trim()
+      contactFields.PHONE = [{ VALUE: n, VALUE_TYPE: phoneType(n) }]
+    }
+
+    if (lead.emails_detalhados?.[0]) {
+      contactFields.EMAIL = [{ VALUE: lead.emails_detalhados[0].email, VALUE_TYPE: 'WORK' }]
+    } else if (lead.email) {
+      contactFields.EMAIL = [{ VALUE: lead.email.split(' / ')[0].trim(), VALUE_TYPE: 'WORK' }]
+    }
+
+    if (socio.faixa_etaria) contactFields.UF_CRM_CONTACT_FAIXA_ETARIA = socio.faixa_etaria
+
+    try {
+      const res = await callBitrix('crm.contact.add.json', 'POST', { fields: contactFields })
+      const contactId = res?.result ? parseInt(res.result) : null
+      if (contactId) {
+        contactIds.push(contactId)
+        await callBitrix('crm.company.contact.add.json', 'POST', {
+          id: companyId,
+          fields: { CONTACT_ID: contactId, IS_PRIMARY: contactIds.length === 1 ? 'Y' : 'N' },
+        })
+      }
+    } catch (err: any) {
+      console.warn(`Falha ao criar contato para sócio ${nomeCompleto}:`, err.message)
+    }
+  }
+  return contactIds
 }
 
 // ─── Criar entidade (Lead ou Deal) no Bitrix24 ───────────────────────────────
 async function createBitrixEntity(
   lead: ReturnType<typeof mapEmpresa>,
   companyId: number | null,
+  contactIds: number[],
   stageId: string | null,
   pipelineId: string | null,
   entityType: string,
@@ -274,6 +408,16 @@ async function createBitrixEntity(
   const anoAtual = new Date().getFullYear()
   const titulo = `[${razaoSocial}] Projeto MLW ${anoAtual}`
 
+  // Sócios no contexto
+  const sociosText = (lead.socios || [])
+    .map((s: any) => {
+      const qual = s.qualificacao ? ` (${s.qualificacao})` : ''
+      const faixa = s.faixa_etaria ? ` — ${s.faixa_etaria}` : ''
+      const entrada = s.data_entrada ? ` — Entrada: ${s.data_entrada}` : ''
+      return `${s.nome}${qual}${faixa}${entrada}`
+    })
+    .join('\n- ')
+
   // Montar contexto completo para o Bitrix (igual ao fluxo manual)
   const leadInfoContext = [
     `[b]DADOS DA PESQUISA (AUTOMAÇÃO SDR — ${campanhaName})[/b]`,
@@ -282,10 +426,12 @@ async function createBitrixEntity(
     `[b]CNPJ:[/b] ${cleanCnpj ? formatCnpj(cleanCnpj) : 'N/A'}`,
     `[b]CNAE Principal:[/b] ${lead.cnae_principal || 'N/A'}`,
     `[b]Porte:[/b] ${lead.porte || 'N/A'}`,
+    `[b]Situação:[/b] ${lead.situacao_cadastral || 'N/A'}`,
     `[b]Município/UF:[/b] ${lead.municipio || ''} - ${lead.uf || ''}`,
     `[b]E-mail:[/b] ${lead.email || 'N/A'}`,
     `[b]Telefone:[/b] ${lead.telefone || 'N/A'}`,
-  ].join('\n')
+    sociosText ? `\n[b]Sócios:[/b]\n- ${sociosText}` : '',
+  ].filter(Boolean).join('\n')
 
   const approachContext = sugestaoAbordagem
     ? `\n\n[b]ABORDAGEM SUGERIDA (IA)[/b]\n\n${sugestaoAbordagem}`
@@ -294,6 +440,26 @@ async function createBitrixEntity(
   const fullContext = leadInfoContext + approachContext
 
   let entityId: string
+
+  // Montar todos os telefones/emails para Lead/Deal
+  const phonesForEntity: any[] = []
+  if (lead.telefones_detalhados && lead.telefones_detalhados.length > 0) {
+    for (const t of lead.telefones_detalhados) {
+      phonesForEntity.push({ VALUE: t.numero, VALUE_TYPE: phoneType(t.numero) })
+    }
+  } else if (lead.telefone) {
+    const n = lead.telefone.split(' / ')[0].replace(' [cel]', '').trim()
+    phonesForEntity.push({ VALUE: n, VALUE_TYPE: phoneType(n) })
+  }
+
+  const emailsForEntity: any[] = []
+  if (lead.emails_detalhados && lead.emails_detalhados.length > 0) {
+    for (const e of lead.emails_detalhados) {
+      emailsForEntity.push({ VALUE: e.email, VALUE_TYPE: 'WORK' })
+    }
+  } else if (lead.email) {
+    emailsForEntity.push({ VALUE: lead.email.split(' / ')[0].trim(), VALUE_TYPE: 'WORK' })
+  }
 
   if (entityType === 'LEAD') {
     const fields: any = {
@@ -309,8 +475,8 @@ async function createBitrixEntity(
 
     if (stageId) fields.STATUS_ID = stageId
     if (companyId) fields.COMPANY_ID = companyId
-    if (lead.email) fields.EMAIL = [{ VALUE: lead.email, VALUE_TYPE: 'WORK' }]
-    if (lead.telefone) fields.PHONE = [{ VALUE: lead.telefone, VALUE_TYPE: 'WORK' }]
+    if (phonesForEntity.length > 0) fields.PHONE = phonesForEntity
+    if (emailsForEntity.length > 0) fields.EMAIL = emailsForEntity
     if (cleanCnpj) fields.UF_CRM_LEAD_1644319583429 = cleanCnpj
 
     const res = await callBitrix('crm.lead.add.json', 'POST', { fields })
@@ -331,16 +497,24 @@ async function createBitrixEntity(
     entityId = String(res?.result || '')
   }
 
-  // Adicionar comentário de timeline (igual ao fluxo manual)
+  // Vincular contatos dos sócios ao Deal/Lead
+  if (entityId && contactIds.length > 0) {
+    const linkEndpoint = entityType === 'LEAD' ? 'crm.lead.contact.add.json' : 'crm.deal.contact.add.json'
+    for (const contactId of contactIds) {
+      try {
+        await callBitrix(linkEndpoint, 'POST', { id: parseInt(entityId), fields: { CONTACT_ID: contactId } })
+      } catch (linkErr: any) {
+        console.warn(`Falha ao vincular contato ${contactId}:`, linkErr.message)
+      }
+    }
+  }
+
+  // Adicionar comentário de timeline
   if (entityId && fullContext) {
     try {
       const entityTypeId = entityType === 'LEAD' ? 1 : 2
       await callBitrix('crm.timeline.comment.add.json', 'POST', {
-        fields: {
-          ENTITY_ID: parseInt(entityId),
-          ENTITY_TYPE_ID: entityTypeId,
-          COMMENT: fullContext,
-        },
+        fields: { ENTITY_ID: parseInt(entityId), ENTITY_TYPE_ID: entityTypeId, COMMENT: fullContext },
       })
     } catch (commentErr: any) {
       console.warn(`Falha ao adicionar comentário de timeline para entidade ${entityId}:`, commentErr.message)
@@ -547,6 +721,16 @@ Deno.serve(async (req: Request) => {
             console.warn(`Empresa Bitrix falhou para ${lead.cnpj}:`, companyErr.message)
           }
 
+          // ── Criar contatos dos sócios e vincular à empresa ───────────────
+          let contactIds: number[] = []
+          if (companyId && lead.socios && lead.socios.length > 0) {
+            try {
+              contactIds = await createSocioContacts(lead, companyId, callBitrix)
+            } catch (contactErr: any) {
+              console.warn(`Contatos de sócios falharam para ${lead.cnpj}:`, contactErr.message)
+            }
+          }
+
           // ── Criar entidade (Lead ou Deal) no Bitrix24 ────────────────────
           let bitrixEntityId: string | null = null
           let status = 'pendente'
@@ -555,6 +739,7 @@ Deno.serve(async (req: Request) => {
             bitrixEntityId = await createBitrixEntity(
               lead,
               companyId,
+              contactIds,
               stageId,
               pipelineId,
               defaultEntityType,
