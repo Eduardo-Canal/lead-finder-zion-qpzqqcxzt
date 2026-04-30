@@ -86,13 +86,37 @@ function mapEmpresa(empresa: any) {
     email = rawEmail
   }
 
+  // cnae_principal: API v5 pode retornar objeto {"codigo":"...","descricao":"..."}
+  const rawCnae = empresa.cnae_fiscal_principal || empresa.atividade_principal
+  let cnaePrincipal = ''
+  if (rawCnae) {
+    if (typeof rawCnae === 'string') {
+      cnaePrincipal = rawCnae
+    } else if (typeof rawCnae === 'object') {
+      const codigo = rawCnae.codigo || rawCnae.code || ''
+      const descricao = rawCnae.descricao || rawCnae.description || ''
+      cnaePrincipal = codigo && descricao ? `${codigo} - ${descricao}` : descricao || codigo || ''
+    }
+  }
+
+  // porte: API v5 pode retornar objeto {"codigo":"01","descricao":"Micro Empresa"}
+  const rawPorte = empresa.porte_empresa || empresa.porte
+  let porte = ''
+  if (rawPorte) {
+    if (typeof rawPorte === 'string') {
+      porte = rawPorte
+    } else if (typeof rawPorte === 'object') {
+      porte = rawPorte.descricao || rawPorte.description || rawPorte.codigo || ''
+    }
+  }
+
   return {
     cnpj: empresa.cnpj || '',
     razao_social: empresa.razao_social || empresa.nome_fantasia || '',
-    cnae_principal: empresa.cnae_fiscal_principal || empresa.atividade_principal || '',
+    cnae_principal: cnaePrincipal,
     municipio: String(municipio),
     uf: String(uf),
-    porte: empresa.porte_empresa || empresa.porte || '',
+    porte,
     email,
     telefone,
     dados_completos: empresa,

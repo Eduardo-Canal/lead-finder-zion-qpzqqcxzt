@@ -407,13 +407,36 @@ Deno.serve(async (req: Request) => {
         emailFormatado = rawEmail
       }
 
+      // cnae e porte: API v5 pode retornar objeto {"codigo":"...","descricao":"..."}
+      const rawCnae = empresa.cnae_fiscal_principal || empresa.atividade_principal
+      let cnaePrincipal = ''
+      if (rawCnae) {
+        if (typeof rawCnae === 'string') {
+          cnaePrincipal = rawCnae
+        } else if (typeof rawCnae === 'object') {
+          const cod = rawCnae.codigo || rawCnae.code || ''
+          const desc = rawCnae.descricao || rawCnae.description || ''
+          cnaePrincipal = cod && desc ? `${cod} - ${desc}` : desc || cod || ''
+        }
+      }
+
+      const rawPorte = empresa.porte_empresa || empresa.porte
+      let porteStr = ''
+      if (rawPorte) {
+        if (typeof rawPorte === 'string') {
+          porteStr = rawPorte
+        } else if (typeof rawPorte === 'object') {
+          porteStr = rawPorte.descricao || rawPorte.description || rawPorte.codigo || ''
+        }
+      }
+
       return {
         cnpj: empresa.cnpj,
         razao_social: empresa.razao_social || empresa.nome_fantasia || '',
-        cnae_fiscal_principal: empresa.cnae_fiscal_principal || empresa.atividade_principal || '',
+        cnae_fiscal_principal: cnaePrincipal,
         municipio: String(municipioRaw || ''),
         uf: String(ufRaw || ''),
-        porte: empresa.porte_empresa || empresa.porte || '',
+        porte: porteStr,
         situacao_cadastral: situacao,
         capital_social: empresa.capital_social || 0,
         email: emailFormatado,
