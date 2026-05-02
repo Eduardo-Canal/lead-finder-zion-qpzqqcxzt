@@ -59,6 +59,7 @@ const Documentation = lazyWithRetry(() => import('@/pages/Documentation'))
 const ContaAzulCallback = lazyWithRetry(() => import('@/pages/ContaAzulCallback'))
 const TechnicalSpecs = lazyWithRetry(() => import('@/pages/TechnicalSpecs'))
 const Automacao = lazyWithRetry(() => import('@/pages/Automacao'))
+const ConfiguracoesWhatsApp = lazyWithRetry(() => import('@/pages/ConfiguracoesWhatsApp'))
 
 const GlobalLoading = () => (
   <div className="flex min-h-screen w-full items-center justify-center bg-background/50 backdrop-blur-sm">
@@ -153,6 +154,10 @@ const App = () => (
                     <Route
                       path="/configuracoes/empresas-duplicadas"
                       element={<EmpresasDuplicadas />}
+                    />
+                    <Route
+                      path="/configuracoes/whatsapp"
+                      element={<ConfiguracoesWhatsApp />}
                     />
                   </Route>
                   <Route path="/oauth/conta-azul/callback" element={<ContaAzulCallback />} />

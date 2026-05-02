@@ -14,6 +14,7 @@ import {
   BookOpen,
   BrainCircuit,
   Zap,
+  MessageSquare,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -283,6 +284,17 @@ export function AppSidebar() {
                             >
                               <Link to="/configuracoes/integracoes">
                                 <span>Integrações (APIs)</span>
+                              </Link>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                          <SidebarMenuSubItem>
+                            <SidebarMenuSubButton
+                              asChild
+                              isActive={location.pathname === '/configuracoes/whatsapp'}
+                            >
+                              <Link to="/configuracoes/whatsapp">
+                                <MessageSquare className="w-4 h-4 mr-1 text-green-400" />
+                                <span>WhatsApp</span>
                               </Link>
                             </SidebarMenuSubButton>
                           </SidebarMenuSubItem>
