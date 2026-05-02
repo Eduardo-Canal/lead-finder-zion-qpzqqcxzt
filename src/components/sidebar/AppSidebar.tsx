@@ -15,6 +15,7 @@ import {
   BrainCircuit,
   Zap,
   MessageSquare,
+  Bot,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -295,6 +296,17 @@ export function AppSidebar() {
                               <Link to="/configuracoes/whatsapp">
                                 <MessageSquare className="w-4 h-4 mr-1 text-green-400" />
                                 <span>WhatsApp</span>
+                              </Link>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                          <SidebarMenuSubItem>
+                            <SidebarMenuSubButton
+                              asChild
+                              isActive={location.pathname === '/whatsapp/copiloto'}
+                            >
+                              <Link to="/whatsapp/copiloto">
+                                <Bot className="w-4 h-4 mr-1 text-blue-400" />
+                                <span>Co-Piloto WhatsApp</span>
                               </Link>
                             </SidebarMenuSubButton>
                           </SidebarMenuSubItem>
