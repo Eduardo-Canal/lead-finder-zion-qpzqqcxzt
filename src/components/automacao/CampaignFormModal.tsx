@@ -21,7 +21,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Switch } from '@/components/ui/switch'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
-import { Loader2 } from 'lucide-react'
+import { Loader2, MessageSquare } from 'lucide-react'
 import { CnaeSelector } from './CnaeSelector'
 import useAutomacaoStore, { AutomacaoConfig, CampanhaFormData } from '@/stores/useAutomacaoStore'
 
@@ -64,6 +64,12 @@ export function CampaignFormModal({ open, onClose, campaign, initialCnaes }: Pro
   const [cronExpressao, setCronExpressao] = useState('0 2 * * *')
   const [ativo, setAtivo] = useState(true)
   const [saving, setSaving] = useState(false)
+  // WhatsApp
+  const [whatsappAtivo, setWhatsappAtivo] = useState(false)
+  const [whatsappTemplate, setWhatsappTemplate] = useState('')
+  const [whatsappDelayMin, setWhatsappDelayMin] = useState(45)
+  const [whatsappDelayMax, setWhatsappDelayMax] = useState(90)
+  const [whatsappLimiteDiario, setWhatsappLimiteDiario] = useState(50)
 
   useEffect(() => {
     if (campaign) {
@@ -80,6 +86,11 @@ export function CampaignFormModal({ open, onClose, campaign, initialCnaes }: Pro
       setNotifGroupId(campaign.bitrix_notification_group_id || '')
       setCronExpressao(campaign.cron_expressao || '0 2 * * *')
       setAtivo(campaign.ativo)
+      setWhatsappAtivo(campaign.whatsapp_ativo || false)
+      setWhatsappTemplate(campaign.whatsapp_template || '')
+      setWhatsappDelayMin(campaign.whatsapp_delay_min || 45)
+      setWhatsappDelayMax(campaign.whatsapp_delay_max || 90)
+      setWhatsappLimiteDiario(campaign.whatsapp_limite_diario || 50)
     } else {
       setNome('')
       setDescricao('')
@@ -94,6 +105,11 @@ export function CampaignFormModal({ open, onClose, campaign, initialCnaes }: Pro
       setNotifGroupId('')
       setCronExpressao('0 2 * * *')
       setAtivo(true)
+      setWhatsappAtivo(false)
+      setWhatsappTemplate('')
+      setWhatsappDelayMin(45)
+      setWhatsappDelayMax(90)
+      setWhatsappLimiteDiario(50)
     }
   }, [campaign, open, initialCnaes])
 
@@ -128,6 +144,11 @@ export function CampaignFormModal({ open, onClose, campaign, initialCnaes }: Pro
       data_inicio: dataInicio || null,
       data_fim: tipo === 'campanha' && dataFim ? dataFim : null,
       ativo,
+      whatsapp_ativo: whatsappAtivo,
+      whatsapp_template: whatsappAtivo && whatsappTemplate.trim() ? whatsappTemplate.trim() : null,
+      whatsapp_delay_min: whatsappDelayMin,
+      whatsapp_delay_max: whatsappDelayMax,
+      whatsapp_limite_diario: whatsappLimiteDiario,
     }
 
     const ok = campaign
@@ -398,6 +419,84 @@ export function CampaignFormModal({ open, onClose, campaign, initialCnaes }: Pro
                   Deixe em branco para desativar.
                 </p>
               </div>
+            </div>
+
+            <Separator />
+
+            {/* WhatsApp Outbound */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-2">
+                    <MessageSquare className="w-3.5 h-3.5 text-green-400" />
+                    Disparo WhatsApp
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Quando ativado, os leads gerados receberão mensagem automática no WhatsApp
+                    após serem cadastrados no Bitrix24.
+                  </p>
+                </div>
+                <Switch checked={whatsappAtivo} onCheckedChange={setWhatsappAtivo} />
+              </div>
+
+              {whatsappAtivo && (
+                <div className="space-y-4 pl-2 border-l-2 border-green-500/30">
+                  <div className="space-y-1.5">
+                    <Label>Template da mensagem</Label>
+                    <Textarea
+                      value={whatsappTemplate}
+                      onChange={(e) => setWhatsappTemplate(e.target.value)}
+                      placeholder={`Olá {{nome}},\n\nSomos a Zionlogtec, empresa especializada em tecnologia logística.\n{{abordagem}}\n\nPodemos conversar?`}
+                      rows={5}
+                      className="font-mono text-sm resize-none"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Variáveis disponíveis:{' '}
+                      <code className="bg-muted px-1 rounded text-[11px]">{'{{nome}}'}</code>{' '}
+                      <code className="bg-muted px-1 rounded text-[11px]">{'{{empresa}}'}</code>{' '}
+                      <code className="bg-muted px-1 rounded text-[11px]">{'{{municipio}}'}</code>{' '}
+                      <code className="bg-muted px-1 rounded text-[11px]">{'{{uf}}'}</code>{' '}
+                      <code className="bg-muted px-1 rounded text-[11px]">{'{{abordagem}}'}</code>
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Delay mínimo (s)</Label>
+                      <Input
+                        type="number"
+                        min={15}
+                        max={300}
+                        value={whatsappDelayMin}
+                        onChange={(e) => setWhatsappDelayMin(Number(e.target.value))}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Delay máximo (s)</Label>
+                      <Input
+                        type="number"
+                        min={whatsappDelayMin}
+                        max={600}
+                        value={whatsappDelayMax}
+                        onChange={(e) => setWhatsappDelayMax(Number(e.target.value))}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Limite diário</Label>
+                      <Input
+                        type="number"
+                        min={1}
+                        max={200}
+                        value={whatsappLimiteDiario}
+                        onChange={(e) => setWhatsappLimiteDiario(Number(e.target.value))}
+                      />
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Delays entre 45–90s e limite de 50/dia são recomendados para evitar banimento.
+                  </p>
+                </div>
+              )}
             </div>
 
             <Separator />

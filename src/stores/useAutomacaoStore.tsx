@@ -20,6 +20,12 @@ export type AutomacaoConfig = {
   data_inicio: string | null
   data_fim: string | null
   ativo: boolean
+  // WhatsApp outbound
+  whatsapp_ativo: boolean
+  whatsapp_template: string | null
+  whatsapp_delay_min: number
+  whatsapp_delay_max: number
+  whatsapp_limite_diario: number
   criado_em: string
   atualizado_em: string
 }
