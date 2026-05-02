@@ -233,6 +233,12 @@ export default function ConfiguracoesWhatsApp() {
   const [novoPrincipalNome, setNovoPrincipalNome] = useState('')
   const [criandoPrincipal, setCriandoPrincipal] = useState(false)
 
+  // Novo executivo
+  const [novoExecNome, setNovoExecNome] = useState('')
+  const [novoExecBitrixNome, setNovoExecBitrixNome] = useState('')
+  const [novoExecBitrixId, setNovoExecBitrixId] = useState('')
+  const [criandoExec, setCriandoExec] = useState(false)
+
   // ─── Carregamento inicial ───────────────────────────────────────────────────
 
   useEffect(() => {
@@ -345,7 +351,33 @@ export default function ConfiguracoesWhatsApp() {
     ))
   }
 
+  // ─── Criar instância executiva ──────────────────────────────────────────────
+
+  const handleCriarExecutivo = async () => {
+    if (!novoExecNome.trim()) { toast.error('Informe o nome do executivo'); return }
+    setCriandoExec(true)
+    try {
+      const res = await callManageInstance({
+        action: 'create',
+        nome: novoExecNome.trim(),
+        tipo: 'executivo',
+        bitrix_user_nome: novoExecBitrixNome.trim() || undefined,
+        bitrix_user_id: novoExecBitrixId.trim() || undefined,
+      })
+      setInstances(prev => [...prev, res.instance])
+      setNovoExecNome('')
+      setNovoExecBitrixNome('')
+      setNovoExecBitrixId('')
+      toast.success('Instância do executivo criada. Clique em "Conectar" para escanear o QR Code.')
+    } catch (err: any) {
+      toast.error(`Erro ao criar instância: ${err.message}`)
+    } finally {
+      setCriandoExec(false)
+    }
+  }
+
   const principalInstances = instances.filter(i => i.tipo === 'principal')
+  const executivoInstances = instances.filter(i => i.tipo === 'executivo')
 
   if (loading) {
     return (
@@ -366,8 +398,9 @@ export default function ConfiguracoesWhatsApp() {
       </div>
 
       <Tabs defaultValue="conexao">
-        <TabsList className="grid grid-cols-3 w-full max-w-md">
+        <TabsList className="grid grid-cols-4 w-full max-w-lg">
           <TabsTrigger value="conexao">Conexão</TabsTrigger>
+          <TabsTrigger value="executivos">Executivos</TabsTrigger>
           <TabsTrigger value="atendimento">Atendimento</TabsTrigger>
           <TabsTrigger value="bot">Bot / IA</TabsTrigger>
         </TabsList>
@@ -447,6 +480,77 @@ export default function ConfiguracoesWhatsApp() {
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Após criar, clique em "Conectar" e escaneie o QR Code com o celular.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ── ABA: EXECUTIVOS ── */}
+        <TabsContent value="executivos" className="space-y-4 mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Números dos Executivos</CardTitle>
+              <CardDescription>
+                Cada executivo tem seu próprio número monitorado. Todas as conversas são
+                logadas no Bitrix24 e o co-piloto IA gera sugestões em tempo real.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {executivoInstances.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Nenhum executivo cadastrado.</p>
+              ) : (
+                <div className="space-y-2">
+                  {executivoInstances.map(inst => (
+                    <InstanceCard
+                      key={inst.id}
+                      instance={inst}
+                      onRefreshStatus={handleRefreshStatus}
+                      onDelete={handleDelete}
+                      onDisconnect={handleDisconnect}
+                      onOpenQr={setQrTarget}
+                    />
+                  ))}
+                </div>
+              )}
+
+              <Separator />
+
+              <div className="space-y-3">
+                <Label>Adicionar executivo</Label>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5 col-span-2">
+                    <Label className="text-xs text-muted-foreground">Nome da instância</Label>
+                    <Input
+                      value={novoExecNome}
+                      onChange={e => setNovoExecNome(e.target.value)}
+                      placeholder='Ex: "Número Carlos" ou "Vendas João"'
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">Nome do executivo (Bitrix)</Label>
+                    <Input
+                      value={novoExecBitrixNome}
+                      onChange={e => setNovoExecBitrixNome(e.target.value)}
+                      placeholder="Ex: Carlos Silva"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">ID do usuário no Bitrix24</Label>
+                    <Input
+                      value={novoExecBitrixId}
+                      onChange={e => setNovoExecBitrixId(e.target.value)}
+                      placeholder="ID numérico"
+                    />
+                  </div>
+                </div>
+                <Button onClick={handleCriarExecutivo} disabled={criandoExec}>
+                  {criandoExec ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
+                  Adicionar executivo
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  Após criar, clique em "Conectar" e peça ao executivo para escanear o QR Code
+                  com o celular dele. O número monitorado não precisa ser o principal da empresa.
                 </p>
               </div>
             </CardContent>
