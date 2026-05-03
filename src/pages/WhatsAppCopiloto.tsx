@@ -1,10 +1,22 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { supabase } from '@/lib/supabase/client'
+import useAuthStore from '@/stores/useAuthStore'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
-import { Copy, Check, MessageSquare, BrainCircuit, User, Clock, RefreshCw } from 'lucide-react'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
+  Copy, Check, MessageSquare, BrainCircuit, User, Clock,
+  RefreshCw, Link2, Link2Off, Pencil, X,
+} from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
@@ -15,6 +27,8 @@ interface Conversa {
   contact_name: string | null
   estado: string
   ultimo_contato: string
+  bitrix_entity_id: string | null
+  bitrix_entity_type: string | null
   instance: {
     nome: string
     bitrix_user_nome: string | null
@@ -37,6 +51,13 @@ interface Sugestao {
   criado_em: string
 }
 
+const ENTITY_LABELS: Record<string, string> = {
+  lead: 'Lead',
+  deal: 'Negócio',
+  contact: 'Contato',
+  company: 'Empresa',
+}
+
 // ─── Hook: sugestões em tempo real ───────────────────────────────────────────
 
 function useSugestoesRealtime(conversationId: string | null) {
@@ -48,7 +69,6 @@ function useSugestoesRealtime(conversationId: string | null) {
       return
     }
 
-    // Carrega sugestões recentes
     supabase
       .from('whatsapp_ai_suggestions')
       .select('*')
@@ -57,7 +77,6 @@ function useSugestoesRealtime(conversationId: string | null) {
       .limit(5)
       .then(({ data }) => setSugestoes(data || []))
 
-    // Subscrição Realtime
     const channel = supabase
       .channel(`copiloto_${conversationId}`)
       .on(
@@ -192,50 +211,190 @@ function HistoricoMensagens({ conversationId }: { conversationId: string }) {
   )
 }
 
+// ─── Componente: vinculação Bitrix ────────────────────────────────────────────
+
+function BitrixVinculo({
+  conversa,
+  onVinculado,
+}: {
+  conversa: Conversa
+  onVinculado: (entityId: string | null, entityType: string | null) => void
+}) {
+  const [editando, setEditando] = useState(false)
+  const [entityId, setEntityId] = useState('')
+  const [entityType, setEntityType] = useState('lead')
+  const [salvando, setSalvando] = useState(false)
+  const { toast } = useToast()
+
+  const vincular = async () => {
+    if (!entityId.trim()) {
+      toast({ title: 'Informe o ID do negócio/lead', variant: 'destructive' })
+      return
+    }
+    setSalvando(true)
+    const { error } = await supabase
+      .from('whatsapp_conversations')
+      .update({ bitrix_entity_id: entityId.trim(), bitrix_entity_type: entityType })
+      .eq('id', conversa.id)
+
+    if (error) {
+      toast({ title: 'Erro ao vincular', description: error.message, variant: 'destructive' })
+    } else {
+      onVinculado(entityId.trim(), entityType)
+      setEditando(false)
+      setEntityId('')
+      toast({ title: 'Vinculado!', description: `Conversa associada ao ${ENTITY_LABELS[entityType]} #${entityId.trim()}` })
+    }
+    setSalvando(false)
+  }
+
+  const desvincular = async () => {
+    const { error } = await supabase
+      .from('whatsapp_conversations')
+      .update({ bitrix_entity_id: null, bitrix_entity_type: null })
+      .eq('id', conversa.id)
+
+    if (!error) {
+      onVinculado(null, null)
+      toast({ title: 'Desvinculado' })
+    }
+  }
+
+  // Já vinculado
+  if (conversa.bitrix_entity_id && !editando) {
+    return (
+      <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-blue-500/10 border border-blue-500/20 text-xs">
+        <Link2 className="w-3 h-3 text-blue-400 shrink-0" />
+        <span className="text-blue-300 font-medium">
+          {ENTITY_LABELS[conversa.bitrix_entity_type || 'lead'] || conversa.bitrix_entity_type} #{conversa.bitrix_entity_id}
+        </span>
+        <span className="text-muted-foreground ml-1">vinculado no Bitrix</span>
+        <div className="ml-auto flex items-center gap-1">
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-5 w-5 text-muted-foreground hover:text-foreground"
+            onClick={() => {
+              setEntityId(conversa.bitrix_entity_id || '')
+              setEntityType(conversa.bitrix_entity_type || 'lead')
+              setEditando(true)
+            }}
+            title="Alterar vínculo"
+          >
+            <Pencil className="w-3 h-3" />
+          </Button>
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-5 w-5 text-muted-foreground hover:text-destructive"
+            onClick={desvincular}
+            title="Desvincular"
+          >
+            <Link2Off className="w-3 h-3" />
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  // Formulário de vínculo
+  if (editando || !conversa.bitrix_entity_id) {
+    return (
+      <div className="flex items-center gap-2 flex-wrap">
+        <Select value={entityType} onValueChange={setEntityType}>
+          <SelectTrigger className="h-7 w-28 text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="lead">Lead</SelectItem>
+            <SelectItem value="deal">Negócio</SelectItem>
+            <SelectItem value="contact">Contato</SelectItem>
+            <SelectItem value="company">Empresa</SelectItem>
+          </SelectContent>
+        </Select>
+        <Input
+          className="h-7 w-32 text-xs font-mono"
+          placeholder="ID (ex: 123)"
+          value={entityId}
+          onChange={e => setEntityId(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && vincular()}
+        />
+        <Button size="sm" className="h-7 text-xs" onClick={vincular} disabled={salvando}>
+          <Link2 className="w-3 h-3 mr-1" />
+          Vincular
+        </Button>
+        {editando && (
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-7 w-7"
+            onClick={() => { setEditando(false); setEntityId('') }}
+          >
+            <X className="w-3.5 h-3.5" />
+          </Button>
+        )}
+        <span className="text-xs text-muted-foreground">
+          Insira o ID do card no Bitrix24
+        </span>
+      </div>
+    )
+  }
+
+  return null
+}
+
 // ─── Página principal ────────────────────────────────────────────────────────
 
 export default function WhatsAppCopiloto() {
+  const { user, hasPermission } = useAuthStore()
+  const isAdmin = user?.perfis_acesso?.nome === 'Administrador' || hasPermission('Acessar Admin')
+
   const [conversas, setConversas] = useState<Conversa[]>([])
   const [conversaSelecionada, setConversaSelecionada] = useState<Conversa | null>(null)
   const [carregando, setCarregando] = useState(true)
+  const [semInstancia, setSemInstancia] = useState(false)
   const sugestoes = useSugestoesRealtime(conversaSelecionada?.id || null)
 
   const carregarConversas = useCallback(async () => {
     setCarregando(true)
-    const { data } = await supabase
-      .from('whatsapp_conversations')
-      .select(`
-        id, phone, contact_name, estado, ultimo_contato,
-        instance:instance_id (nome, bitrix_user_nome)
-      `)
-      .order('ultimo_contato', { ascending: false })
-      .limit(50)
+    setSemInstancia(false)
 
-    // Filtra apenas conversas de instâncias executivas
-    const todas = (data || []) as any[]
-    // Buscar IDs de instâncias executivas
-    const { data: execInstances } = await supabase
+    // Admin vê todos os executivos; não-admin vê só sua instância
+    let query = supabase
       .from('whatsapp_instances')
       .select('id')
       .eq('tipo', 'executivo')
       .eq('ativo', true)
 
-    const execIds = new Set((execInstances || []).map((i: any) => i.id))
+    if (!isAdmin && user?.user_id) {
+      query = query.eq('profile_user_id', user.user_id) as any
+    }
 
-    // Re-busca com join para incluir instance_id
-    const { data: completas } = await supabase
+    const { data: execInstances } = await query
+    const execIds = (execInstances || []).map((i: any) => i.id)
+
+    if (execIds.length === 0) {
+      setConversas([])
+      setCarregando(false)
+      // Não-admin sem instância vinculada → mensagem específica
+      if (!isAdmin) setSemInstancia(true)
+      return
+    }
+
+    const { data } = await supabase
       .from('whatsapp_conversations')
       .select(`
         id, phone, contact_name, estado, ultimo_contato, instance_id,
+        bitrix_entity_id, bitrix_entity_type,
         instance:instance_id (nome, bitrix_user_nome)
       `)
+      .in('instance_id', execIds)
       .order('ultimo_contato', { ascending: false })
       .limit(50)
 
-    const executivas = (completas || []).filter((c: any) => execIds.has(c.instance_id))
-    setConversas(executivas as Conversa[])
+    setConversas((data || []) as Conversa[])
     setCarregando(false)
-  }, [])
+  }, [isAdmin, user?.user_id])
 
   useEffect(() => {
     carregarConversas()
@@ -248,6 +407,13 @@ export default function WhatsAppCopiloto() {
 
     return () => { supabase.removeChannel(channel) }
   }, [carregarConversas])
+
+  const handleVinculado = (entityId: string | null, entityType: string | null) => {
+    if (!conversaSelecionada) return
+    const updated = { ...conversaSelecionada, bitrix_entity_id: entityId, bitrix_entity_type: entityType }
+    setConversaSelecionada(updated)
+    setConversas(prev => prev.map(c => c.id === conversaSelecionada.id ? updated : c))
+  }
 
   const estadoCor = (estado: string) => {
     const cores: Record<string, string> = {
@@ -285,17 +451,29 @@ export default function WhatsAppCopiloto() {
           </Button>
         </div>
 
+        {isAdmin && (
+          <p className="text-[10px] text-muted-foreground px-1">
+            Visão de gestor — todas as conversas dos executivos
+          </p>
+        )}
+
         <div className="flex-1 overflow-y-auto space-y-1">
           {carregando && (
             <div className="flex items-center justify-center py-8 text-muted-foreground text-sm">
               Carregando...
             </div>
           )}
-          {!carregando && conversas.length === 0 && (
+          {!carregando && semInstancia && (
+            <div className="flex flex-col items-center justify-center py-8 text-center text-sm text-muted-foreground gap-2 px-2">
+              <User className="w-8 h-8 opacity-30" />
+              <p className="font-medium">Sem instância vinculada</p>
+              <p className="text-xs">Solicite ao administrador vincular sua conta em Configurações → WhatsApp → Executivos.</p>
+            </div>
+          )}
+          {!carregando && !semInstancia && conversas.length === 0 && (
             <div className="flex flex-col items-center justify-center py-8 text-center text-sm text-muted-foreground gap-2">
               <User className="w-8 h-8 opacity-30" />
-              <p>Nenhuma conversa de executivo encontrada</p>
-              <p className="text-xs">Configure instâncias do tipo "executivo" na aba WhatsApp</p>
+              <p>Nenhuma conversa encontrada</p>
             </div>
           )}
           {conversas.map((c) => (
@@ -325,6 +503,9 @@ export default function WhatsAppCopiloto() {
                     {(c as any).instance.bitrix_user_nome.split(' ')[0]}
                   </Badge>
                 )}
+                {c.bitrix_entity_id && (
+                  <Link2 className="w-3 h-3 text-blue-400 ml-auto" title={`Vinculado: ${ENTITY_LABELS[c.bitrix_entity_type || ''] || c.bitrix_entity_type} #${c.bitrix_entity_id}`} />
+                )}
               </div>
             </button>
           ))}
@@ -342,9 +523,9 @@ export default function WhatsAppCopiloto() {
           </div>
         </div>
       ) : (
-        <div className="flex-1 flex flex-col gap-4 min-h-0">
+        <div className="flex-1 flex flex-col gap-3 min-h-0">
           {/* Cabeçalho da conversa */}
-          <div className="flex items-center justify-between shrink-0">
+          <div className="flex items-start justify-between shrink-0 gap-4">
             <div>
               <h3 className="font-semibold">
                 {conversaSelecionada.contact_name || conversaSelecionada.phone}
@@ -356,9 +537,14 @@ export default function WhatsAppCopiloto() {
                 )}
               </p>
             </div>
-            <Badge variant="outline" className={`text-xs ${estadoCor(conversaSelecionada.estado)} bg-opacity-10`}>
+            <Badge variant="outline" className={`text-xs ${estadoCor(conversaSelecionada.estado)} bg-opacity-10 shrink-0`}>
               {conversaSelecionada.estado.replace(/_/g, ' ')}
             </Badge>
+          </div>
+
+          {/* Vinculação Bitrix */}
+          <div className="shrink-0">
+            <BitrixVinculo conversa={conversaSelecionada} onVinculado={handleVinculado} />
           </div>
 
           <div className="flex flex-1 gap-4 min-h-0">

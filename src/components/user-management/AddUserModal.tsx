@@ -11,6 +11,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
+import { Separator } from '@/components/ui/separator'
 import {
   Select,
   SelectContent,
@@ -36,6 +37,8 @@ const formSchema = z.object({
   perfil_id: z.string().min(1, 'Selecione um perfil'),
   ativo: z.boolean().default(true),
   require_password_update: z.boolean().default(true),
+  bitrix_user_id: z.string().optional(),
+  celular_corporativo: z.string().optional(),
 })
 
 type FormValues = z.infer<typeof formSchema>
@@ -57,6 +60,8 @@ export function AddUserModal({ open, onOpenChange }: AddUserModalProps) {
       perfil_id: '',
       ativo: true,
       require_password_update: true,
+      bitrix_user_id: '',
+      celular_corporativo: '',
     },
   })
 
@@ -79,7 +84,7 @@ export function AddUserModal({ open, onOpenChange }: AddUserModalProps) {
         if (!val) form.reset()
       }}
     >
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[480px]">
         <DialogHeader>
           <DialogTitle>Incluir Usuário</DialogTitle>
         </DialogHeader>
@@ -148,6 +153,38 @@ export function AddUserModal({ open, onOpenChange }: AddUserModalProps) {
                 </FormItem>
               )}
             />
+
+            <Separator />
+
+            <div className="grid grid-cols-2 gap-3">
+              <FormField
+                control={form.control}
+                name="bitrix_user_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>ID no Bitrix24</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Ex: 42" className="font-mono" {...field} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="celular_corporativo"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Celular Corporativo</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Ex: 11999990000" className="font-mono" {...field} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground -mt-2">
+              Opcionais — usados para pré-preencher instâncias WhatsApp de executivos.
+            </p>
 
             <div className="space-y-3 pt-2">
               <FormField

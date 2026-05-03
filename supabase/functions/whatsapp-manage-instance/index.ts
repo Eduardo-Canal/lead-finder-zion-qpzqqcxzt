@@ -63,7 +63,7 @@ Deno.serve(async (req: Request) => {
 
     // ── CREATE — criar nova instância no uazapi.dev e salvar no banco ─────────
     if (action === 'create') {
-      const { nome, tipo, bitrix_user_id, bitrix_user_nome } = payload
+      const { nome, tipo, bitrix_user_id, bitrix_user_nome, profile_user_id } = payload
 
       if (!nome) return json({ error: 'Campo "nome" obrigatório' }, 400)
       if (!globalToken) return json({ error: 'Token uazapi não configurado. Configure em Configurações > WhatsApp.' }, 400)
@@ -85,6 +85,7 @@ Deno.serve(async (req: Request) => {
           status: 'desconectado',
           bitrix_user_id: bitrix_user_id || null,
           bitrix_user_nome: bitrix_user_nome || null,
+          profile_user_id: profile_user_id || null,
         })
         .select()
         .single()

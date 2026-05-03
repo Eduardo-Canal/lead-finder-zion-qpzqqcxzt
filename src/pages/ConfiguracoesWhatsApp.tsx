@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { MessageSquare, Wifi, WifiOff, Loader2, QrCode, Plus, Trash2, RefreshCw, Save, Clock, Bot, Store } from 'lucide-react'
+import { MessageSquare, Wifi, WifiOff, Loader2, QrCode, Plus, Trash2, RefreshCw, Save, Clock, Bot } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase/client'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -12,6 +12,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Separator } from '@/components/ui/separator'
 import { Checkbox } from '@/components/ui/checkbox'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -26,15 +33,6 @@ interface WhatsappInstance {
   bitrix_user_nome: string | null
   ativo: boolean
   ultimo_ping: string | null
-  criado_em: string
-}
-
-interface GroupConfig {
-  id: string
-  nome: string
-  group_id: string
-  descricao: string | null
-  ativo: boolean
   criado_em: string
 }
 
@@ -99,7 +97,6 @@ function QrCodeModal({
     try {
       const res = await callManageInstance({ action: 'qr', instance_id: instance.id })
       const qrData: string = res?.qr || ''
-      // Aceita base64 puro ou com prefixo data:image
       setQr(qrData.startsWith('data:') ? qrData : `data:image/png;base64,${qrData}`)
     } catch (err: any) {
       toast.error(`Erro ao obter QR Code: ${err.message}`)
@@ -238,15 +235,38 @@ export default function ConfiguracoesWhatsApp() {
     prompt_base: '',
   })
 
-  // Novo número principal
-  const [novoPrincipalNome, setNovoPrincipalNome] = useState('')
-  const [criandoPrincipal, setCriandoPrincipal] = useState(false)
-
   // Novo executivo
   const [novoExecNome, setNovoExecNome] = useState('')
   const [novoExecBitrixNome, setNovoExecBitrixNome] = useState('')
   const [novoExecBitrixId, setNovoExecBitrixId] = useState('')
   const [criandoExec, setCriandoExec] = useState(false)
+
+  // Usuários do sistema para vincular à instância
+  const [novoExecUserId, setNovoExecUserId] = useState('')
+  const [usuariosSistema, setUsuariosSistema] = useState<{
+    user_id: string
+    nome: string
+    bitrix_user_id: string | null
+    celular_corporativo: string | null
+  }[]>([])
+
+  useEffect(() => {
+    supabase
+      .from('profiles')
+      .select('user_id, nome, bitrix_user_id, celular_corporativo')
+      .eq('ativo', true)
+      .order('nome')
+      .then(({ data }) => setUsuariosSistema(data || []))
+  }, [])
+
+  const handleSelectExecUser = (userId: string) => {
+    setNovoExecUserId(userId)
+    const u = usuariosSistema.find(x => x.user_id === userId)
+    if (!u) return
+    // Auto-preenche nome e ID Bitrix a partir do cadastro do usuário
+    if (!novoExecBitrixNome) setNovoExecBitrixNome(u.nome)
+    if (!novoExecBitrixId && u.bitrix_user_id) setNovoExecBitrixId(u.bitrix_user_id)
+  }
 
   // ─── Carregamento inicial ───────────────────────────────────────────────────
 
@@ -292,27 +312,6 @@ export default function ConfiguracoesWhatsApp() {
       toast.error(`Erro ao salvar: ${err.message}`)
     } finally {
       setSaving(false)
-    }
-  }
-
-  // ─── Criar instância principal ──────────────────────────────────────────────
-
-  const handleCriarPrincipal = async () => {
-    if (!novoPrincipalNome.trim()) { toast.error('Informe um nome para a instância'); return }
-    setCriandoPrincipal(true)
-    try {
-      const res = await callManageInstance({
-        action: 'create',
-        nome: novoPrincipalNome.trim(),
-        tipo: 'principal',
-      })
-      setInstances(prev => [...prev, res.instance])
-      setNovoPrincipalNome('')
-      toast.success('Instância criada. Clique em "Conectar" para escanear o QR Code.')
-    } catch (err: any) {
-      toast.error(`Erro ao criar instância: ${err.message}`)
-    } finally {
-      setCriandoPrincipal(false)
     }
   }
 
@@ -372,11 +371,13 @@ export default function ConfiguracoesWhatsApp() {
         tipo: 'executivo',
         bitrix_user_nome: novoExecBitrixNome.trim() || undefined,
         bitrix_user_id: novoExecBitrixId.trim() || undefined,
+        profile_user_id: novoExecUserId || undefined,
       })
       setInstances(prev => [...prev, res.instance])
       setNovoExecNome('')
       setNovoExecBitrixNome('')
       setNovoExecBitrixId('')
+      setNovoExecUserId('')
       toast.success('Instância do executivo criada. Clique em "Conectar" para escanear o QR Code.')
     } catch (err: any) {
       toast.error(`Erro ao criar instância: ${err.message}`)
@@ -385,58 +386,6 @@ export default function ConfiguracoesWhatsApp() {
     }
   }
 
-  // ─── Estado grupos de feira ────────────────────────────────────────────────
-  const [grupos, setGrupos] = useState<GroupConfig[]>([])
-  const [novoGrupoNome, setNovoGrupoNome] = useState('')
-  const [novoGrupoId, setNovoGrupoId] = useState('')
-  const [novoGrupoDesc, setNovoGrupoDesc] = useState('')
-  const [criandoGrupo, setCriandoGrupo] = useState(false)
-
-  useEffect(() => {
-    supabase.from('whatsapp_group_config').select('*').order('criado_em')
-      .then(({ data }) => setGrupos(data || []))
-  }, [])
-
-  const handleCriarGrupo = async () => {
-    if (!novoGrupoNome.trim() || !novoGrupoId.trim()) {
-      toast.error('Informe o nome e o ID do grupo')
-      return
-    }
-    setCriandoGrupo(true)
-    try {
-      const groupIdClean = novoGrupoId.trim().replace(/@g\.us$/, '')
-      const { data, error } = await supabase.from('whatsapp_group_config').insert({
-        nome: novoGrupoNome.trim(),
-        group_id: groupIdClean,
-        descricao: novoGrupoDesc.trim() || null,
-        ativo: true,
-      }).select().single()
-      if (error) throw error
-      setGrupos(prev => [...prev, data])
-      setNovoGrupoNome('')
-      setNovoGrupoId('')
-      setNovoGrupoDesc('')
-      toast.success('Grupo de feira cadastrado!')
-    } catch (err: any) {
-      toast.error(`Erro: ${err.message}`)
-    } finally {
-      setCriandoGrupo(false)
-    }
-  }
-
-  const handleToggleGrupo = async (id: string, ativo: boolean) => {
-    await supabase.from('whatsapp_group_config').update({ ativo }).eq('id', id)
-    setGrupos(prev => prev.map(g => g.id === id ? { ...g, ativo } : g))
-  }
-
-  const handleDeleteGrupo = async (id: string) => {
-    if (!window.confirm('Remover este grupo de feira?')) return
-    await supabase.from('whatsapp_group_config').delete().eq('id', id)
-    setGrupos(prev => prev.filter(g => g.id !== id))
-    toast.success('Grupo removido.')
-  }
-
-  const principalInstances = instances.filter(i => i.tipo === 'principal')
   const executivoInstances = instances.filter(i => i.tipo === 'executivo')
 
   if (loading) {
@@ -453,99 +402,16 @@ export default function ConfiguracoesWhatsApp() {
         <MessageSquare className="w-7 h-7 text-green-400" />
         <div>
           <h1 className="text-2xl font-bold">WhatsApp Automation</h1>
-          <p className="text-sm text-muted-foreground">Configure a integração com uazapi.dev e o comportamento do módulo</p>
+          <p className="text-sm text-muted-foreground">Gerencie executivos, horários de atendimento e comportamento do bot</p>
         </div>
       </div>
 
-      <Tabs defaultValue="conexao">
-        <TabsList className="grid grid-cols-5 w-full max-w-2xl">
-          <TabsTrigger value="conexao">Conexão</TabsTrigger>
+      <Tabs defaultValue="executivos">
+        <TabsList className="grid grid-cols-3 w-full max-w-lg">
           <TabsTrigger value="executivos">Executivos</TabsTrigger>
-          <TabsTrigger value="grupos">Grupos Feira</TabsTrigger>
           <TabsTrigger value="atendimento">Atendimento</TabsTrigger>
           <TabsTrigger value="bot">Bot / IA</TabsTrigger>
         </TabsList>
-
-        {/* ── ABA: CONEXÃO ── */}
-        <TabsContent value="conexao" className="space-y-4 mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Credenciais uazapi.dev</CardTitle>
-              <CardDescription>Token global para gerenciar instâncias. Obtenha em uazapi.dev após criar sua conta.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-1.5">
-                <Label>URL da API</Label>
-                <Input
-                  value={config.uazapi_base_url}
-                  onChange={e => setConfig(c => ({ ...c, uazapi_base_url: e.target.value }))}
-                  placeholder="https://api.uazapi.dev"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Token Global</Label>
-                <Input
-                  type="password"
-                  value={config.uazapi_global_token}
-                  onChange={e => setConfig(c => ({ ...c, uazapi_global_token: e.target.value }))}
-                  placeholder="Token de autenticação da API"
-                />
-              </div>
-              <Button onClick={handleSaveConfig} disabled={saving}>
-                {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
-                Salvar credenciais
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Número Principal</CardTitle>
-              <CardDescription>
-                Número usado pela Zion para contato direto com leads (Débora / testes).
-                Pode ser substituído a qualquer momento sem afetar o histórico.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {principalInstances.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Nenhum número principal cadastrado.</p>
-              ) : (
-                <div className="space-y-2">
-                  {principalInstances.map(inst => (
-                    <InstanceCard
-                      key={inst.id}
-                      instance={inst}
-                      onRefreshStatus={handleRefreshStatus}
-                      onDelete={handleDelete}
-                      onDisconnect={handleDisconnect}
-                      onOpenQr={setQrTarget}
-                    />
-                  ))}
-                </div>
-              )}
-
-              <Separator />
-
-              <div className="space-y-2">
-                <Label>Adicionar / substituir número principal</Label>
-                <div className="flex gap-2">
-                  <Input
-                    value={novoPrincipalNome}
-                    onChange={e => setNovoPrincipalNome(e.target.value)}
-                    placeholder='Ex: "Número Débora" ou "Testes Eduardo"'
-                    className="flex-1"
-                  />
-                  <Button onClick={handleCriarPrincipal} disabled={criandoPrincipal}>
-                    {criandoPrincipal ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                  </Button>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Após criar, clique em "Conectar" e escaneie o QR Code com o celular.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
 
         {/* ── ABA: EXECUTIVOS ── */}
         <TabsContent value="executivos" className="space-y-4 mt-4">
@@ -604,6 +470,30 @@ export default function ConfiguracoesWhatsApp() {
                       placeholder="ID numérico"
                     />
                   </div>
+                  <div className="space-y-1.5 col-span-2">
+                    <Label className="text-xs text-muted-foreground">Usuário do sistema (para o Co-Piloto)</Label>
+                    <Select value={novoExecUserId} onValueChange={handleSelectExecUser}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Vincular a um usuário (opcional)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {usuariosSistema.map(u => (
+                          <SelectItem key={u.user_id} value={u.user_id}>
+                            {u.nome}
+                            {u.celular_corporativo && (
+                              <span className="ml-2 text-xs text-muted-foreground font-mono">
+                                · {u.celular_corporativo}
+                              </span>
+                            )}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Ao selecionar, o nome e ID Bitrix são preenchidos automaticamente.
+                      O celular corporativo cadastrado aparece como referência.
+                    </p>
+                  </div>
                 </div>
                 <Button onClick={handleCriarExecutivo} disabled={criandoExec}>
                   {criandoExec ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
@@ -612,103 +502,6 @@ export default function ConfiguracoesWhatsApp() {
                 <p className="text-xs text-muted-foreground">
                   Após criar, clique em "Conectar" e peça ao executivo para escanear o QR Code
                   com o celular dele. O número monitorado não precisa ser o principal da empresa.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* ── ABA: GRUPOS DE FEIRA ── */}
-        <TabsContent value="grupos" className="space-y-4 mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <Store className="w-4 h-4 text-orange-400" />
-                Grupos de Feira / Evento
-              </CardTitle>
-              <CardDescription>
-                Cada grupo do WhatsApp onde os executivos enviam fotos de crachás precisa estar
-                cadastrado aqui. O sistema usará o grupo_id para identificar de qual evento veio o lead.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {grupos.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Nenhum grupo cadastrado.</p>
-              ) : (
-                <div className="space-y-2">
-                  {grupos.map(g => (
-                    <div key={g.id} className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-card/50">
-                      <div className="flex items-center gap-3">
-                        <Store className={`w-7 h-7 ${g.ativo ? 'text-orange-400' : 'text-muted-foreground'}`} />
-                        <div>
-                          <p className="font-medium text-sm">{g.nome}</p>
-                          <p className="text-xs text-muted-foreground font-mono">{g.group_id}@g.us</p>
-                          {g.descricao && <p className="text-xs text-muted-foreground">{g.descricao}</p>}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant={g.ativo ? 'default' : 'secondary'} className="text-xs">
-                          {g.ativo ? 'Ativo' : 'Inativo'}
-                        </Badge>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleToggleGrupo(g.id, !g.ativo)}
-                        >
-                          {g.ativo ? 'Desativar' : 'Ativar'}
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-7 w-7 text-destructive hover:text-destructive"
-                          onClick={() => handleDeleteGrupo(g.id)}
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <Separator />
-
-              <div className="space-y-3">
-                <Label>Adicionar grupo de feira</Label>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs text-muted-foreground">Nome do evento/feira</Label>
-                    <Input
-                      value={novoGrupoNome}
-                      onChange={e => setNovoGrupoNome(e.target.value)}
-                      placeholder='Ex: "Intermodal 2026"'
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs text-muted-foreground">ID do grupo (sem @g.us)</Label>
-                    <Input
-                      value={novoGrupoId}
-                      onChange={e => setNovoGrupoId(e.target.value)}
-                      placeholder="Ex: 120363xxxxxx@g.us ou só os números"
-                      className="font-mono text-sm"
-                    />
-                  </div>
-                  <div className="space-y-1.5 col-span-2">
-                    <Label className="text-xs text-muted-foreground">Descrição (opcional)</Label>
-                    <Input
-                      value={novoGrupoDesc}
-                      onChange={e => setNovoGrupoDesc(e.target.value)}
-                      placeholder="Ex: Grupo de captura de leads — Intermodal SP 2026"
-                    />
-                  </div>
-                </div>
-                <Button onClick={handleCriarGrupo} disabled={criandoGrupo}>
-                  {criandoGrupo ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
-                  Cadastrar grupo
-                </Button>
-                <p className="text-xs text-muted-foreground">
-                  Para obter o ID do grupo: no WhatsApp Web, abra o grupo → clique em "Informações do grupo".
-                  O ID fica no final da URL ou pode ser visto em "Convite via link" (formato numérico@g.us).
                 </p>
               </div>
             </CardContent>

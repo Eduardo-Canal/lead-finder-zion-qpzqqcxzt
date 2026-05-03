@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
+import { Separator } from '@/components/ui/separator'
 import {
   Select,
   SelectContent,
@@ -33,6 +34,8 @@ export function EditUserModal({ userId, onClose }: EditUserModalProps) {
   const [email, setEmail] = useState('')
   const [perfilId, setPerfilId] = useState('')
   const [requirePasswordUpdate, setRequirePasswordUpdate] = useState(false)
+  const [bitrixUserId, setBitrixUserId] = useState('')
+  const [celularCorporativo, setCelularCorporativo] = useState('')
 
   useEffect(() => {
     if (user) {
@@ -40,6 +43,8 @@ export function EditUserModal({ userId, onClose }: EditUserModalProps) {
       setEmail(user.email)
       setPerfilId(user.perfil_id)
       setRequirePasswordUpdate(user.require_password_update || false)
+      setBitrixUserId(user.bitrix_user_id || '')
+      setCelularCorporativo(user.celular_corporativo || '')
     }
   }, [user])
 
@@ -55,6 +60,8 @@ export function EditUserModal({ userId, onClose }: EditUserModalProps) {
       email,
       perfil_id: perfilId,
       require_password_update: requirePasswordUpdate,
+      bitrix_user_id: bitrixUserId.trim() || null,
+      celular_corporativo: celularCorporativo.trim() || null,
     })
     toast.success('Usuário atualizado com sucesso!')
     onClose()
@@ -62,7 +69,7 @@ export function EditUserModal({ userId, onClose }: EditUserModalProps) {
 
   return (
     <Dialog open={!!userId} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[480px]">
         <DialogHeader>
           <DialogTitle>Editar Usuário</DialogTitle>
         </DialogHeader>
@@ -96,7 +103,35 @@ export function EditUserModal({ userId, onClose }: EditUserModalProps) {
             </Select>
           </div>
 
-          <div className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm bg-slate-50 mt-4">
+          <Separator />
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label htmlFor="bitrix_user_id">ID no Bitrix24</Label>
+              <Input
+                id="bitrix_user_id"
+                placeholder="Ex: 42"
+                value={bitrixUserId}
+                onChange={(e) => setBitrixUserId(e.target.value)}
+                className="font-mono"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="celular_corporativo">Celular Corporativo</Label>
+              <Input
+                id="celular_corporativo"
+                placeholder="Ex: 11999990000"
+                value={celularCorporativo}
+                onChange={(e) => setCelularCorporativo(e.target.value)}
+                className="font-mono"
+              />
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground -mt-2">
+            Usados para pré-preencher as instâncias WhatsApp em Configurações → WhatsApp → Executivos.
+          </p>
+
+          <div className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm bg-slate-50 mt-2">
             <div className="space-y-0.5">
               <Label className="text-sm font-medium">Exigir troca de senha</Label>
               <div className="text-[0.8rem] text-muted-foreground">

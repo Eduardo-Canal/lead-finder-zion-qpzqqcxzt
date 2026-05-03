@@ -72,14 +72,40 @@ export function AppSidebar() {
           </SidebarGroupLabel>
           <SidebarGroupContent className="pt-2">
             <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={location.pathname === '/'} tooltip="Dashboard">
-                  <Link to="/">
-                    <LayoutDashboard />
-                    <span>Dashboard</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+              <Collapsible
+                defaultOpen={location.pathname === '/' || location.pathname === '/whatsapp/dashboard'}
+                className="group/collapsible"
+              >
+                <SidebarMenuItem>
+                  <CollapsibleTrigger asChild>
+                    <SidebarMenuButton tooltip="Painel">
+                      <LayoutDashboard />
+                      <span>Painel</span>
+                      <ChevronRight className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-90" />
+                    </SidebarMenuButton>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <SidebarMenuSub>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton asChild isActive={location.pathname === '/'}>
+                          <Link to="/"><span>Dashboard</span></Link>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton
+                          asChild
+                          isActive={location.pathname === '/whatsapp/dashboard'}
+                        >
+                          <Link to="/whatsapp/dashboard">
+                            <BarChart3 className="w-4 h-4 mr-1 text-green-300" />
+                            <span>Dashboard WhatsApp</span>
+                          </Link>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                    </SidebarMenuSub>
+                  </CollapsibleContent>
+                </SidebarMenuItem>
+              </Collapsible>
 
               <Collapsible
                 defaultOpen={
@@ -145,18 +171,55 @@ export function AppSidebar() {
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+
+              <Collapsible
+                defaultOpen={location.pathname.startsWith('/automacao')}
+                className="group/collapsible"
+              >
+                <SidebarMenuItem>
+                  <CollapsibleTrigger asChild>
+                    <SidebarMenuButton tooltip="Automação">
+                      <Zap />
+                      <span>Automação</span>
+                      <ChevronRight className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-90" />
+                    </SidebarMenuButton>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <SidebarMenuSub>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton
+                          asChild
+                          isActive={location.pathname === '/automacao'}
+                        >
+                          <Link to="/automacao"><span>Automação</span></Link>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton
+                          asChild
+                          isActive={location.pathname === '/automacao/feiras'}
+                        >
+                          <Link to="/automacao/feiras"><span>Feiras</span></Link>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                    </SidebarMenuSub>
+                  </CollapsibleContent>
+                </SidebarMenuItem>
+              </Collapsible>
+
               <SidebarMenuItem>
                 <SidebarMenuButton
                   asChild
-                  isActive={location.pathname === '/automacao'}
-                  tooltip="Automação"
+                  isActive={location.pathname === '/whatsapp/copiloto'}
+                  tooltip="Co-Piloto WhatsApp"
                 >
-                  <Link to="/automacao">
-                    <Zap />
-                    <span>Automação</span>
+                  <Link to="/whatsapp/copiloto">
+                    <Bot className="text-blue-400" />
+                    <span>Co-Piloto WhatsApp</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+
               <SidebarMenuItem>
                 <SidebarMenuButton
                   asChild
@@ -297,28 +360,6 @@ export function AppSidebar() {
                               <Link to="/configuracoes/whatsapp">
                                 <MessageSquare className="w-4 h-4 mr-1 text-green-400" />
                                 <span>WhatsApp</span>
-                              </Link>
-                            </SidebarMenuSubButton>
-                          </SidebarMenuSubItem>
-                          <SidebarMenuSubItem>
-                            <SidebarMenuSubButton
-                              asChild
-                              isActive={location.pathname === '/whatsapp/copiloto'}
-                            >
-                              <Link to="/whatsapp/copiloto">
-                                <Bot className="w-4 h-4 mr-1 text-blue-400" />
-                                <span>Co-Piloto WhatsApp</span>
-                              </Link>
-                            </SidebarMenuSubButton>
-                          </SidebarMenuSubItem>
-                          <SidebarMenuSubItem>
-                            <SidebarMenuSubButton
-                              asChild
-                              isActive={location.pathname === '/whatsapp/dashboard'}
-                            >
-                              <Link to="/whatsapp/dashboard">
-                                <BarChart3 className="w-4 h-4 mr-1 text-green-300" />
-                                <span>Dashboard WhatsApp</span>
                               </Link>
                             </SidebarMenuSubButton>
                           </SidebarMenuSubItem>

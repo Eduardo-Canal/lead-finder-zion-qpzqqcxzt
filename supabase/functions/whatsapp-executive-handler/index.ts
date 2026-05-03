@@ -23,25 +23,18 @@ async function findBitrixEntityByPhone(
   phone: string,
 ): Promise<{ id: string; tipo: 'lead' | 'contact' | null }> {
   const digits = phone.replace(/\D/g, '')
-  // Remove prefixo 55 para busca mais ampla
   const phoneVariants = [digits, digits.startsWith('55') ? digits.slice(2) : `55${digits}`]
 
   for (const variant of phoneVariants) {
     try {
-      // Busca em leads
-      const resLead = await fetch(
+      // Uma única request retorna LEAD e CONTACT no mesmo resultado
+      const res = await fetch(
         `${bitrixUrl}crm.duplicate.findByComm.json?type=PHONE&values[]=${encodeURIComponent(variant)}`,
       )
-      const dataLead = await resLead.json()
-      const leads: number[] = dataLead?.result?.LEAD || []
+      const data = await res.json()
+      const leads: number[] = data?.result?.LEAD || []
       if (leads.length > 0) return { id: String(leads[0]), tipo: 'lead' }
-
-      // Busca em contatos
-      const resContact = await fetch(
-        `${bitrixUrl}crm.duplicate.findByComm.json?type=PHONE&values[]=${encodeURIComponent(variant)}`,
-      )
-      const dataContact = await resContact.json()
-      const contacts: number[] = dataContact?.result?.CONTACT || []
+      const contacts: number[] = data?.result?.CONTACT || []
       if (contacts.length > 0) return { id: String(contacts[0]), tipo: 'contact' }
     } catch {
       // ignora erros de busca
@@ -167,6 +160,7 @@ Deno.serve(async (req: Request) => {
     if (convData?.bitrix_entity_id) {
       bitrixEntityId = convData.bitrix_entity_id
       bitrixEntityType = (convData.bitrix_entity_type as any) || 'lead'
+      entityTypeId = bitrixEntityType === 'contact' ? 3 : 1
     } else if (bitrixUrl) {
       const found = await findBitrixEntityByPhone(bitrixUrl, phone)
       if (found.id) {

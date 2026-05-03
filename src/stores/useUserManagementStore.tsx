@@ -29,6 +29,8 @@ export type ProfileTable = {
   perfil_id: string
   ativo: boolean
   require_password_update: boolean
+  bitrix_user_id: string | null
+  celular_corporativo: string | null
 }
 
 export type PerfilTable = {
@@ -202,6 +204,8 @@ export function UserManagementStoreProvider({ children }: { children: ReactNode 
           perfil_id: data.perfil_id,
           ativo: data.ativo,
           require_password_update: data.require_password_update,
+          bitrix_user_id: data.bitrix_user_id || null,
+          celular_corporativo: data.celular_corporativo || null,
         })
 
         if (profileError) throw new Error(profileError.message)

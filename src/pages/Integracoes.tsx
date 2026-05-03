@@ -34,6 +34,7 @@ import { useActivityLogger } from '@/hooks/use-activity-logger'
 import ConfiguracoesBitrix from './ConfiguracoesBitrix'
 import ConfiguracoesAvancadas from './ConfiguracoesAvancadas'
 import ConfiguracoesContaAzul from './ConfiguracoesContaAzul'
+import WhatsAppConexaoTab from './WhatsAppConexaoTab'
 
 export default function Integracoes() {
   const { user, hasPermission } = useAuthStore()
@@ -196,7 +197,7 @@ export default function Integracoes() {
       </div>
 
       <Tabs defaultValue="openai" className="space-y-6">
-        <TabsList className="grid grid-cols-2 sm:grid-cols-4 w-full">
+        <TabsList className="grid grid-cols-2 sm:grid-cols-5 w-full">
           <TabsTrigger value="openai" className="flex items-center justify-center gap-2">
             <Bot className="w-4 h-4 hidden sm:block" /> OpenAI
           </TabsTrigger>
@@ -208,6 +209,9 @@ export default function Integracoes() {
           </TabsTrigger>
           <TabsTrigger value="casadosdados" className="flex items-center justify-center gap-2">
             <Database className="w-4 h-4 hidden sm:block" /> Casa dos Dados
+          </TabsTrigger>
+          <TabsTrigger value="whatsapp" className="flex items-center justify-center gap-2">
+            <MessageSquare className="w-4 h-4 hidden sm:block" /> WhatsApp
           </TabsTrigger>
         </TabsList>
 
@@ -405,6 +409,18 @@ export default function Integracoes() {
               </p>
             </div>
             <ConfiguracoesAvancadas embedded />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="whatsapp" className="animate-in fade-in-50 duration-500">
+          <div className="bg-card rounded-xl border shadow-sm p-6">
+            <div className="mb-6">
+              <h3 className="text-lg font-medium">Integração WhatsApp (uazapi.dev)</h3>
+              <p className="text-sm text-muted-foreground">
+                Configure as credenciais da API e o número principal de atendimento.
+              </p>
+            </div>
+            <WhatsAppConexaoTab />
           </div>
         </TabsContent>
       </Tabs>

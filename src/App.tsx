@@ -62,6 +62,7 @@ const Automacao = lazyWithRetry(() => import('@/pages/Automacao'))
 const ConfiguracoesWhatsApp = lazyWithRetry(() => import('@/pages/ConfiguracoesWhatsApp'))
 const WhatsAppCopiloto = lazyWithRetry(() => import('@/pages/WhatsAppCopiloto'))
 const WhatsAppDashboard = lazyWithRetry(() => import('@/pages/WhatsAppDashboard'))
+const AutomacaoFeiras = lazyWithRetry(() => import('@/pages/AutomacaoFeiras'))
 
 const GlobalLoading = () => (
   <div className="flex min-h-screen w-full items-center justify-center bg-background/50 backdrop-blur-sm">
@@ -132,6 +133,7 @@ const App = () => (
                     <Route path="/cnae-details" element={<CnaeDetails />} />
                     <Route path="/analise-carteira" element={<AnaliseCarteira />} />
                     <Route path="/automacao" element={<Automacao />} />
+                    <Route path="/automacao/feiras" element={<AutomacaoFeiras />} />
                     <Route path="/prospeccao" element={<Prospeccao />} />
                     <Route path="/meus-leads" element={<MyLeads />} />
                     <Route path="/meu-historico" element={<SearchHistory />} />
