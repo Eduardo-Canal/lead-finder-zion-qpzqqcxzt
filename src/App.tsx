@@ -61,6 +61,7 @@ const TechnicalSpecs = lazyWithRetry(() => import('@/pages/TechnicalSpecs'))
 const Automacao = lazyWithRetry(() => import('@/pages/Automacao'))
 const ConfiguracoesWhatsApp = lazyWithRetry(() => import('@/pages/ConfiguracoesWhatsApp'))
 const WhatsAppCopiloto = lazyWithRetry(() => import('@/pages/WhatsAppCopiloto'))
+const WhatsAppDashboard = lazyWithRetry(() => import('@/pages/WhatsAppDashboard'))
 
 const GlobalLoading = () => (
   <div className="flex min-h-screen w-full items-center justify-center bg-background/50 backdrop-blur-sm">
@@ -161,6 +162,7 @@ const App = () => (
                       element={<ConfiguracoesWhatsApp />}
                     />
                     <Route path="/whatsapp/copiloto" element={<WhatsAppCopiloto />} />
+                    <Route path="/whatsapp/dashboard" element={<WhatsAppDashboard />} />
                   </Route>
                   <Route path="/oauth/conta-azul/callback" element={<ContaAzulCallback />} />
                   <Route path="*" element={<NotFound />} />

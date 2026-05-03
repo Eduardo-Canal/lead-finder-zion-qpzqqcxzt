@@ -16,6 +16,7 @@ import {
   Zap,
   MessageSquare,
   Bot,
+  BarChart3,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -307,6 +308,17 @@ export function AppSidebar() {
                               <Link to="/whatsapp/copiloto">
                                 <Bot className="w-4 h-4 mr-1 text-blue-400" />
                                 <span>Co-Piloto WhatsApp</span>
+                              </Link>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                          <SidebarMenuSubItem>
+                            <SidebarMenuSubButton
+                              asChild
+                              isActive={location.pathname === '/whatsapp/dashboard'}
+                            >
+                              <Link to="/whatsapp/dashboard">
+                                <BarChart3 className="w-4 h-4 mr-1 text-green-300" />
+                                <span>Dashboard WhatsApp</span>
                               </Link>
                             </SidebarMenuSubButton>
                           </SidebarMenuSubItem>
