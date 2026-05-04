@@ -242,6 +242,7 @@ export default function ConfiguracoesWhatsApp() {
   const [novoExecNome, setNovoExecNome] = useState('')
   const [novoExecBitrixNome, setNovoExecBitrixNome] = useState('')
   const [novoExecBitrixId, setNovoExecBitrixId] = useState('')
+  const [novoExecInstanceKey, setNovoExecInstanceKey] = useState('')
   const [criandoExec, setCriandoExec] = useState(false)
 
   // Usuários do sistema para vincular à instância
@@ -375,12 +376,14 @@ export default function ConfiguracoesWhatsApp() {
         bitrix_user_nome: novoExecBitrixNome.trim() || undefined,
         bitrix_user_id: novoExecBitrixId.trim() || undefined,
         profile_user_id: novoExecUserId || undefined,
+        instance_key: novoExecInstanceKey.trim() || undefined,
       })
       setInstances(prev => [...prev, res.instance])
       setNovoExecNome('')
       setNovoExecBitrixNome('')
       setNovoExecBitrixId('')
       setNovoExecUserId('')
+      setNovoExecInstanceKey('')
       toast.success('Instância do executivo criada. Clique em "Conectar" para escanear o QR Code.')
     } catch (err: any) {
       toast.error(`Erro ao criar instância: ${err.message}`)
@@ -495,6 +498,21 @@ export default function ConfiguracoesWhatsApp() {
                     <p className="text-xs text-muted-foreground">
                       Ao selecionar, o nome e ID Bitrix são preenchidos automaticamente.
                       O celular corporativo cadastrado aparece como referência.
+                    </p>
+                  </div>
+                  <div className="space-y-1.5 col-span-2">
+                    <Label className="text-xs text-muted-foreground">
+                      Chave da instância uazapi <span className="text-muted-foreground/60">(opcional — apenas para tier gratuito)</span>
+                    </Label>
+                    <Input
+                      value={novoExecInstanceKey}
+                      onChange={e => setNovoExecInstanceKey(e.target.value)}
+                      placeholder="Ex: minha-instancia-123"
+                      className="font-mono text-sm"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Preencha somente se você criou a instância manualmente no painel uazapi.dev.
+                      Deixe vazio para criar automaticamente (requer servidor pago).
                     </p>
                   </div>
                 </div>

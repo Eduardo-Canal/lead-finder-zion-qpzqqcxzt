@@ -188,6 +188,7 @@ export default function WhatsAppConexaoTab() {
     uazapi_global_token: '',
   })
   const [novoPrincipalNome, setNovoPrincipalNome] = useState('')
+  const [novoPrincipalInstanceKey, setNovoPrincipalInstanceKey] = useState('')
   const [criandoPrincipal, setCriandoPrincipal] = useState(false)
 
   useEffect(() => {
@@ -239,9 +240,11 @@ export default function WhatsAppConexaoTab() {
         action: 'create',
         nome: novoPrincipalNome.trim(),
         tipo: 'principal',
+        instance_key: novoPrincipalInstanceKey.trim() || undefined,
       })
       setInstances(prev => [...prev, res.instance])
       setNovoPrincipalNome('')
+      setNovoPrincipalInstanceKey('')
       toast.success('Instância criada. Clique em "Conectar" para escanear o QR Code.')
     } catch (err: any) {
       toast.error(`Erro ao criar instância: ${err.message}`)
@@ -348,7 +351,7 @@ export default function WhatsAppConexaoTab() {
 
           <Separator />
 
-          <div className="space-y-2">
+          <div className="space-y-3">
             <Label>Adicionar / substituir número principal</Label>
             <div className="flex gap-2">
               <Input
@@ -361,8 +364,20 @@ export default function WhatsAppConexaoTab() {
                 {criandoPrincipal ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
               </Button>
             </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">
+                Chave da instância uazapi <span className="text-muted-foreground/60">(apenas tier gratuito)</span>
+              </Label>
+              <Input
+                value={novoPrincipalInstanceKey}
+                onChange={e => setNovoPrincipalInstanceKey(e.target.value)}
+                placeholder="Nome da instância criada no painel uazapi.dev"
+                className="font-mono text-sm"
+              />
+            </div>
             <p className="text-xs text-muted-foreground">
               Após criar, clique em "Conectar" e escaneie o QR Code com o celular.
+              Para o tier gratuito: crie a instância em uazapi.dev e informe o nome acima.
             </p>
           </div>
         </CardContent>

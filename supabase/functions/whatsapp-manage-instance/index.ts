@@ -66,19 +66,27 @@ Deno.serve(async (req: Request) => {
 
     // ── CREATE — criar nova instância no uazapi.dev e salvar no banco ─────────
     if (action === 'create') {
-      const { nome, tipo, bitrix_user_id, bitrix_user_nome, profile_user_id } = payload
+      const { nome, tipo, bitrix_user_id, bitrix_user_nome, profile_user_id, instance_key: providedKey } = payload
 
       if (!nome) return json({ error: 'Campo "nome" obrigatório' }, 400)
-      if (!globalToken) return json({ error: 'Token uazapi não configurado. Configure em Configurações > WhatsApp.' }, 400)
 
-      // Gerar instance_key único: só alfanumérico, máx 20 chars (compatível com uazapi)
-      const nomeSlug = nome.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 8) || 'inst'
-      const instanceKey = `zion${nomeSlug}${Date.now().toString(36)}`
+      let instanceKey: string
+      let uazapiRes: any = null
 
-      // Criar instância no uazapi.dev
-      const uazapiRes = await uazapiRequest(baseUrl, globalToken, '/instance/create', 'POST', {
-        instanceName: instanceKey,
-      })
+      if (providedKey?.trim()) {
+        // Tier gratuito / instância já criada no painel uazapi.dev
+        instanceKey = providedKey.trim()
+      } else {
+        // Servidor dedicado: criar programaticamente via API
+        if (!globalToken) return json({ error: 'Token uazapi não configurado. Configure em Configurações > WhatsApp.' }, 400)
+
+        const nomeSlug = nome.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 8) || 'inst'
+        instanceKey = `zion${nomeSlug}${Date.now().toString(36)}`
+
+        uazapiRes = await uazapiRequest(baseUrl, globalToken, '/instance/create', 'POST', {
+          instanceName: instanceKey,
+        })
+      }
 
       const { data: instance, error: insertError } = await supabase
         .from('whatsapp_instances')
