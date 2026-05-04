@@ -31,7 +31,10 @@ interface ConexaoConfig {
 
 async function callManageInstance(payload: any) {
   const { data, error } = await supabase.functions.invoke('whatsapp-manage-instance', { body: payload })
-  if (error) throw new Error(error.message)
+  if (error) {
+    const body = await (error as any).context?.json?.().catch(() => null)
+    throw new Error(body?.error || error.message)
+  }
   if (data?.error) throw new Error(data.error)
   return data
 }
