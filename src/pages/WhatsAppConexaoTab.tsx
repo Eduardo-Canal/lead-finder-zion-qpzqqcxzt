@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { MessageSquare, Wifi, WifiOff, Loader2, QrCode, Plus, Trash2, RefreshCw, Save } from 'lucide-react'
+import { MessageSquare, Wifi, WifiOff, Loader2, QrCode, Plus, Trash2, RefreshCw, Save, KeyRound } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase/client'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -16,6 +16,7 @@ interface WhatsappInstance {
   numero: string
   tipo: 'principal' | 'executivo'
   instance_key: string
+  instance_token: string | null
   status: 'desconectado' | 'conectando' | 'conectado' | 'erro'
   bitrix_user_id: string | null
   bitrix_user_nome: string | null
@@ -135,45 +136,96 @@ function InstanceCard({
   onDelete,
   onDisconnect,
   onOpenQr,
+  onTokenUpdated,
 }: {
   instance: WhatsappInstance
   onRefreshStatus: (id: string) => void
   onDelete: (id: string) => void
   onDisconnect: (id: string) => void
   onOpenQr: (instance: WhatsappInstance) => void
+  onTokenUpdated: (id: string, token: string) => void
 }) {
+  const [showTokenEdit, setShowTokenEdit] = useState(false)
+  const [tokenInput, setTokenInput] = useState(instance.instance_token || '')
+  const [savingToken, setSavingToken] = useState(false)
+
+  const handleSaveToken = async () => {
+    setSavingToken(true)
+    try {
+      await callManageInstance({ action: 'update_token', instance_id: instance.id, instance_token: tokenInput })
+      onTokenUpdated(instance.id, tokenInput)
+      setShowTokenEdit(false)
+      toast.success('Token da instância salvo.')
+    } catch (err: any) {
+      toast.error(`Erro ao salvar token: ${err.message}`)
+    } finally {
+      setSavingToken(false)
+    }
+  }
+
   return (
-    <div className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-card/50">
-      <div className="flex items-center gap-3">
-        <MessageSquare className="w-8 h-8 text-green-400 shrink-0" />
-        <div>
-          <p className="font-medium text-sm">{instance.nome}</p>
-          <p className="text-xs text-muted-foreground">
-            {instance.numero ? instance.numero : 'Número não conectado'}
-          </p>
+    <div className="rounded-lg border border-border/50 bg-card/50">
+      <div className="flex items-center justify-between p-3">
+        <div className="flex items-center gap-3">
+          <MessageSquare className="w-8 h-8 text-green-400 shrink-0" />
+          <div>
+            <p className="font-medium text-sm">{instance.nome}</p>
+            <p className="text-xs text-muted-foreground">
+              {instance.numero ? instance.numero : 'Número não conectado'}
+            </p>
+            {instance.instance_token && (
+              <p className="text-xs text-green-600/70">Token configurado</p>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <StatusBadge status={instance.status} />
+          {instance.status !== 'conectado' && (
+            <Button size="sm" variant="outline" onClick={() => onOpenQr(instance)}>
+              <QrCode className="w-3 h-3 mr-1" />
+              Conectar
+            </Button>
+          )}
+          {instance.status === 'conectado' && (
+            <Button size="sm" variant="outline" onClick={() => onDisconnect(instance.id)}>
+              <WifiOff className="w-3 h-3 mr-1" />
+              Desconectar
+            </Button>
+          )}
+          <Button
+            size="icon" variant="ghost" className="h-7 w-7"
+            onClick={() => setShowTokenEdit(v => !v)}
+            title="Configurar token da instância"
+          >
+            <KeyRound className="w-3 h-3" />
+          </Button>
+          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => onRefreshStatus(instance.id)} title="Verificar status">
+            <RefreshCw className="w-3 h-3" />
+          </Button>
+          <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => onDelete(instance.id)} title="Remover">
+            <Trash2 className="w-3 h-3" />
+          </Button>
         </div>
       </div>
-      <div className="flex items-center gap-2">
-        <StatusBadge status={instance.status} />
-        {instance.status !== 'conectado' && (
-          <Button size="sm" variant="outline" onClick={() => onOpenQr(instance)}>
-            <QrCode className="w-3 h-3 mr-1" />
-            Conectar
-          </Button>
-        )}
-        {instance.status === 'conectado' && (
-          <Button size="sm" variant="outline" onClick={() => onDisconnect(instance.id)}>
-            <WifiOff className="w-3 h-3 mr-1" />
-            Desconectar
-          </Button>
-        )}
-        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => onRefreshStatus(instance.id)} title="Verificar status">
-          <RefreshCw className="w-3 h-3" />
-        </Button>
-        <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => onDelete(instance.id)} title="Remover">
-          <Trash2 className="w-3 h-3" />
-        </Button>
-      </div>
+      {showTokenEdit && (
+        <div className="px-3 pb-3 border-t border-border/30 pt-2 space-y-2">
+          <Label className="text-xs text-muted-foreground">Instance Token (uazapi.dev)</Label>
+          <div className="flex gap-2">
+            <Input
+              value={tokenInput}
+              onChange={e => setTokenInput(e.target.value)}
+              placeholder="Cole o Instance Token do painel uazapi.dev"
+              className="font-mono text-xs flex-1"
+            />
+            <Button size="sm" onClick={handleSaveToken} disabled={savingToken}>
+              {savingToken ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            No uazapi.dev, clique na instância → copie o "Instance Token". Necessário para QR Code e envio de mensagens.
+          </p>
+        </div>
+      )}
     </div>
   )
 }
@@ -189,6 +241,7 @@ export default function WhatsAppConexaoTab() {
   })
   const [novoPrincipalNome, setNovoPrincipalNome] = useState('')
   const [novoPrincipalInstanceKey, setNovoPrincipalInstanceKey] = useState('')
+  const [novoPrincipalInstanceToken, setNovoPrincipalInstanceToken] = useState('')
   const [criandoPrincipal, setCriandoPrincipal] = useState(false)
 
   useEffect(() => {
@@ -241,16 +294,22 @@ export default function WhatsAppConexaoTab() {
         nome: novoPrincipalNome.trim(),
         tipo: 'principal',
         instance_key: novoPrincipalInstanceKey.trim() || undefined,
+        instance_token: novoPrincipalInstanceToken.trim() || undefined,
       })
       setInstances(prev => [...prev, res.instance])
       setNovoPrincipalNome('')
       setNovoPrincipalInstanceKey('')
+      setNovoPrincipalInstanceToken('')
       toast.success('Instância criada. Clique em "Conectar" para escanear o QR Code.')
     } catch (err: any) {
       toast.error(`Erro ao criar instância: ${err.message}`)
     } finally {
       setCriandoPrincipal(false)
     }
+  }
+
+  const handleTokenUpdated = (id: string, token: string) => {
+    setInstances(prev => prev.map(i => i.id === id ? { ...i, instance_token: token } : i))
   }
 
   const handleRefreshStatus = async (id: string) => {
@@ -344,6 +403,7 @@ export default function WhatsAppConexaoTab() {
                   onDelete={handleDelete}
                   onDisconnect={handleDisconnect}
                   onOpenQr={setQrTarget}
+                  onTokenUpdated={handleTokenUpdated}
                 />
               ))}
             </div>
@@ -366,18 +426,29 @@ export default function WhatsAppConexaoTab() {
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">
-                Chave da instância uazapi <span className="text-muted-foreground/60">(apenas tier gratuito)</span>
+                Nome da instância (uazapi) <span className="text-muted-foreground/60">— tier gratuito</span>
               </Label>
               <Input
                 value={novoPrincipalInstanceKey}
                 onChange={e => setNovoPrincipalInstanceKey(e.target.value)}
-                placeholder="Nome da instância criada no painel uazapi.dev"
+                placeholder="Nome criado no painel uazapi.dev"
+                className="font-mono text-sm"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">
+                Instance Token (uazapi) <span className="text-muted-foreground/60">— tier gratuito</span>
+              </Label>
+              <Input
+                value={novoPrincipalInstanceToken}
+                onChange={e => setNovoPrincipalInstanceToken(e.target.value)}
+                placeholder="Token da instância — visível no painel uazapi.dev"
                 className="font-mono text-sm"
               />
             </div>
             <p className="text-xs text-muted-foreground">
+              Crie a instância em uazapi.dev, copie o nome e o Instance Token, e informe acima.
               Após criar, clique em "Conectar" e escaneie o QR Code com o celular.
-              Para o tier gratuito: crie a instância em uazapi.dev e informe o nome acima.
             </p>
           </div>
         </CardContent>
