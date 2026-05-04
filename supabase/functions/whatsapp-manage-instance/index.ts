@@ -29,23 +29,25 @@ async function uazapiRequest(
 }
 
 /**
- * Para o tier gratuito (free.uazapi.com), cada instância tem seu próprio token.
- * As operações por instância usam esse token diretamente na URL base (sem /instance/{key}).
- * Para servidor dedicado (pago), usa o token global com /instance/{key}/{op}.
+ * Roteia chamadas por instância para o tier correto:
+ * - Free tier: instance token próprio → path enviado diretamente (ex: /instance/connect)
+ * - Tier pago: admin token → /instance/{key} é substituído no início do path
+ *   (ex: /instance/connect → /instance/{key}/connect)
  */
 function instanceApiRequest(
   baseUrl: string,
   globalToken: string,
   instanceKey: string,
   instanceToken: string | null | undefined,
-  operation: string,
+  path: string,
   method = 'GET',
   body?: any,
 ): Promise<any> {
   if (instanceToken?.trim()) {
-    return uazapiRequest(baseUrl, instanceToken.trim(), operation, method, body)
+    return uazapiRequest(baseUrl, instanceToken.trim(), path, method, body)
   }
-  return uazapiRequest(baseUrl, globalToken, `/instance/${instanceKey}${operation}`, method, body)
+  const paidPath = path.replace(/^\/instance/, `/instance/${instanceKey}`)
+  return uazapiRequest(baseUrl, globalToken, paidPath, method, body)
 }
 
 // ─── Handler principal ────────────────────────────────────────────────────────
@@ -160,11 +162,13 @@ Deno.serve(async (req: Request) => {
         .update({ status: 'conectando', atualizado_em: new Date().toISOString() })
         .eq('id', instance_id)
 
-      const qrRes = await instanceApiRequest(
-        baseUrl, globalToken, instance.instance_key, instance.instance_token, '/qr',
+      // Endpoint correto: POST /instance/connect — QR retorna em instance.qrcode
+      const connectRes = await instanceApiRequest(
+        baseUrl, globalToken, instance.instance_key, instance.instance_token, '/instance/connect', 'POST',
       )
 
-      return json({ qr: qrRes?.qrcode || qrRes?.base64 || qrRes?.qr || qrRes })
+      const qr = connectRes?.instance?.qrcode || connectRes?.qrcode || connectRes?.base64 || connectRes?.qr
+      return json({ qr })
     }
 
     // ── STATUS ────────────────────────────────────────────────────────────────
@@ -180,12 +184,14 @@ Deno.serve(async (req: Request) => {
 
       if (!instance) return json({ error: 'Instância não encontrada' }, 404)
 
+      // Endpoint correto: GET /instance/status
+      // Resposta: { instance: { status, qrcode, ... }, status: { connected, loggedIn, jid } }
       const statusRes = await instanceApiRequest(
-        baseUrl, globalToken, instance.instance_key, instance.instance_token, '/status',
+        baseUrl, globalToken, instance.instance_key, instance.instance_token, '/instance/status',
       )
 
-      const rawStatus: string = statusRes?.state || statusRes?.status || statusRes?.connection || ''
-      const connected = rawStatus === 'open' || rawStatus === 'connected'
+      const connected = statusRes?.status?.connected === true || statusRes?.status?.loggedIn === true
+      const rawStatus: string = statusRes?.instance?.status || statusRes?.status?.state || ''
       const newStatus = connected ? 'conectado' : 'desconectado'
 
       await supabase
@@ -214,8 +220,9 @@ Deno.serve(async (req: Request) => {
       if (!instance) return json({ error: 'Instância não encontrada' }, 404)
 
       if (instance.instance_token || globalToken) {
+        // Endpoint correto: POST /instance/disconnect
         await instanceApiRequest(
-          baseUrl, globalToken, instance.instance_key, instance.instance_token, '/logout', 'DELETE',
+          baseUrl, globalToken, instance.instance_key, instance.instance_token, '/instance/disconnect', 'POST',
         ).catch(() => {/* ignora se já estava desconectado */})
       }
 
@@ -240,10 +247,11 @@ Deno.serve(async (req: Request) => {
 
       if (!instance) return json({ error: 'Instância não encontrada' }, 404)
 
-      // Para servidor dedicado (pago) com admin token, remove via API
-      if (globalToken && !instance.instance_token) {
-        await uazapiRequest(baseUrl, globalToken, `/instance/${instance.instance_key}/delete`, 'DELETE')
-          .catch(() => {})
+      // Endpoint correto: DELETE /instance (usa token da própria instância ou admin token)
+      if (instance.instance_token || globalToken) {
+        await instanceApiRequest(
+          baseUrl, globalToken, instance.instance_key, instance.instance_token, '/instance', 'DELETE',
+        ).catch(() => {})
       }
 
       await supabase
