@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { MessageSquare, Wifi, WifiOff, Loader2, QrCode, Plus, Trash2, RefreshCw, Save, Clock, Bot, KeyRound } from 'lucide-react'
+import { MessageSquare, Wifi, WifiOff, Loader2, QrCode, Plus, Trash2, RefreshCw, Save, Clock, Bot, KeyRound, Link2, ShieldOff, CheckCircle2, AlertCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase/client'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -46,6 +46,8 @@ interface ModuleConfig {
   responsavel_bitrix_id: string
   responsavel_nome: string
   prompt_base: string
+  chatbot_stop_keyword: string
+  chatbot_stop_minutes: number
 }
 
 const DIAS_SEMANA = [
@@ -288,7 +290,11 @@ export default function ConfiguracoesWhatsApp() {
     responsavel_bitrix_id: '',
     responsavel_nome: '',
     prompt_base: '',
+    chatbot_stop_keyword: 'parar',
+    chatbot_stop_minutes: 60,
   })
+  const [registeringWebhook, setRegisteringWebhook] = useState(false)
+  const [webhookResults, setWebhookResults] = useState<{ id: string; status: string; message?: string }[] | null>(null)
 
   // Novo executivo
   const [novoExecNome, setNovoExecNome] = useState('')
@@ -346,6 +352,8 @@ export default function ConfiguracoesWhatsApp() {
             responsavel_bitrix_id: c.responsavel_bitrix_id || '',
             responsavel_nome: c.responsavel_nome || '',
             prompt_base: c.prompt_base || '',
+            chatbot_stop_keyword: c.chatbot_stop_keyword || 'parar',
+            chatbot_stop_minutes: c.chatbot_stop_minutes ?? 60,
           })
         }
         setInstances((instancesRes?.instances || []).filter((i: WhatsappInstance) => i.ativo))
@@ -418,6 +426,22 @@ export default function ConfiguracoesWhatsApp() {
 
   const handleTokenUpdated = (id: string, token: string) => {
     setInstances(prev => prev.map(i => i.id === id ? { ...i, instance_token: token } : i))
+  }
+
+  const handleRegisterWebhooks = async () => {
+    setRegisteringWebhook(true)
+    setWebhookResults(null)
+    try {
+      const res = await callManageInstance({ action: 'register_webhook' })
+      setWebhookResults(res.results || [])
+      const erros = (res.results || []).filter((r: any) => r.status !== 'ok').length
+      if (erros === 0) toast.success('Webhooks registrados em todas as instâncias!')
+      else toast.warning(`Webhooks registrados com ${erros} erro(s). Verifique os tokens.`)
+    } catch (err: any) {
+      toast.error(`Erro ao registrar webhooks: ${err.message}`)
+    } finally {
+      setRegisteringWebhook(false)
+    }
   }
 
   // ─── Criar instância executiva ──────────────────────────────────────────────
@@ -683,6 +707,104 @@ export default function ConfiguracoesWhatsApp() {
 
         {/* ── ABA: BOT / IA ── */}
         <TabsContent value="bot" className="space-y-4 mt-4">
+
+          {/* Webhook */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Link2 className="w-4 h-4" />
+                Recebimento de Mensagens (Webhook)
+              </CardTitle>
+              <CardDescription>
+                Registra a URL do webhook no uazapi para que as mensagens recebidas cheguem ao
+                sistema. Deve ser feito uma vez por instância. Repita se trocar o token.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Button
+                onClick={handleRegisterWebhooks}
+                disabled={registeringWebhook}
+                variant="outline"
+              >
+                {registeringWebhook
+                  ? <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  : <Link2 className="w-4 h-4 mr-2" />}
+                Registrar webhook em todas as instâncias
+              </Button>
+
+              {webhookResults && (
+                <div className="space-y-1 pt-1">
+                  {webhookResults.map(r => {
+                    const inst = instances.find(i => i.id === r.id)
+                    return (
+                      <div key={r.id} className="flex items-center gap-2 text-xs">
+                        {r.status === 'ok'
+                          ? <CheckCircle2 className="w-3 h-3 text-green-400 shrink-0" />
+                          : <AlertCircle className="w-3 h-3 text-yellow-400 shrink-0" />}
+                        <span className="font-medium">{inst?.nome || r.id}</span>
+                        <span className="text-muted-foreground">
+                          {r.status === 'ok' ? 'registrado' : r.status === 'sem_token' ? 'sem token configurado' : r.message}
+                        </span>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground">
+                Instâncias sem token configurado aparecerão como "sem token". Configure o Instance Token
+                na aba Executivos antes de registrar.
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Pausa do bot */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <ShieldOff className="w-4 h-4" />
+                Pausa do Bot
+              </CardTitle>
+              <CardDescription>
+                Palavra-chave que o cliente pode digitar para solicitar atendimento humano
+                e pausar o bot naquela conversa.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label>Palavra-chave de pausa</Label>
+                  <Input
+                    value={config.chatbot_stop_keyword}
+                    onChange={e => setConfig(c => ({ ...c, chatbot_stop_keyword: e.target.value }))}
+                    placeholder="parar"
+                    className="font-mono"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Quando o cliente digitar exatamente esta palavra, o bot para e notifica o responsável.
+                  </p>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Duração da pausa (minutos)</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={config.chatbot_stop_minutes}
+                    onChange={e => setConfig(c => ({ ...c, chatbot_stop_minutes: Number(e.target.value) }))}
+                    placeholder="60"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Tempo de referência para o atendente. O bot só volta se reativado manualmente.
+                  </p>
+                </div>
+              </div>
+              <Button onClick={handleSaveConfig} disabled={saving}>
+                {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+                Salvar configurações do bot
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Prompt */}
           <Card>
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">

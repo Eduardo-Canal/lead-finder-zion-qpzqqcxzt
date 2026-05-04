@@ -275,11 +275,55 @@ Deno.serve(async (req: Request) => {
       return json({ success: true })
     }
 
+    // ── REGISTER_WEBHOOK — registra URL do webhook em todas as instâncias ────────
+    if (action === 'register_webhook') {
+      const { instance_id } = payload
+      const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
+      const webhookSecret = Deno.env.get('WHATSAPP_WEBHOOK_SECRET') || ''
+      const webhookUrl = webhookSecret
+        ? `${supabaseUrl}/functions/v1/whatsapp-webhook-router?secret=${webhookSecret}`
+        : `${supabaseUrl}/functions/v1/whatsapp-webhook-router`
+
+      const query = supabase
+        .from('whatsapp_instances')
+        .select('id, instance_key, instance_token')
+        .eq('ativo', true)
+      if (instance_id) query.eq('id', instance_id)
+
+      const { data: instances, error: listErr } = await query
+      if (listErr) throw listErr
+
+      const results: any[] = []
+      for (const inst of instances || []) {
+        if (!inst.instance_token && !globalToken) {
+          results.push({ id: inst.id, status: 'sem_token' })
+          continue
+        }
+        try {
+          await instanceApiRequest(
+            baseUrl, globalToken, inst.instance_key, inst.instance_token,
+            '/webhook', 'POST',
+            {
+              enabled: true,
+              url: webhookUrl,
+              events: ['messages', 'connection'],
+              excludeMessages: ['wasSentByApi'],
+            },
+          )
+          results.push({ id: inst.id, status: 'ok' })
+        } catch (e: any) {
+          results.push({ id: inst.id, status: 'erro', message: e.message })
+        }
+      }
+      return json({ results, webhook_url: webhookUrl })
+    }
+
     // ── SAVE_CONFIG ───────────────────────────────────────────────────────────
     if (action === 'save_config') {
       const {
         uazapi_base_url, uazapi_global_token, horario_inicio, horario_fim,
         dias_semana, responsavel_bitrix_id, responsavel_nome, prompt_base,
+        chatbot_stop_keyword, chatbot_stop_minutes,
       } = payload
 
       const updates: any = { atualizado_em: new Date().toISOString() }
@@ -291,6 +335,8 @@ Deno.serve(async (req: Request) => {
       if (responsavel_bitrix_id !== undefined) updates.responsavel_bitrix_id = responsavel_bitrix_id
       if (responsavel_nome !== undefined) updates.responsavel_nome = responsavel_nome
       if (prompt_base !== undefined) updates.prompt_base = prompt_base
+      if (chatbot_stop_keyword !== undefined) updates.chatbot_stop_keyword = chatbot_stop_keyword
+      if (chatbot_stop_minutes !== undefined) updates.chatbot_stop_minutes = chatbot_stop_minutes
 
       const { error } = await supabase.from('whatsapp_module_config').update(updates).eq('id', 1)
       if (error) throw error

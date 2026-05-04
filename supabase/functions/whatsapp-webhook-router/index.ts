@@ -22,26 +22,18 @@ interface WaMessage {
   messageTimestamp?: number
   pushName?: string
   contextInfo?: {
-    stanzaId?: string          // ID da mensagem quotada
+    stanzaId?: string
     quotedMessage?: Record<string, unknown>
-    participant?: string       // em grupos: quem enviou
+    participant?: string
   }
-  // uazapi v2 pode trazer mídia já em base64 ou URL
   mediaUrl?: string
   mediaBase64?: string
 }
 
 interface WaWebhookPayload {
   event: string
-  instance: string       // instance_key configurado no create
-  data: {
-    messages?: WaMessage[]
-    // connection.update
-    state?: string
-    phoneNumber?: string
-    // outros eventos
-    [key: string]: unknown
-  }
+  instance: string
+  data: Record<string, unknown>
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -80,7 +72,7 @@ function extractMsgType(msg: WaMessage): string {
 
 function isAuthorized(req: Request): boolean {
   const secret = Deno.env.get('WHATSAPP_WEBHOOK_SECRET') || ''
-  if (!secret) return true  // sem secret configurado aceita tudo (dev)
+  if (!secret) return true
   const url = new URL(req.url)
   return url.searchParams.get('secret') === secret
 }
@@ -124,7 +116,6 @@ async function upsertConversation(
     .maybeSingle()
 
   if (existing) {
-    // Atualiza nome do contato e timestamp se diferente
     await supabase
       .from('whatsapp_conversations')
       .update({ contact_name: contactName, ultimo_contato: new Date().toISOString() })
@@ -188,16 +179,27 @@ async function saveMessage(
   return data.id
 }
 
-// ─── Handler de connection.update ────────────────────────────────────────────
+// ─── Handler de connection event ──────────────────────────────────────────────
 
-async function handleConnectionUpdate(
+async function handleConnectionEvent(
   supabase: ReturnType<typeof createClient>,
   instanceKey: string,
-  data: WaWebhookPayload['data'],
+  data: Record<string, unknown>,
 ): Promise<void> {
-  const rawState: string = (data.state as string) || ''
+  // Suporta ambos os formatos: { state, phoneNumber } e { instance: { status }, status: { jid } }
+  const rawState =
+    (data.state as string) ||
+    (data.instance as any)?.status ||
+    (data.status as any)?.state ||
+    ''
+
   const connected = rawState === 'open' || rawState === 'connected'
-  const phone: string = (data.phoneNumber as string) || ''
+
+  const jid = (data.status as any)?.jid || ''
+  const phone =
+    (data.phoneNumber as string) ||
+    (jid ? jid.split('@')[0] : '') ||
+    ''
 
   const updates: Record<string, unknown> = {
     status: connected ? 'conectado' : 'desconectado',
@@ -212,10 +214,19 @@ async function handleConnectionUpdate(
     .eq('instance_key', instanceKey)
 }
 
+// ─── Normalizar mensagens do payload ─────────────────────────────────────────
+// uazapi pode enviar: { data: { messages: [...] } } (array)
+//                  ou: { data: { key: ..., message: ... } }  (mensagem direta)
+
+function extractMessages(data: Record<string, unknown>): WaMessage[] {
+  if (Array.isArray(data.messages)) return data.messages as WaMessage[]
+  if (data.key) return [data as unknown as WaMessage]
+  return []
+}
+
 // ─── Handler principal ────────────────────────────────────────────────────────
 
 Deno.serve(async (req: Request) => {
-  // Webhook só aceita POST
   if (req.method !== 'POST') {
     return new Response('Method Not Allowed', { status: 405 })
   }
@@ -249,48 +260,38 @@ Deno.serve(async (req: Request) => {
 
     if (!instance) {
       console.warn(`[webhook-router] instância desconhecida: ${instanceKey}`)
-      return new Response('OK', { status: 200 })  // aceita mas ignora
+      return new Response('OK', { status: 200 })
     }
 
     // ── 2. Evento de conexão ────────────────────────────────────────────────
-    if (event === 'connection.update') {
-      await handleConnectionUpdate(supabase, instanceKey, data)
+    // Aceita tanto "connection" (uazapi docs) como "connection.update" (legado)
+    if (event === 'connection' || event === 'connection.update') {
+      await handleConnectionEvent(supabase, instanceKey, data)
       return new Response('OK', { status: 200 })
     }
 
     // ── 3. Evento de mensagem ───────────────────────────────────────────────
-    if (event === 'messages.upsert' && Array.isArray(data.messages)) {
-      for (const msg of data.messages) {
-        const jid: string = msg.key?.remoteJid || ''
-        if (!jid) continue
+    // Aceita tanto "messages" (uazapi docs) como "messages.upsert" (legado)
+    if (event === 'messages' || event === 'messages.upsert') {
+      const messages = extractMessages(data)
 
-        // Mensagens de status do WhatsApp são ignoradas
-        if (jid === 'status@broadcast') continue
+      for (const msg of messages) {
+        const jid: string = msg.key?.remoteJid || ''
+        if (!jid || jid === 'status@broadcast') continue
 
         const fromMe: boolean = msg.key.fromMe === true
         const phone = cleanPhone(jid)
         const contactName = msg.pushName || phone
         const isGroupMsg = isGroup(jid)
 
-        // ── 3a. Buscar/criar conversa ───────────────────────────────────────
         const conversation = await upsertConversation(
-          supabase,
-          instance.id,
-          phone,
-          contactName,
-          null,
+          supabase, instance.id, phone, contactName, null,
         )
 
-        // ── 3b. Salvar mensagem ─────────────────────────────────────────────
         const messageDbId = await saveMessage(
-          supabase,
-          conversation.id,
-          msg,
-          fromMe ? 'enviada' : 'recebida',
+          supabase, conversation.id, msg, fromMe ? 'enviada' : 'recebida',
         )
 
-        // ── 3c. Roteamento ──────────────────────────────────────────────────
-        // Só processa mensagens RECEBIDAS — enviadas são apenas logadas
         if (fromMe) continue
 
         const routePayload = {
@@ -311,13 +312,10 @@ Deno.serve(async (req: Request) => {
         }
 
         if (isGroupMsg) {
-          // → Módulo Feira (T04)
           await invokeSubHandler(supabaseUrl, serviceRoleKey, 'whatsapp-group-handler', routePayload)
         } else if (instance.tipo === 'executivo') {
-          // → Monitoramento executivo + co-piloto (T16)
           await invokeSubHandler(supabaseUrl, serviceRoleKey, 'whatsapp-executive-handler', routePayload)
         } else {
-          // → Chatbot / resposta leads (T10–T14)
           await invokeSubHandler(supabaseUrl, serviceRoleKey, 'whatsapp-bot-handler', routePayload)
         }
       }
@@ -326,7 +324,6 @@ Deno.serve(async (req: Request) => {
     return new Response('OK', { status: 200 })
   } catch (err: any) {
     console.error('[webhook-router] erro:', err.message)
-    // Sempre retorna 200 para o uazapi.dev não ficar reprocessando
     return new Response('OK', { status: 200 })
   }
 })
